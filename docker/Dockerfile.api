@@ -1,0 +1,25 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+RUN npx nx build api
+
+# ---
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY --from=builder /app/dist/apps/api/ ./
+RUN npm install --omit=dev
+
+USER node
+
+ENV API_PORT=3333
+EXPOSE 3333
+
+CMD ["node", "main.js"]

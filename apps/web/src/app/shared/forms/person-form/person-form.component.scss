@@ -1,0 +1,97 @@
+@use '../../../styles/base.scss' as *;
+@use '../../../styles/forms.scss' as *;
+
+.person-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing;
+}
+
+.field-group {
+  margin-bottom: $spacing-small;
+}
+
+.field-optional {
+  font-size: $font-size-small;
+  font-weight: normal;
+  color: $text-color;
+  opacity: $dimmed-extra;
+  background-color: $lighter-background-color;
+  padding: 2px $spacing-small;
+  border-radius: $border-radius-small;
+}
+
+.field-double {
+  display: flex;
+  gap: $spacing;
+
+  .field {
+    flex: 1;
+    margin-bottom: 0;
+  }
+}
+
+.dob-fields {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+}
+
+.dob-field {
+  margin-bottom: 0;
+
+  input {
+    width: 60px;
+    text-align: center;
+  }
+}
+
+.dob-field-year {
+  input {
+    width: 80px;
+  }
+}
+
+.dob-separator {
+  font-size: $font-size-large;
+  opacity: $dimmed-extra;
+}
+
+select {
+  width: 100%;
+}
+
+.phone-input-wrapper {
+  display: flex;
+  gap: $spacing-small;
+  align-items: center;
+}
+
+.phone-country-select {
+  width: auto;
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.phone-number-input {
+  flex: 1;
+}
+
+@media only screen and (max-width: 600px) {
+  .field-double {
+    flex-direction: column;
+  }
+
+  .dob-fields {
+    flex-wrap: wrap;
+  }
+
+  .phone-input-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .phone-country-select {
+    width: 100%;
+  }
+}

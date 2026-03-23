@@ -1,0 +1,19 @@
+@use '../../../styles/base.scss' as *;
+
+.loader-wrapper {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $background-color;
+  z-index: 10;
+  transition: $transition;
+}
+
+.fade {
+  opacity: 0;
+}

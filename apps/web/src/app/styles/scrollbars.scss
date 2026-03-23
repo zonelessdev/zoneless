@@ -1,0 +1,34 @@
+@use './base.scss' as *;
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(92, 92, 133, 0.5) rgba(42, 42, 69, 0.2);
+}
+
+::-webkit-scrollbar {
+  width: $spacing-small;
+  height: $spacing-small;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(42, 42, 69, 0.2);
+  border-radius: $border-radius-small;
+  margin: $spacing-extra-small;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(92, 92, 133, 0.5);
+  border-radius: $border-radius-small;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(92, 92, 133, 0.8);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}

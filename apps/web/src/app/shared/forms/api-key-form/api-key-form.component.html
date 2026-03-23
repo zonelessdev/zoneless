@@ -1,0 +1,115 @@
+<div class="api-key-form">
+  @if (createdToken) {
+  <!-- Success state showing the token -->
+  <div class="api-key-created-success">
+    <div class="success-icon">✓</div>
+    <p class="success-message">
+      Your API key has been created. Copy and save the key below — you won't be
+      able to see it again.
+    </p>
+    <div class="token-container">
+      <div class="token-label">API Key</div>
+      <div class="token-value">
+        <code>{{ createdToken }}</code>
+        <button
+          type="button"
+          class="copy-button"
+          title="Copy to clipboard"
+          (click)="CopyTokenToClipboard()"
+        >
+          <img src="assets/icons/content_copy.svg" alt="Copy" />
+        </button>
+      </div>
+    </div>
+    <button
+      type="button"
+      class="action-button action-button-dainty"
+      (click)="OnDoneClick()"
+    >
+      Done
+    </button>
+  </div>
+  } @else {
+  <!-- Header (create mode only) -->
+  @if (mode === 'create') {
+  <h1>Create API key</h1>
+  <p>
+    Create a new API key to authenticate your platform's requests. Keep this key
+    secure and never expose it publicly.
+  </p>
+  }
+
+  <!-- Name Field -->
+  <div class="field">
+    <div class="field-title">Name</div>
+    <p class="field-help">
+      A descriptive name to help you identify this API key.
+    </p>
+    <div class="field-value">
+      <input
+        [ngModel]="name()"
+        (ngModelChange)="OnNameChange($event)"
+        type="text"
+        placeholder="e.g., Production API Key"
+        [class.field-error]="showErrors && nameError()"
+      />
+    </div>
+    @if (showErrors && nameError()) {
+    <div class="error">{{ nameError() }}</div>
+    }
+  </div>
+
+  <!-- Status Toggle (edit mode only) -->
+  @if (mode === 'edit') {
+  <div class="field">
+    <div class="field-title">Status</div>
+    <div class="status-options">
+      <label class="status-option">
+        <input
+          type="radio"
+          name="status"
+          value="active"
+          [checked]="status() === 'active'"
+          (change)="OnStatusChange('active')"
+        />
+        <span class="status-label">Active</span>
+        <span class="status-description"
+          >This key can be used for API requests</span
+        >
+      </label>
+      <label class="status-option">
+        <input
+          type="radio"
+          name="status"
+          value="inactive"
+          [checked]="status() === 'inactive'"
+          (change)="OnStatusChange('inactive')"
+        />
+        <span class="status-label">Inactive</span>
+        <span class="status-description"
+          >This key cannot be used until re-enabled</span
+        >
+      </label>
+    </div>
+  </div>
+
+  <!-- Read-only info for edit mode -->
+  <div class="field">
+    <div class="field-title">Key details</div>
+    <div class="key-details">
+      <div class="key-detail-row">
+        <span class="key-detail-label">Token</span>
+        <span class="key-detail-value monospace">{{ GetTokenDisplay() }}</span>
+      </div>
+      <div class="key-detail-row">
+        <span class="key-detail-label">Created</span>
+        <span class="key-detail-value">{{ GetCreatedDisplay() }}</span>
+      </div>
+      <div class="key-detail-row">
+        <span class="key-detail-label">Last used</span>
+        <span class="key-detail-value">{{ GetLastUsedDisplay() }}</span>
+      </div>
+    </div>
+  </div>
+  } }
+</div>

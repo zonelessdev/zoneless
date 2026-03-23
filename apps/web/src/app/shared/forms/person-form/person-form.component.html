@@ -1,0 +1,208 @@
+<div class="person-form">
+  <!-- Header (onboard mode only) -->
+  @if (mode === 'onboard') {
+  <h1>Verify your personal details</h1>
+  <p>
+    This information helps verify your identity and keep your account secure.
+    @if(configService.HasPrivacyUrl()){ For more information, review
+    {{ configService.GetPlatformName() }}'s
+    <a [href]="configService.GetPrivacyUrl()" class="uline" target="_blank"
+      >Privacy Policy</a
+    >. }
+  </p>
+  }
+
+  <!-- Legal Name -->
+  <div class="field-group">
+    <div class="field-title">Your legal name</div>
+    <div class="field-double">
+      <div class="field">
+        <input
+          [ngModel]="firstName()"
+          (ngModelChange)="OnFirstNameChange($event)"
+          class="field-value"
+          type="text"
+          placeholder="First name"
+          [maxlength]="NAME_MAX_LENGTH"
+          [class.field-error]="showErrors && firstNameError()"
+        />
+        @if (showErrors && firstNameError()) {
+        <div class="error">{{ firstNameError() }}</div>
+        }
+      </div>
+      <div class="field">
+        <input
+          [ngModel]="lastName()"
+          (ngModelChange)="OnLastNameChange($event)"
+          class="field-value"
+          type="text"
+          placeholder="Last name"
+          [maxlength]="NAME_MAX_LENGTH"
+          [class.field-error]="showErrors && lastNameError()"
+        />
+        @if (showErrors && lastNameError()) {
+        <div class="error">{{ lastNameError() }}</div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Email Address -->
+  <div class="field">
+    <div class="field-title">Email address</div>
+    <input
+      [ngModel]="email()"
+      (ngModelChange)="OnEmailChange($event)"
+      class="field-value"
+      type="email"
+      placeholder="email@example.com"
+      [class.field-error]="showErrors && emailError()"
+    />
+    @if (showErrors && emailError()) {
+    <div class="error">{{ emailError() }}</div>
+    }
+  </div>
+
+  <!-- Date of Birth -->
+  <div class="field-group">
+    <div class="field-title">Date of birth</div>
+    <div class="dob-fields">
+      <div class="field dob-field">
+        <input
+          [ngModel]="dobDay() ?? ''"
+          (ngModelChange)="OnDobDayChange($event)"
+          class="field-value"
+          type="number"
+          placeholder="DD"
+          min="1"
+          max="31"
+          [class.field-error]="showErrors && dobError()"
+        />
+      </div>
+      <span class="dob-separator">/</span>
+      <div class="field dob-field">
+        <input
+          [ngModel]="dobMonth() ?? ''"
+          (ngModelChange)="OnDobMonthChange($event)"
+          class="field-value"
+          type="number"
+          placeholder="MM"
+          min="1"
+          max="12"
+          [class.field-error]="showErrors && dobError()"
+        />
+      </div>
+      <span class="dob-separator">/</span>
+      <div class="field dob-field dob-field-year">
+        <input
+          [ngModel]="dobYear() ?? ''"
+          (ngModelChange)="OnDobYearChange($event)"
+          class="field-value"
+          type="number"
+          placeholder="YYYY"
+          min="1900"
+          [class.field-error]="showErrors && dobError()"
+        />
+      </div>
+    </div>
+    @if (showErrors && dobError()) {
+    <div class="error">{{ dobError() }}</div>
+    }
+  </div>
+
+  <!-- Home Address -->
+  <div class="field-group">
+    <div class="field-title">Home address</div>
+
+    <div class="field">
+      <select
+        [ngModel]="addressCountry()"
+        (ngModelChange)="OnAddressCountryChange($event)"
+        [class.field-error]="showErrors && addressError() && !addressCountry()"
+      >
+        <option selected disabled value="">Select country</option>
+        @for (iso of ISO_CODES; track iso.code) {
+        <option [value]="iso.code">{{ iso.emoji }} {{ iso.country }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="field">
+      <input
+        [ngModel]="addressLine1()"
+        (ngModelChange)="OnAddressLine1Change($event)"
+        class="field-value"
+        type="text"
+        placeholder="Address line 1"
+        [class.field-error]="showErrors && addressError() && !addressLine1()"
+      />
+    </div>
+
+    <div class="field">
+      <input
+        [ngModel]="addressLine2()"
+        (ngModelChange)="OnAddressLine2Change($event)"
+        class="field-value"
+        type="text"
+        placeholder="Address line 2 (optional)"
+      />
+    </div>
+
+    <div class="field">
+      <input
+        [ngModel]="addressCity()"
+        (ngModelChange)="OnAddressCityChange($event)"
+        class="field-value"
+        type="text"
+        placeholder="City"
+        [class.field-error]="showErrors && addressError() && !addressCity()"
+      />
+    </div>
+
+    <div class="field">
+      <input
+        [ngModel]="addressPostalCode()"
+        (ngModelChange)="OnAddressPostalCodeChange($event)"
+        class="field-value"
+        type="text"
+        placeholder="Postal code"
+        [class.field-error]="
+          showErrors && addressError() && !addressPostalCode()
+        "
+      />
+    </div>
+
+    @if (showErrors && addressError()) {
+    <div class="error">{{ addressError() }}</div>
+    }
+  </div>
+
+  <!-- Phone Number -->
+  <div class="field">
+    <div class="field-title">Phone number</div>
+    <div class="phone-input-wrapper">
+      <select
+        class="phone-country-select"
+        [ngModel]="phoneCountryCode()"
+        (ngModelChange)="OnPhoneCountryCodeChange($event)"
+      >
+        @for (country of ISO_CODES; track country.code) {
+        <option [value]="country.code">
+          {{ country.emoji }} {{ country.dialCode }}
+        </option>
+        }
+      </select>
+      <input
+        [ngModel]="phoneNumber()"
+        (ngModelChange)="OnPhoneNumberChange($event)"
+        class="field-value phone-number-input"
+        type="tel"
+        [placeholder]="GetPhonePlaceholder()"
+        [class.field-error]="showErrors && phoneError()"
+      />
+    </div>
+    @if (showErrors && phoneError()) {
+    <div class="error">{{ phoneError() }}</div>
+    }
+  </div>
+</div>

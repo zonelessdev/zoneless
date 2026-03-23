@@ -1,0 +1,53 @@
+@use './base.scss' as *;
+
+// Collapsible Section Styles
+// Usage: Add .collapsible-toggle to the clickable header,
+// and .collapsible-content to the expandable content area.
+
+.collapsible-toggle {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+  cursor: pointer;
+  font-size: $font-size;
+  color: $base-color;
+  transition: opacity $transition;
+
+  &:hover {
+    opacity: $dimmed;
+  }
+
+  .collapsible-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    transition: transform $transition;
+
+    &.expanded {
+      transform: rotate(90deg);
+    }
+  }
+
+  .collapsible-text {
+    font-weight: 500;
+  }
+}
+
+.collapsible-content {
+  background-color: $mid-background-color;
+  border: 1px solid $lighter-background-color;
+  border-radius: $border-radius;
+  padding: $spacing;
+  animation: collapsibleSlideDown $transition ease-out;
+}
+
+@keyframes collapsibleSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

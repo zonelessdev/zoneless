@@ -1,0 +1,98 @@
+@use 'sass:color';
+@use '../../../styles/base.scss' as *;
+
+.platform-logo-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-small;
+}
+
+.logo-circle {
+  border-radius: $border-radius-small;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.platform-logo-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.platform-logo-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    $base-color 0%,
+    color.adjust($base-color, $lightness: -15%) 100%
+  );
+  color: white;
+  font-family: $title-font;
+  font-weight: $title-weight;
+  user-select: none;
+}
+
+.platform-name {
+  font-family: $title-font;
+  font-weight: $title-weight;
+  white-space: nowrap;
+}
+
+// Theme variants
+.theme-light .platform-name {
+  color: $text-color;
+}
+
+.theme-dark .platform-name {
+  color: white;
+}
+
+.small {
+  .logo-circle {
+    width: 24px;
+    height: 24px;
+  }
+
+  .platform-logo-initials {
+    font-size: 10px;
+  }
+
+  .platform-name {
+    font-size: $font-size;
+  }
+}
+
+.medium {
+  .logo-circle {
+    width: 32px;
+    height: 32px;
+  }
+
+  .platform-logo-initials {
+    font-size: $font-size-small;
+  }
+
+  .platform-name {
+    font-size: $font-size-large;
+  }
+}
+
+.large {
+  .logo-circle {
+    width: 40px;
+    height: 40px;
+  }
+
+  .platform-logo-initials {
+    font-size: $font-size;
+  }
+
+  .platform-name {
+    font-size: $font-size-extra-large;
+  }
+}

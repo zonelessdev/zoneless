@@ -1,0 +1,139 @@
+<div class="external-wallet-form">
+  <!-- Header (onboard mode only) -->
+  @if (mode === 'onboard') {
+  <h1>Add your payout wallet</h1>
+  <p>
+    Enter your Solana wallet address to receive USDC payouts. USDC is a
+    stablecoin pegged 1:1 to the US dollar.
+  </p>
+  }
+
+  <!-- Wallet Guide Toggle -->
+  <div
+    class="collapsible-toggle"
+    tabindex="0"
+    role="button"
+    (click)="ToggleWalletGuide()"
+    (keydown.enter)="ToggleWalletGuide()"
+    (keydown.space)="ToggleWalletGuide(); $event.preventDefault()"
+  >
+    <svg
+      class="collapsible-icon"
+      [class.expanded]="showWalletGuide()"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M9 6L15 12L9 18"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+    <span class="collapsible-text">Don't have a wallet yet?</span>
+  </div>
+
+  <!-- Expandable Wallet Guide -->
+  @if (showWalletGuide()) {
+  <div class="collapsible-content wallet-guide">
+    <div class="guide-header">
+      <span>Get started with</span>
+      <img
+        src="assets/icons/phantom-wallet.svg"
+        alt="Phantom"
+        class="phantom-logo"
+      />
+      <span>in 3 steps</span>
+    </div>
+    <div class="guide-steps">
+      <div class="guide-step">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <div class="step-title">Download Phantom</div>
+          <div class="step-description">
+            Visit
+            <a
+              href="https://phantom.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              >phantom.app</a
+            >
+            and install the browser extension or mobile app.
+          </div>
+        </div>
+      </div>
+      <div class="guide-step">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <div class="step-title">Create your wallet</div>
+          <div class="step-description">
+            Follow the setup wizard. Save your recovery phrase securely — never
+            share it with anyone.
+          </div>
+        </div>
+      </div>
+      <div class="guide-step">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <div class="step-title">Copy your address</div>
+          <div class="step-description">
+            Click your wallet name at the top to copy your Solana address, then
+            paste it below.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  }
+
+  <div class="wallet-info">
+    <div class="wallet-info-row">
+      <span class="info-label">Network:</span>
+      <img
+        src="assets/images/logos/solana.svg"
+        alt="Solana"
+        class="info-logo"
+      />
+      <span class="info-value">Solana</span>
+    </div>
+    <div class="wallet-info-row">
+      <span class="info-label">Currency:</span>
+      <img src="assets/images/logos/usdc.svg" alt="USDC" class="info-logo" />
+      <span class="info-value">USDC</span>
+    </div>
+  </div>
+
+  <div class="field">
+    <div class="field-title">Solana Wallet Address</div>
+    <p class="field-help">
+      Make sure this address supports USDC on the Solana network.
+    </p>
+    <div class="field-value field-with-status">
+      <input
+        [ngModel]="walletAddress()"
+        (ngModelChange)="OnWalletAddressChange($event)"
+        type="text"
+        placeholder="e.g., 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"
+        [class.field-error]="showErrors && walletAddressError()"
+      />
+      @if (validationStatus() === 'valid') {
+      <div class="status-badge valid">✓</div>
+      } @if (validationStatus() === 'invalid') {
+      <div class="status-badge invalid">✗</div>
+      }
+    </div>
+    @if (showErrors && walletAddressError()) {
+    <div class="error">{{ walletAddressError() }}</div>
+    }
+  </div>
+
+  <div class="warning-box">
+    <div class="warning-icon">⚠</div>
+    <div class="warning-text">
+      <strong>Important:</strong> Double-check your wallet address. Funds sent
+      to an incorrect address cannot be recovered.
+    </div>
+  </div>
+</div>

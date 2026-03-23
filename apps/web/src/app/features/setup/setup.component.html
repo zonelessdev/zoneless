@@ -1,0 +1,405 @@
+<div class="setup-wrapper">
+  <app-page-loader [loading]="loading()"></app-page-loader>
+
+  <div class="setup-container">
+    <!-- Progress indicator -->
+    @if(step() !== STEPS.WELCOME && step() !== STEPS.COMPLETE) {
+    <div class="progress-bar">
+      <div
+        class="progress-fill"
+        [style.width.%]="(GetStepNumber() / GetTotalSteps()) * 100"
+      ></div>
+    </div>
+    }
+
+    <!-- Step 1: Welcome -->
+    @if(step() === STEPS.WELCOME) {
+    <div class="setup-content welcome-content">
+      <img
+        class="welcome-logo"
+        src="assets/images/logos/logo-blue-200h.png"
+        alt="Zoneless"
+      />
+      <h1>Welcome to Zoneless</h1>
+      <p class="welcome-subtitle">
+        The open-source Stripe Connect alternative for USDC payouts.
+      </p>
+
+      <div class="feature-list">
+        <div class="feature-item">
+          <img
+            class="feature-icon"
+            src="assets/icons/bolt_outline.svg"
+            alt=""
+          />
+          <div class="feature-text">
+            <strong>Instant payouts</strong>
+            <span>Instant USDC payouts to your sellers</span>
+          </div>
+        </div>
+        <div class="feature-item">
+          <img
+            class="feature-icon"
+            src="assets/icons/globe_outline.svg"
+            alt=""
+          />
+          <div class="feature-text">
+            <strong>Global payouts</strong>
+            <span>Payouts to anywhere in the world</span>
+          </div>
+        </div>
+        <div class="feature-item">
+          <img
+            class="feature-icon"
+            src="assets/icons/savings_outline.svg"
+            alt=""
+          />
+          <div class="feature-text">
+            <strong>Near-zero fees</strong>
+            <span>No platform fees — just minimal Solana gas</span>
+          </div>
+        </div>
+        <div class="feature-item">
+          <img
+            class="feature-icon"
+            src="assets/icons/lock_open_right_outline.svg"
+            alt=""
+          />
+          <div class="feature-text">
+            <strong>No lock-in</strong>
+            <span>Fully open-source and free to use</span>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="action-button" (click)="Next()">
+        Get Started
+      </button>
+
+      <p class="setup-note">
+        This setup will only take a minute. You'll need to configure your
+        platform details and Solana wallet.
+      </p>
+    </div>
+    }
+
+    <!-- Step 2: Platform Details -->
+    @if(step() === STEPS.PLATFORM) {
+    <div class="setup-content">
+      <button type="button" class="back-button" (click)="Back()">← Back</button>
+
+      <h1>Platform Details</h1>
+      <p class="step-description">
+        Configure your platform's name and branding.
+      </p>
+
+      <div class="form-group">
+        <label for="platformName">Platform Name *</label>
+        <input
+          type="text"
+          id="platformName"
+          [ngModel]="platformName()"
+          (ngModelChange)="platformName.set($event)"
+          placeholder="My Marketplace"
+          class="form-input"
+        />
+        <span class="field-help"
+          >This will be shown to your users during onboarding.</span
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="platformLogo">Logo URL (optional)</label>
+        <input
+          type="url"
+          id="platformLogo"
+          [ngModel]="platformLogoUrl()"
+          (ngModelChange)="platformLogoUrl.set($event)"
+          placeholder="https://example.com/logo.png"
+          class="form-input"
+        />
+        <span class="field-help"
+          >A square image works best. If not provided, initials will be
+          shown.</span
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="termsUrl">Terms of Service URL (optional)</label>
+        <input
+          type="url"
+          id="termsUrl"
+          [ngModel]="termsUrl()"
+          (ngModelChange)="termsUrl.set($event)"
+          placeholder="https://example.com/terms"
+          class="form-input"
+        />
+        <span class="field-help"
+          >Your platform's Terms of Service page. Shown to sellers during
+          onboarding.</span
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="privacyUrl">Privacy Policy URL (optional)</label>
+        <input
+          type="url"
+          id="privacyUrl"
+          [ngModel]="privacyUrl()"
+          (ngModelChange)="privacyUrl.set($event)"
+          placeholder="https://example.com/privacy"
+          class="form-input"
+        />
+        <span class="field-help"
+          >Your platform's Privacy Policy page. Shown to sellers during
+          onboarding.</span
+        >
+      </div>
+
+      @if(error()) {
+      <div class="error-message">{{ error() }}</div>
+      }
+
+      <button type="button" class="action-button" (click)="Next()">
+        Continue
+      </button>
+    </div>
+    }
+
+    <!-- Step 3: Wallet Setup -->
+    @if(step() === STEPS.WALLET) {
+    <div class="setup-content">
+      <button type="button" class="back-button" (click)="Back()">← Back</button>
+
+      <h1>Solana Wallet</h1>
+      <p class="step-description">
+        Configure your platform's Solana wallet for receiving USDC deposits and
+        sending payouts. Your wallet's secret key is generated locally and never
+        sent to Zoneless.
+      </p>
+
+      <div class="wallet-options">
+        <label
+          class="wallet-option"
+          [class.selected]="walletOption() === 'generate'"
+        >
+          <input
+            type="radio"
+            name="walletOption"
+            value="generate"
+            [checked]="walletOption() === 'generate'"
+            (change)="OnWalletOptionChange('generate')"
+          />
+          <div class="option-content">
+            <span class="option-title">Generate a new wallet</span>
+            <span class="option-description">
+              Create a new Solana keypair in your browser. You must save the
+              secret key securely - it won't be shown again.
+            </span>
+          </div>
+        </label>
+
+        <label
+          class="wallet-option"
+          [class.selected]="walletOption() === 'import'"
+        >
+          <input
+            type="radio"
+            name="walletOption"
+            value="import"
+            [checked]="walletOption() === 'import'"
+            (change)="OnWalletOptionChange('import')"
+          />
+          <div class="option-content">
+            <span class="option-title">Use an existing wallet</span>
+            <span class="option-description">
+              Enter your existing Solana wallet address. You keep your own
+              secret key.
+            </span>
+          </div>
+        </label>
+      </div>
+
+      @if(walletOption() === 'generate') { @if(!walletGenerated()) {
+      <!-- Generate button -->
+      <div class="generate-section">
+        @if(generatingWallet()) {
+        <div class="action-button secondary loader-button">
+          <app-loader size="small" color="default"></app-loader>
+        </div>
+        } @else {
+        <button
+          type="button"
+          class="action-button secondary"
+          (click)="GenerateWallet()"
+        >
+          Generate Wallet
+        </button>
+        }
+      </div>
+      } @else {
+      <!-- Generated wallet display -->
+      <div class="generated-wallet">
+        <div class="wallet-warning">
+          <strong>Save your secret key now!</strong>
+          <p>
+            This is the only time you will see your secret key. Store it
+            securely - you'll need it to sign transactions from your server.
+          </p>
+        </div>
+
+        <div class="credential-card">
+          <div class="credential-header">
+            <span class="credential-label">Wallet Address (Public Key)</span>
+            <button
+              type="button"
+              class="copy-button"
+              (click)="CopyToClipboard(generatedPublicKey(), 'gen_public')"
+            >
+              {{ copiedField() === 'gen_public' ? 'Copied' : 'Copy' }}
+            </button>
+          </div>
+          <div class="credential-value mono">{{ generatedPublicKey() }}</div>
+          <span class="credential-help">
+            Send USDC to this address to top up your platform balance.
+          </span>
+        </div>
+
+        <div class="credential-card danger">
+          <div class="credential-header">
+            <span class="credential-label">Secret Key</span>
+            <button
+              type="button"
+              class="copy-button"
+              (click)="CopyToClipboard(generatedSecretKey(), 'gen_secret')"
+            >
+              {{ copiedField() === 'gen_secret' ? 'Copied' : 'Copy' }}
+            </button>
+          </div>
+          <div class="credential-value mono secret">
+            {{ generatedSecretKey() }}
+          </div>
+          <span class="credential-help warning">
+            Store this securely on your server. You'll use it to sign payout
+            transactions. This key is never sent to Zoneless.
+          </span>
+        </div>
+      </div>
+      } } @if(walletOption() === 'import') {
+      <div class="import-fields">
+        <div class="form-group">
+          <label for="importPublicKey">Wallet Address (Public Key) *</label>
+          <input
+            type="text"
+            id="importPublicKey"
+            [ngModel]="importPublicKey()"
+            (ngModelChange)="importPublicKey.set($event)"
+            placeholder="86UwRzGshf..."
+            class="form-input mono"
+          />
+          <span class="field-help">
+            Enter your Solana wallet address. Keep your secret key safe on your
+            own server - you'll use it to sign payout transactions.
+          </span>
+        </div>
+      </div>
+      } @if(error()) {
+      <div class="error-message">{{ error() }}</div>
+      }
+
+      <!-- Show Complete Setup button only when ready -->
+      @if(walletOption() === 'import' || walletGenerated()) { @if(submitting())
+      {
+      <div class="action-button loader-button">
+        <app-loader size="small" color="light"></app-loader>
+      </div>
+      } @else {
+      <button type="button" class="action-button" (click)="Next()">
+        Complete Setup
+      </button>
+      } }
+    </div>
+    }
+
+    <!-- Step 4: Complete -->
+    @if(step() === STEPS.COMPLETE && setupResult()) {
+    <div class="setup-content complete-content">
+      <img
+        class="success-icon"
+        src="assets/icons/verified_user.svg"
+        alt="Success"
+      />
+      <h1>Setup Complete!</h1>
+      <p class="step-description">
+        Your platform is configured and ready to use. Save your API key below -
+        <strong>it won't be shown again.</strong>
+      </p>
+
+      <div class="credentials-section">
+        <div class="credential-card danger">
+          <div class="credential-header">
+            <span class="credential-label">API Key</span>
+            <button
+              type="button"
+              class="copy-button"
+              (click)="CopyToClipboard(setupResult()!.api_key, 'api_key')"
+            >
+              {{ copiedField() === 'api_key' ? 'Copied' : 'Copy' }}
+            </button>
+          </div>
+          <div class="credential-value mono secret">
+            {{ setupResult()!.api_key }}
+          </div>
+          <span class="credential-help warning">
+            Save this now — it won't be shown again. Use this key to
+            authenticate API requests from your application.
+          </span>
+        </div>
+
+        <div class="credential-card">
+          <div class="credential-header">
+            <span class="credential-label">Solana Wallet Address</span>
+            <button
+              type="button"
+              class="copy-button"
+              (click)="
+                CopyToClipboard(
+                  setupResult()!.solana_public_key,
+                  'solana_public'
+                )
+              "
+            >
+              {{ copiedField() === 'solana_public' ? 'Copied' : 'Copy' }}
+            </button>
+          </div>
+          <div class="credential-value mono">
+            {{ setupResult()!.solana_public_key }}
+          </div>
+          <span class="credential-help">
+            Send USDC to this address to top up your platform balance.
+          </span>
+        </div>
+      </div>
+
+      <div class="next-steps">
+        <h3>Next Steps</h3>
+        <ol>
+          <li>Save your API key - you'll need it to make API requests</li>
+          @if(walletOption() === 'generate') {
+          <li>
+            Save your secret key securely on your server (shown in previous
+            step)
+          </li>
+          }
+          <li>Fund your Solana wallet with SOL (for fees) and USDC</li>
+          <li>Integrate the Zoneless API into your application</li>
+        </ol>
+      </div>
+
+      <button type="button" class="action-button" (click)="GoToDashboard()">
+        Go to Dashboard
+      </button>
+    </div>
+    }
+  </div>
+</div>

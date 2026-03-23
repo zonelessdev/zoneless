@@ -1,0 +1,183 @@
+@use '../../../styles/base.scss' as *;
+@use '../../../styles/forms.scss' as *;
+@use '../../../styles/buttons.scss' as *;
+
+.api-key-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing;
+}
+
+h1 {
+  font-size: 20px;
+  font-weight: $title-weight;
+  margin: 0 0 $spacing-small 0;
+}
+
+p {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+  margin: 0 0 $spacing 0;
+  line-height: 1.5;
+}
+
+.status-options {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-small;
+}
+
+.status-option {
+  display: flex;
+  flex-direction: column;
+  padding: $spacing;
+  background-color: $light-background-color;
+  border-radius: $border-radius-small;
+  cursor: pointer;
+  transition: background-color $transition;
+
+  &:hover {
+    background-color: $lighter-background-color;
+  }
+
+  input[type='radio'] {
+    display: none;
+  }
+
+  &:has(input:checked) {
+    background-color: $lighter-background-color;
+    outline: 2px solid $base-color;
+  }
+}
+
+.status-label {
+  font-size: $font-size;
+  font-weight: $title-weight;
+  margin-bottom: $spacing-extra-small;
+}
+
+.status-description {
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed;
+}
+
+.key-details {
+  background-color: $light-background-color;
+  border-radius: $border-radius-small;
+  padding: $spacing;
+}
+
+.key-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-small 0;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid $lightest-background-color;
+  }
+}
+
+.key-detail-label {
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed;
+}
+
+.key-detail-value {
+  font-size: $font-size;
+  color: $text-color;
+
+  &.monospace {
+    font-family: monospace;
+    font-size: $font-size-small;
+    background-color: $lighter-background-color;
+    padding: $spacing-extra-small $spacing-small;
+    border-radius: $border-radius-small;
+  }
+}
+
+.api-key-created-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: $spacing;
+}
+
+.success-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border-radius: 50%;
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: $spacing;
+}
+
+.success-message {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+  margin-bottom: $spacing-large;
+  line-height: 1.5;
+  max-width: 350px;
+}
+
+.token-container {
+  width: 100%;
+  background-color: $light-background-color;
+  border-radius: $border-radius;
+  padding: $spacing;
+  margin-bottom: $spacing-large;
+  text-align: left;
+}
+
+.token-label {
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed;
+  margin-bottom: $spacing-small;
+}
+
+.token-value {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+
+  code {
+    flex: 1;
+    font-family: monospace;
+    font-size: $font-size-small;
+    background-color: $lighter-background-color;
+    padding: $spacing-small;
+    border-radius: $border-radius-small;
+    word-break: break-all;
+  }
+}
+
+.copy-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: $spacing-small;
+  border-radius: $border-radius-small;
+  opacity: $dimmed;
+  transition: opacity $transition;
+
+  &:hover {
+    opacity: 1;
+    background-color: $lighter-background-color;
+  }
+
+  img {
+    width: 18px;
+    height: 18px;
+  }
+}

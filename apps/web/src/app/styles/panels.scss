@@ -1,0 +1,336 @@
+@use './base.scss' as *;
+
+// =============================================================================
+// PANELS.SCSS
+// Shared styles for slide panel content (detail views, transaction details, etc.)
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Panel Container
+// -----------------------------------------------------------------------------
+.panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-large;
+}
+
+// -----------------------------------------------------------------------------
+// Amount Header
+// Used for displaying large monetary values at the top of detail panels
+// -----------------------------------------------------------------------------
+.panel-amount-header {
+  text-align: left;
+  padding-bottom: $spacing;
+  border-bottom: 1px solid $lightest-background-color;
+}
+
+.panel-amount-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+  margin-bottom: $spacing-small;
+}
+
+.panel-amount-value {
+  font-size: 32px;
+  font-weight: 600;
+  font-family: $title-font;
+  color: $text-color;
+}
+
+.panel-amount-negative {
+  color: $text-color;
+}
+
+.panel-amount-currency {
+  font-size: $font-size-med;
+  color: $text-color;
+  opacity: $dimmed-extra;
+  font-weight: 500;
+}
+
+.panel-subtitle {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+}
+
+// -----------------------------------------------------------------------------
+// Sections
+// Used for grouping related content within panels
+// -----------------------------------------------------------------------------
+.panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing;
+}
+
+.panel-section-title {
+  font-size: $font-size-med;
+  font-weight: $title-weight;
+  font-family: $title-font;
+  color: $text-color;
+  margin: 0;
+  padding-bottom: $spacing-small;
+  border-bottom: 1px solid $lightest-background-color;
+}
+
+// -----------------------------------------------------------------------------
+// Detail Rows
+// Key-value pair display pattern
+// -----------------------------------------------------------------------------
+.panel-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: $spacing;
+}
+
+.panel-label {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+  flex-shrink: 0;
+}
+
+.panel-value {
+  font-size: $font-size;
+  color: $text-color;
+  text-align: right;
+  word-break: break-word;
+}
+
+// -----------------------------------------------------------------------------
+// ID / Copyable Text
+// Monospace text with copy button
+// -----------------------------------------------------------------------------
+.panel-id-wrapper {
+  display: flex;
+  align-items: center;
+  gap: $spacing-extra-small;
+}
+
+.panel-id-text {
+  font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed;
+}
+
+.panel-id-text-truncate {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-copy-button {
+  background: none;
+  border: none;
+  padding: $spacing-extra-small;
+  cursor: pointer;
+  border-radius: $border-radius-small;
+  transition: background-color $transition-fast;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: $lighter-background-color;
+  }
+
+  img {
+    width: 16px;
+    height: 16px;
+    opacity: $dimmed;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Metadata / Monospace Keys
+// -----------------------------------------------------------------------------
+.panel-metadata-key {
+  font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: $font-size-small;
+}
+
+// -----------------------------------------------------------------------------
+// Badge / Pill Styles
+// Small inline elements with icon + text
+// -----------------------------------------------------------------------------
+.panel-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-small;
+  background-color: $light-background-color;
+  padding: $spacing-extra-small $spacing-small;
+  border-radius: $border-radius-small;
+}
+
+.panel-badge-icon {
+  width: 18px;
+  height: 18px;
+  opacity: $dimmed;
+}
+
+.panel-badge-text {
+  font-size: $font-size;
+  color: $text-color;
+}
+
+.panel-badge-mono {
+  font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+}
+
+.panel-link {
+  font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: $font-size-small;
+  color: $base-color;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: opacity $transition-fast;
+
+  &:hover {
+    opacity: $dimmed;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Timeline
+// Vertical timeline with dots and connecting lines
+// -----------------------------------------------------------------------------
+.panel-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  padding-left: $spacing-large;
+}
+
+.panel-timeline-item {
+  position: relative;
+  padding-bottom: $spacing;
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.panel-timeline-dot {
+  position: absolute;
+  left: -$spacing-large;
+  top: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: $lightest-background-color;
+  border: 2px solid $light-background-color;
+
+  &.active {
+    background-color: $success-green;
+    border-color: rgba($success-green, 0.2);
+  }
+}
+
+.panel-timeline-line {
+  position: absolute;
+  left: calc(-#{$spacing-large} + 5px);
+  top: 14px;
+  bottom: -$spacing-small;
+  width: 2px;
+  background-color: $lightest-background-color;
+}
+
+.panel-timeline-item:last-child .panel-timeline-line {
+  display: none;
+}
+
+.panel-timeline-title {
+  font-size: $font-size;
+  font-weight: 500;
+  color: $text-color;
+  margin-bottom: $spacing-extra-small;
+}
+
+.panel-timeline-date {
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed;
+}
+
+// -----------------------------------------------------------------------------
+// Alert / Error Sections
+// -----------------------------------------------------------------------------
+.panel-section-error {
+  background-color: #fef2f2;
+  border-radius: $border-radius-small;
+  padding: $spacing;
+
+  .panel-section-title {
+    color: #dc2626;
+    border-bottom-color: #fecaca;
+  }
+}
+
+.panel-error-code {
+  font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: $font-size-small;
+  color: #dc2626;
+}
+
+// -----------------------------------------------------------------------------
+// Action Buttons within Panels
+// -----------------------------------------------------------------------------
+.panel-action-button {
+  margin-top: $spacing-small;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-small;
+  width: fit-content;
+
+  .panel-action-icon {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Loading State
+// -----------------------------------------------------------------------------
+.panel-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+// -----------------------------------------------------------------------------
+// Mobile Adjustments
+// -----------------------------------------------------------------------------
+@media only screen and (max-width: 600px) {
+  .panel-amount-value {
+    font-size: 28px;
+  }
+
+  .panel-row {
+    flex-direction: column;
+    gap: $spacing-extra-small;
+  }
+
+  .panel-value {
+    text-align: left;
+  }
+
+  .panel-id-text-truncate {
+    max-width: 140px;
+  }
+}

@@ -1,0 +1,154 @@
+@use './base.scss' as *;
+
+.button,
+.action-button {
+  font-family: $title-font;
+  font-weight: $title-weight;
+}
+
+.action-button {
+  font-weight: 500;
+  background-color: $button-color;
+  color: $background-color;
+  font-size: $font-size-large;
+  display: inline-flex;
+  align-items: center;
+  border-radius: $border-radius-small;
+  padding: $spacing-small $spacing;
+  cursor: pointer;
+  transition: $transition ease;
+  gap: $spacing-extra-small;
+  border: none;
+  outline: none;
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px $background-color, 0 0 0 4px $base-color;
+  }
+}
+
+.loader-button {
+  height: 43px;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.big-button {
+  font-size: 20px;
+  padding: 12px 24px;
+  min-height: 40px;
+  box-shadow: 0 2px 8px rgba(255, 122, 118, 0.25);
+}
+
+.action-button-white {
+  background-color: $text-color;
+  background-image: none;
+}
+
+.action-button:hover {
+  transform: translateY(-1px);
+  -webkit-box-shadow: 0px 5px 20px 10px rgba(0, 0, 0, 0.15);
+  box-shadow: 0px 5px 20px 10px rgba(0, 0, 0, 0.15);
+}
+
+.action-button:active {
+  transform: translateY(0px);
+  -webkit-box-shadow: 0px 5px 20px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 5px 20px 10px rgba(0, 0, 0, 0.1);
+}
+
+.big-button.action-button:hover {
+  -webkit-box-shadow: 0px 5px 20px 10px rgba(0, 0, 0, 0.35);
+  box-shadow: 0px 5px 20px 10px rgba(0, 0, 0, 0.35);
+}
+
+.big-button.action-button:active {
+  -webkit-box-shadow: 0px 5px 20px 10px rgba(0, 0, 0, 0.25);
+  box-shadow: 0px 5px 20px 10px rgba(0, 0, 0, 0.25);
+}
+
+.loader-button.action-button:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.action-button-dainty {
+  font-size: $font-size-small;
+  width: auto !important;
+  height: auto !important;
+  border-radius: $border-radius-small;
+}
+
+.action-button-small {
+  padding: $spacing-extra-small $spacing-small;
+  height: 24px;
+  font-size: $font-size-small;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: $transition;
+  background-image: none;
+  background-color: $text-color;
+  border-radius: $border-radius-small;
+  border: none;
+  outline: none;
+}
+
+.action-button-filled {
+  background-image: $button-color;
+  color: $background-color;
+  transition: $transition;
+  -webkit-transition: opacity $transition ease;
+  transition: opacity $transition ease;
+}
+
+.action-button-small:hover {
+  opacity: $dimmed;
+}
+
+.action-button-wide {
+  width: 100%;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+}
+
+.outline {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: $text-color;
+  background-image: none;
+  background-color: transparent;
+}
+
+.outline-transparent {
+  background-color: transparent;
+}
+
+.action-button img {
+  height: 22px;
+  width: 22px;
+}
+
+.action-button-dainty img {
+  height: 18px;
+  width: 18px;
+}
+
+.action-button-small img {
+  height: 16px;
+  width: 16px;
+}
+
+.action-button-disabled {
+  opacity: $dimmed-extra;
+  cursor: default;
+}
+
+.action-button-disabled:hover {
+  opacity: $dimmed-extra;
+}

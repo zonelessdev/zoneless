@@ -1,0 +1,153 @@
+<div class="panel-content">
+  <!-- Amount Header -->
+  <div class="panel-amount-header">
+    <div class="panel-amount-row">
+      <span class="panel-amount-value">
+        <span class="panel-amount-positive">+</span>
+        <span>${{ GetAmount() | number : '1.2-2' }}</span>
+      </span>
+      <span class="panel-amount-currency">{{ GetCurrency() }}</span>
+      <app-status-chip [status]="GetStatus()"></app-status-chip>
+    </div>
+    @if (GetStatus() === 'succeeded' && GetArrivalDate()) {
+    <div class="panel-subtitle">
+      Completed {{ GetArrivalDate() | date : 'EEEE, d MMMM' }}
+    </div>
+    }
+  </div>
+
+  <!-- Overview Section -->
+  <div class="panel-section">
+    <h3 class="panel-section-title">Overview</h3>
+
+    <!-- Sender Wallet -->
+    @if (GetSenderAddress()) {
+    <div class="panel-row">
+      <span class="panel-label">From</span>
+      <span class="panel-value">
+        <div class="panel-badge">
+          <img
+            src="assets/icons/account_balance_wallet_outline.svg"
+            alt="Wallet"
+            class="panel-badge-icon"
+          />
+          <span class="panel-badge-text panel-badge-mono">
+            {{ GetSenderAddressShort() }}
+          </span>
+        </div>
+      </span>
+    </div>
+    }
+
+    <div class="panel-row">
+      <span class="panel-label">Amount</span>
+      <span class="panel-value"
+        >${{ GetAmount() | number : '1.2-2' }} {{ GetCurrency() }}</span
+      >
+    </div>
+
+    <div class="panel-row">
+      <span class="panel-label">Type</span>
+      <span class="panel-value">Crypto Deposit</span>
+    </div>
+
+    <div class="panel-row">
+      <span class="panel-label">Network</span>
+      <span class="panel-value">{{ GetNetwork() }}</span>
+    </div>
+
+    @if (GetDescription()) {
+    <div class="panel-row">
+      <span class="panel-label">Description</span>
+      <span class="panel-value">{{ GetDescription() }}</span>
+    </div>
+    }
+
+    <div class="panel-row">
+      <span class="panel-label">Top-up ID</span>
+      <span class="panel-value panel-id-wrapper">
+        <span class="panel-id-text">{{ GetId() }}</span>
+        <button
+          type="button"
+          class="panel-copy-button"
+          (click)="CopyToClipboard(GetId())"
+          title="Copy ID"
+        >
+          <img src="assets/icons/content_copy.svg" alt="Copy" />
+        </button>
+      </span>
+    </div>
+  </div>
+
+  <!-- Blockchain Section -->
+  @if (GetBlockchainTx()) {
+  <div class="panel-section">
+    <h3 class="panel-section-title">Blockchain</h3>
+
+    <div class="panel-row">
+      <span class="panel-label">Transaction</span>
+      <span class="panel-value panel-id-wrapper">
+        <span class="panel-id-text panel-id-text-truncate">{{
+          GetBlockchainTx()
+        }}</span>
+        <button
+          type="button"
+          class="panel-copy-button"
+          (click)="CopyToClipboard(GetBlockchainTx() || '')"
+          title="Copy transaction hash"
+        >
+          <img src="assets/icons/content_copy.svg" alt="Copy" />
+        </button>
+      </span>
+    </div>
+
+    @if (GetExplorerUrl()) {
+    <button
+      type="button"
+      class="action-button action-button-dainty outline panel-action-button"
+      (click)="OnViewOnBlockchain()"
+    >
+      <span>View on blockchain</span>
+      <img
+        src="assets/icons/arrow_forward.svg"
+        alt="View"
+        class="panel-action-icon"
+      />
+    </button>
+    }
+  </div>
+  }
+
+  <!-- Failure Section -->
+  @if (GetFailureMessage()) {
+  <div class="panel-section panel-section-error">
+    <h3 class="panel-section-title">Failure details</h3>
+
+    @if (GetFailureCode()) {
+    <div class="panel-row">
+      <span class="panel-label">Code</span>
+      <span class="panel-value panel-error-code">{{ GetFailureCode() }}</span>
+    </div>
+    }
+
+    <div class="panel-row">
+      <span class="panel-label">Message</span>
+      <span class="panel-value">{{ GetFailureMessage() }}</span>
+    </div>
+  </div>
+  }
+
+  <!-- Metadata Section -->
+  @if (GetMetadataEntries().length > 0) {
+  <div class="panel-section">
+    <h3 class="panel-section-title">Metadata</h3>
+
+    @for (entry of GetMetadataEntries(); track entry.key) {
+    <div class="panel-row">
+      <span class="panel-label panel-metadata-key">{{ entry.key }}</span>
+      <span class="panel-value">{{ entry.value }}</span>
+    </div>
+    }
+  </div>
+  }
+</div>

@@ -1,0 +1,60 @@
+@if (isVisible()) {
+<div
+  class="slide-panel-backdrop"
+  role="presentation"
+  tabindex="-1"
+  (click)="OnBackdropClick()"
+  (keydown.escape)="OnBackdropClick()"
+>
+  <div
+    class="slide-panel"
+    role="dialog"
+    [class.slide-panel-open]="isAnimating()"
+    [class.slide-panel-view-only]="viewOnly"
+    (click)="OnPanelClick($event)"
+    (keydown)="OnPanelClick($event)"
+  >
+    <div class="slide-panel-header">
+      <h2>{{ title }}</h2>
+      <button
+        type="button"
+        class="slide-panel-close"
+        (click)="OnCancel()"
+        [disabled]="loading"
+      >
+        <img src="assets/icons/close.svg" alt="Close" />
+      </button>
+    </div>
+
+    <div class="slide-panel-content">
+      <ng-content></ng-content>
+    </div>
+
+    @if (!viewOnly) {
+    <div class="slide-panel-footer">
+      <button
+        type="button"
+        class="action-button action-button-dainty outline"
+        (click)="OnCancel()"
+        [disabled]="loading"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="action-button action-button-dainty"
+        [class.loader-button]="loading"
+        [disabled]="loading || submitDisabled"
+        (click)="OnSubmit()"
+      >
+        @if (loading) {
+        <app-loader size="small" color="light"></app-loader>
+        } @else {
+        {{ submitLabel }}
+        }
+      </button>
+    </div>
+    }
+  </div>
+</div>
+}

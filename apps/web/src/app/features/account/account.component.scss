@@ -1,0 +1,252 @@
+@use '../../styles/base.scss' as *;
+@use '../../styles/buttons.scss' as *;
+
+.site-wrapper-dashboard {
+  padding: 0;
+  max-width: none;
+  margin: 0;
+  flex-direction: column;
+  display: flex;
+  height: 100vh;
+}
+
+.account-content-wrapper {
+  display: flex;
+  flex: 1;
+  min-height: 300px;
+}
+
+.sidebar-wrapper {
+  height: 100%;
+}
+
+.content-wrapper {
+  flex: 1;
+  padding: $spacing-large $spacing-extra-large;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.header-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: $title-weight;
+  margin: 0;
+}
+
+h2.section-title {
+  font-size: 20px;
+  font-weight: $title-weight;
+  margin: 0 0 $spacing 0;
+}
+
+.section-description {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.balance-label {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+  margin-bottom: $spacing-extra-small;
+}
+
+.balance-wrapper {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: $spacing;
+  gap: $spacing-small;
+}
+
+.balance {
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.balance-secondary {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.currency-label {
+  font-size: $font-size-small;
+  opacity: $dimmed-extra;
+}
+
+.balance-details-button {
+  margin-left: $spacing-small;
+  font-size: $font-size-small;
+}
+
+.view-section {
+  margin-bottom: $spacing-extra-large;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing;
+}
+
+.settings-section-title {
+  font-size: $font-size-med;
+  font-weight: $title-weight;
+  font-family: $title-font;
+  color: $text-color;
+  margin-bottom: $spacing;
+}
+
+.section-header .settings-section-title {
+  margin-bottom: 0;
+}
+
+.tab-bar {
+  display: flex;
+  gap: 0;
+  margin-bottom: $spacing-large;
+  border-bottom: 1px solid $lightest-background-color;
+}
+
+.tab-button {
+  font-family: $text-font;
+  font-size: $font-size;
+  font-weight: 600;
+  padding: $spacing-small $spacing;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $text-color;
+  opacity: $dimmed;
+  position: relative;
+  transition: $transition-fast;
+  margin-bottom: -1px;
+}
+
+.tab-button:hover {
+  opacity: $dimmed;
+  color: $base-color;
+}
+
+.tab-active {
+  opacity: 1;
+  color: $base-color;
+}
+
+.tab-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: $base-color;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-extra-large;
+  background-color: $light-background-color;
+  border-radius: $border-radius;
+  text-align: center;
+}
+
+.empty-state-icon {
+  width: 48px;
+  height: 48px;
+  opacity: $dimmed-extra;
+  margin-bottom: $spacing;
+}
+
+.empty-state-title {
+  font-size: $font-size-large;
+  font-weight: $title-weight;
+  margin-bottom: $spacing-small;
+}
+
+.empty-state-description {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+  margin-bottom: $spacing-large;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.webhook-card {
+  margin-bottom: $spacing;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.api-key-card {
+  margin-bottom: $spacing;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.button-icon {
+  width: 16px;
+  height: 16px;
+  filter: $background-color-filter;
+}
+
+@media only screen and (max-width: 1000px) {
+  .content-wrapper {
+    padding: $spacing;
+  }
+
+  .account-content-wrapper {
+    display: block;
+  }
+
+  .sidebar-wrapper {
+    height: auto;
+  }
+
+  .views-wrapper {
+    padding: $spacing;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  .balance {
+    font-size: 28px;
+  }
+
+  .balance-secondary {
+    font-size: 20px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing;
+  }
+}

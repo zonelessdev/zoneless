@@ -1,0 +1,18 @@
+<div class="platform-logo-wrapper" [class]="size + ' theme-' + theme">
+  <div class="logo-circle">
+    @if (HasLogo()) {
+    <img
+      class="platform-logo-image"
+      [src]="GetLogoUrl()"
+      [alt]="GetPlatformName()"
+    />
+    } @else {
+    <div class="platform-logo-initials">
+      {{ GetInitials() }}
+    </div>
+    }
+  </div>
+  @if (showName) {
+  <span class="platform-name">{{ GetPlatformName() }}</span>
+  }
+</div>

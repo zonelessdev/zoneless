@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/zoneless/zoneless#readme
+    about: Check the README for setup and usage instructions
+  - name: Discussions
+    url: https://github.com/zoneless/zoneless/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: Security Issues
+    url: https://github.com/zoneless/zoneless/security/advisories/new
+    about: Report security vulnerabilities privately

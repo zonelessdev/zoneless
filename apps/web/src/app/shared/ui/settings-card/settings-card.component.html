@@ -1,0 +1,41 @@
+<div class="settings-card">
+  <div class="settings-card-header">
+    <div class="settings-card-title">{{ title }}</div>
+    <div class="settings-card-actions">
+      @for (action of actions; track action.id) {
+      <button
+        type="button"
+        class="settings-card-action"
+        [class.settings-card-action-danger]="action.variant === 'danger'"
+        [title]="action.label"
+        (click)="OnActionClick(action.id)"
+      >
+        <img [src]="'assets/icons/' + action.icon" [alt]="action.label" />
+      </button>
+      } @if (showEditButton) {
+      <button type="button" class="settings-card-edit" (click)="OnEditClick()">
+        {{ editLabel }}
+      </button>
+      }
+    </div>
+  </div>
+
+  <div class="settings-card-rows">
+    @for (row of rows; track row.label) {
+    <div class="settings-card-row">
+      <div class="settings-card-label">{{ row.label }}</div>
+      <div
+        class="settings-card-value"
+        [class.settings-card-value-multiline]="row.type === 'multiline'"
+      >
+        @if (row.type === 'multiline' && IsArray(row.value)) { @for (line of
+        AsArray(row.value); track line) {
+        <div class="settings-card-value-line">{{ line }}</div>
+        } } @else {
+        {{ AsString(row.value) || '—' }}
+        }
+      </div>
+    </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,51 @@
+<div class="platform-login-wrapper">
+  <div class="login-card">
+    <div class="login-header">
+      <img
+        src="assets/images/logos/logo-blue-200h.png"
+        alt="Zoneless"
+        class="logo"
+      />
+      <h1>Platform Login</h1>
+      <p class="subtitle">Sign in with your API key</p>
+    </div>
+
+    <div class="login-form">
+      <div class="field">
+        <label class="field-title" for="apiKey">API Key</label>
+        <input
+          type="password"
+          id="apiKey"
+          placeholder="sk_live_z_..."
+          [ngModel]="apiKey()"
+          (ngModelChange)="apiKey.set($event)"
+          (keyup.enter)="LoginWithApiKey()"
+          [disabled]="submitting()"
+        />
+      </div>
+
+      @if (error()) {
+      <div class="error-message">{{ error() }}</div>
+      }
+
+      <button
+        class="action-button action-button-wide"
+        (click)="LoginWithApiKey()"
+        [disabled]="submitting()"
+        [class.loader-button]="submitting()"
+      >
+        @if (submitting()) {
+        <app-loader size="small" color="light"></app-loader>
+        } @else { Sign In }
+      </button>
+    </div>
+
+    <div class="login-footer">
+      <p>
+        Enter the API key you received during setup.
+        <br />
+        Connected accounts should use a login link.
+      </p>
+    </div>
+  </div>
+</div>

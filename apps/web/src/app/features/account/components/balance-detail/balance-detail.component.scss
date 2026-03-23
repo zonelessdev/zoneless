@@ -1,0 +1,85 @@
+@use '../../../../styles/base.scss' as *;
+@use '../../../../styles/buttons.scss' as *;
+@use '../../../../styles/panels.scss' as *;
+
+.balance-value {
+  font-weight: 600;
+}
+
+.currency-tag {
+  font-size: $font-size-small;
+  opacity: $dimmed-extra;
+  font-weight: 400;
+}
+
+.balance-owed {
+  color: #dc2626;
+}
+
+.breakdown-divider {
+  border-top: 1px solid $lightest-background-color;
+  margin: $spacing-extra-small 0;
+}
+
+.breakdown-total-label {
+  font-weight: 600;
+  opacity: 1;
+}
+
+.breakdown-total-value {
+  font-weight: 600;
+}
+
+.sync-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-small;
+  padding: $spacing;
+  background-color: #fef3c7;
+  border-radius: $border-radius-small;
+  font-size: $font-size;
+  color: #92400e;
+  line-height: 1.4;
+}
+
+.sync-warning-icon {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  margin-top: 1px;
+  filter: brightness(0) saturate(100%) invert(25%) sepia(99%) saturate(1000%)
+    hue-rotate(15deg);
+}
+
+.sync-ok {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+  padding: $spacing;
+  background-color: #ecfdf5;
+  border-radius: $border-radius-small;
+  font-size: $font-size;
+  color: #065f46;
+  line-height: 1.4;
+}
+
+.sync-ok-icon {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  filter: brightness(0) saturate(100%) invert(27%) sepia(91%) saturate(600%)
+    hue-rotate(130deg) brightness(95%) contrast(95%);
+}
+
+.sync-button {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-small;
+  width: fit-content;
+}
+
+.sync-btn-icon {
+  width: 16px;
+  height: 16px;
+  opacity: $dimmed;
+}

@@ -1,0 +1,91 @@
+<div class="side-menu-wrapper" [class.expanded-side-menu]="expanded()">
+  <!-- Platform Logo -->
+  <div class="side-menu-top">
+    <app-platform-logo
+      [size]="expanded() ? 'small' : 'small'"
+      [showName]="expanded()"
+    ></app-platform-logo>
+  </div>
+
+  <div class="sub-menus-wrapper">
+    @for (subMenu of sideMenu; track $index) {
+    <ul>
+      @for (sideMenuItem of subMenu; track sideMenuItem.id) { @if
+      (!sideMenuItem.hidden) {
+      <li [class.bottom-item-mobile]="sideMenuItem.bottom">
+        <a
+          class="side-menu-item"
+          [class.desktop-hidden]="sideMenuItem.bottom"
+          tabindex="0"
+          (click)="SelectItem(sideMenuItem.id)"
+          (keyup.enter)="SelectItem(sideMenuItem.id)"
+        >
+          <img
+            class="menu-icon icon large-icon"
+            [class.menu-icon-selected]="selected === sideMenuItem.id"
+            [src]="'assets/icons/' + sideMenuItem.icon"
+            [alt]="sideMenuItem.title"
+          />
+          @if (expanded()) {
+          <span
+            class="side-menu-text"
+            [class.text-selected]="selected === sideMenuItem.id"
+          >
+            {{ sideMenuItem.title }}
+          </span>
+          }
+        </a>
+      </li>
+      } }
+    </ul>
+    }
+  </div>
+  <div class="side-menu-bottom">
+    <!-- Bottom menu items (desktop only) -->
+    @for (subMenu of sideMenu; track $index) { @for (sideMenuItem of subMenu;
+    track sideMenuItem.id) { @if (!sideMenuItem.hidden && sideMenuItem.bottom) {
+    <ul class="bottom-menu-items">
+      <li>
+        <a
+          class="side-menu-item"
+          tabindex="0"
+          (click)="SelectItem(sideMenuItem.id)"
+          (keyup.enter)="SelectItem(sideMenuItem.id)"
+        >
+          <img
+            class="menu-icon icon large-icon"
+            [class.menu-icon-selected]="selected === sideMenuItem.id"
+            [src]="'assets/icons/' + sideMenuItem.icon"
+            [alt]="sideMenuItem.title"
+          />
+          @if (expanded()) {
+          <span
+            class="side-menu-text"
+            [class.text-selected]="selected === sideMenuItem.id"
+          >
+            {{ sideMenuItem.title }}
+          </span>
+          }
+        </a>
+      </li>
+    </ul>
+    } } }
+    <!-- Toggle sidebar button -->
+    <ul class="toggle-button-wrapper">
+      <li [class.expanded-bottom]="expanded()">
+        <a
+          class="side-menu-item"
+          tabindex="0"
+          (click)="ToggleSidebar()"
+          (keyup.enter)="ToggleSidebar()"
+        >
+          <img
+            class="menu-icon icon large-icon"
+            src="assets/icons/arrow_forward.svg"
+            alt="Toggle sidebar"
+          />
+        </a>
+      </li>
+    </ul>
+  </div>
+</div>

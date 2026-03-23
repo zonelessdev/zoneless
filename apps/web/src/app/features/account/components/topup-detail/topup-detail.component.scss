@@ -1,0 +1,6 @@
+@use '../../../../styles/panels.scss' as *;
+@use '../../../../styles/buttons.scss' as *;
+
+.panel-amount-positive {
+  color: var(--color-success, #22c55e);
+}

@@ -1,0 +1,11 @@
+@use '../../../../styles/panels.scss' as *;
+@use '../../../../styles/buttons.scss' as *;
+@use '../../../../styles/base.scss' as *;
+
+// Connected account detail specific styles
+.panel-account-name {
+  font-size: 24px;
+  font-weight: 600;
+  font-family: $title-font;
+  color: $text-color;
+}

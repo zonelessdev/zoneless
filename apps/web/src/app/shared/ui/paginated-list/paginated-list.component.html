@@ -1,0 +1,101 @@
+<table>
+  @if (!hideColumnHeadings) {
+  <thead>
+    <tr>
+      @for (column of columns; track column.field) {
+      <th>{{ column.header }}</th>
+      }
+    </tr>
+  </thead>
+  }
+  <tbody>
+    @if (!loading() && items().length > 0) { @for (item of items(); track
+    item.id) {
+    <tr class="row" (click)="OnRowClick(item)">
+      @for (column of columns; track column.field) {
+      <td>
+        <div
+          class="data-cell"
+          [class.bold-cell]="column.bolded"
+          [class.dimmed-cell]="column.dimmed"
+        >
+          @switch (column.type) { @case ('currency') {
+          <span
+            >${{ GetItemNumber(item, column.field) | number : '1.2-2' }}</span
+          >
+          } @case ('currency-with-code') { @let formatted =
+          GetFormattedCurrency(item, column.field, column.currencyField ||
+          'currency');
+          <span class="currency-value">
+            @if (formatted.isNegative) {
+            <span>-</span>
+            }
+            <span>$</span>
+            <span>{{ formatted.value | number : '1.2-2' }}</span>
+            <span class="currency-code">{{ formatted.currency }}</span>
+          </span>
+          } @case ('date') {
+          <span>{{
+            GetItemDate(item, column.field) | date : 'd MMM y, HH:mm'
+          }}</span>
+          } @case ('status') {
+          <app-status-chip
+            [status]="GetItemString(item, column)"
+          ></app-status-chip>
+          } @case ('number') {
+          <span>{{
+            GetItemNumber(item, column.field) | number : '1.0-2'
+          }}</span>
+          } @default { @if (column.capitalize) {
+          <span>{{ GetItemString(item, column) | titlecase }}</span>
+          } @else {
+          <span>{{ GetItemString(item, column) }}</span>
+          } } }
+        </div>
+      </td>
+      }
+    </tr>
+    } } @if (!loading() && items().length === 0) {
+    <tr>
+      <td [attr.colspan]="columns.length" class="empty-state">
+        No items found
+      </td>
+    </tr>
+    }
+  </tbody>
+</table>
+
+@if (loading()) {
+<div class="loading-skeleton">
+  @for (i of [].constructor(limit); track $index) {
+  <div class="skeleton-row"></div>
+  }
+</div>
+} @if (paginationEnabled && items().length > 0) {
+<div class="pagination-wrapper">
+  <div class="page-info">
+    <span class="page-range">{{ GetDisplayRange() }}</span>
+    <span class="page-total"> of {{ GetTotalDisplay() }} results</span>
+  </div>
+  <div class="pagination-controls">
+    <button
+      type="button"
+      class="pagination-button"
+      [class.pagination-disabled]="pageNumber() === 0"
+      [disabled]="pageNumber() === 0"
+      (click)="PreviousPage()"
+    >
+      Previous
+    </button>
+    <button
+      type="button"
+      class="pagination-button"
+      [class.pagination-disabled]="!hasMore()"
+      [disabled]="!hasMore()"
+      (click)="NextPage()"
+    >
+      Next
+    </button>
+  </div>
+</div>
+}

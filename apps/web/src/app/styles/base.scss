@@ -1,0 +1,54 @@
+$base-color: #0055ff;
+$base-filter: brightness(0) saturate(100%) invert(30%) sepia(85%)
+  saturate(2000%) hue-rotate(210deg) brightness(95%) contrast(95%);
+
+// Typography updates
+$title-font: 'Instrument Sans', sans-serif;
+$title-weight: 600; // Slightly bolder for better hierarchy
+$text-font: 'Instrument Sans', sans-serif;
+$text-weight: 400;
+
+// Refined color palette
+$success-green: #059669; // Professional success green
+$text-color: #1e293b; // Dark slate for primary text
+$background-color: #ffffff; // Pure white background
+$background-color-filter: brightness(0) saturate(100%) invert(100%) sepia(0%)
+  saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
+$light-background-color: #f8fafc; // Slightly off-white
+$lighter-background-color: #f1f5f9; // Light gray for hover states
+$lightest-background-color: #e2e8f0; // Subtle border color
+$mid-background-color: #f8fafc; // Alternating background
+
+// Enhanced gradient
+$button-color: #0055ff;
+$button-color-reverse: linear-gradient(
+  -122deg,
+  #3b82f6,
+  #2563eb 62%,
+  #1d4ed8 100%
+);
+
+$border-radius: 12px;
+$border-radius-small: 8px;
+
+$spacing-extra-extra-large: 64px;
+$spacing-extra-large: 48px;
+$spacing-large: 32px;
+$spacing: 16px;
+$spacing-small: 8px;
+$spacing-extra-small: 4px;
+
+$font-size-extra-large: 24px;
+$font-size-large: 18px;
+$font-size-med: 16px;
+$font-size: 14px;
+$font-size-small: 12px;
+$font-size-tiny: 8px;
+
+$dimmed: 0.85;
+$dimmed-extra: 0.5;
+$dimmed-disabled: 0.3;
+
+$transition: 200ms;
+$transition-fast: 150ms;
+$transition-slow: 300ms;

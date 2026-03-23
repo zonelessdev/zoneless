@@ -1,0 +1,275 @@
+<!-- Loading State -->
+@if (state() === 'loading') {
+<div class="panel-loading">
+  <app-loader size="medium"></app-loader>
+</div>
+}
+
+<!-- Info State - Show wallet address and instructions -->
+@if (state() === 'info') {
+<div class="add-funds-content">
+  <div class="add-funds-header">
+    <img
+      class="add-funds-icon"
+      src="assets/icons/account_balance_wallet_outline.svg"
+      alt="Wallet"
+    />
+    <h3 class="add-funds-title">Add funds to your balance</h3>
+    <p class="add-funds-subtitle">
+      Send USDC on Solana to the wallet address below. Funds typically arrive
+      within 30 seconds of network confirmation.
+    </p>
+  </div>
+
+  <!-- Devnet Faucets (test mode only) -->
+  @if (IsTestMode()) {
+  <div class="testmode-section">
+    <div class="testmode-banner">
+      <span>You're in test mode. Use the buttons below to add funds.</span>
+    </div>
+
+    <div class="testmode-actions">
+      <button
+        type="button"
+        class="action-button action-button-dainty outline testmode-button"
+        (click)="OnOpenSolFaucet()"
+      >
+        <span>Get test SOL</span>
+        <img
+          src="assets/icons/arrow_forward.svg"
+          alt=""
+          class="testmode-btn-icon"
+        />
+      </button>
+
+      <button
+        type="button"
+        class="action-button action-button-dainty outline testmode-button"
+        (click)="OnOpenUsdcFaucet()"
+      >
+        <span>Get test USDC</span>
+        <img
+          src="assets/icons/arrow_forward.svg"
+          alt=""
+          class="testmode-btn-icon"
+        />
+      </button>
+    </div>
+  </div>
+  }
+
+  <!-- Wallet Address Section -->
+  <div class="wallet-address-section">
+    <div class="wallet-address-label">Your deposit address</div>
+    <div class="wallet-address-card">
+      <div class="wallet-address-value">{{ GetWalletAddress() }}</div>
+      <button
+        type="button"
+        class="wallet-copy-button"
+        (click)="CopyToClipboard(GetWalletAddress(), 'address')"
+        [class.copied]="copiedField() === 'address'"
+      >
+        @if (copiedField() === 'address') {
+        <img src="assets/icons/check.svg" alt="Copied" />
+        <span>Copied</span>
+        } @else {
+        <img src="assets/icons/content_copy.svg" alt="Copy" />
+        <span>Copy</span>
+        }
+      </button>
+    </div>
+
+    <div class="wallet-network-badge">
+      <img
+        src="assets/images/logos/solana.svg"
+        alt="Solana"
+        class="network-icon"
+      />
+      <span>Solana</span>
+      <span class="badge-separator">•</span>
+      <img src="assets/images/logos/usdc.svg" alt="USDC" class="network-icon" />
+      <span>USDC</span>
+    </div>
+  </div>
+
+  <!-- Instructions Section -->
+  <div class="instructions-section">
+    @if (IsTestMode()) {
+    <h4 class="instructions-title">How to add test funds</h4>
+    <ol class="instructions-list">
+      <li>
+        <span class="instruction-number">1</span>
+        <span class="instruction-text">Copy the wallet address above</span>
+      </li>
+      <li>
+        <span class="instruction-number">2</span>
+        <span class="instruction-text"
+          >Open the <strong>Get test SOL</strong> faucet and airdrop SOL for gas
+          fees</span
+        >
+      </li>
+      <li>
+        <span class="instruction-number">3</span>
+        <span class="instruction-text"
+          >Open the <strong>Get test USDC</strong> faucet, select
+          <strong>Solana</strong> devnet, and paste your address</span
+        >
+      </li>
+      <li>
+        <span class="instruction-number">4</span>
+        <span class="instruction-text"
+          >Click <strong>I've sent my funds</strong> below to detect the
+          deposit</span
+        >
+      </li>
+    </ol>
+    } @else {
+    <h4 class="instructions-title">How to send funds</h4>
+    <ol class="instructions-list">
+      <li>
+        <span class="instruction-number">1</span>
+        <span class="instruction-text"
+          >Open your Solana wallet (Phantom, Solflare, etc.)</span
+        >
+      </li>
+      <li>
+        <span class="instruction-number">2</span>
+        <span class="instruction-text"
+          >Select <strong>USDC</strong> and tap <strong>Send</strong></span
+        >
+      </li>
+      <li>
+        <span class="instruction-number">3</span>
+        <span class="instruction-text"
+          >Paste the wallet address above and enter the amount</span
+        >
+      </li>
+      <li>
+        <span class="instruction-number">4</span>
+        <span class="instruction-text"
+          >Confirm the transaction and wait for it to complete</span
+        >
+      </li>
+    </ol>
+    }
+  </div>
+
+  <!-- Important Notes -->
+  <div class="notes-section">
+    <div class="note-item">
+      <img src="assets/icons/info.svg" alt="Info" class="note-icon" />
+      <span
+        >Only send <strong>USDC</strong> on the <strong>Solana</strong> network.
+        Other tokens or networks will result in lost funds.</span
+      >
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="add-funds-actions">
+    <button
+      type="button"
+      class="action-button action-button-dainty"
+      (click)="OnStartWaiting()"
+    >
+      <span>I've sent my funds</span>
+    </button>
+    <button
+      type="button"
+      class="action-button action-button-dainty outline"
+      (click)="OnViewOnExplorer()"
+    >
+      <span>View wallet on explorer</span>
+      <img
+        src="assets/icons/arrow_forward.svg"
+        alt="External"
+        class="btn-icon"
+      />
+    </button>
+  </div>
+</div>
+}
+
+<!-- Waiting State - Polling for deposit -->
+@if (state() === 'waiting') {
+<div class="add-funds-content waiting-state">
+  <div class="waiting-animation">
+    <app-loader size="large"></app-loader>
+  </div>
+  <h3 class="waiting-title">Waiting for your deposit</h3>
+  <p class="waiting-subtitle">
+    We're monitoring the blockchain for your incoming USDC transfer. This
+    usually takes less than a minute.
+  </p>
+
+  <div class="waiting-address">
+    <span class="waiting-address-label">Monitoring address:</span>
+    <span class="waiting-address-value">{{ GetWalletAddressShort() }}</span>
+  </div>
+
+  <div class="waiting-tips">
+    <div class="tip-item">
+      <img src="assets/icons/check_circle.svg" alt="Tip" class="tip-icon" />
+      <span>Make sure your transaction is confirmed on Solana</span>
+    </div>
+    <div class="tip-item">
+      <img src="assets/icons/check_circle.svg" alt="Tip" class="tip-icon" />
+      <span>Ensure you sent USDC (not SOL or other tokens)</span>
+    </div>
+  </div>
+
+  <div class="waiting-actions">
+    <button
+      type="button"
+      class="action-button action-button-dainty outline"
+      (click)="OnCancelWaiting()"
+    >
+      <span>Go back</span>
+    </button>
+  </div>
+</div>
+}
+
+<!-- Success State - Deposit received -->
+@if (state() === 'success') {
+<div class="add-funds-content success-state">
+  <div class="success-animation">
+    <img
+      class="success-icon"
+      src="assets/icons/check_circle.svg"
+      alt="Success"
+    />
+  </div>
+  <h3 class="success-title">Funds received!</h3>
+  <p class="success-subtitle">
+    Your deposit has been credited to your balance.
+  </p>
+
+  <!-- Deposit Summary -->
+  <div class="deposit-summary">
+    <div class="deposit-amount">
+      <span class="amount-value"
+        >+${{ GetDepositAmount() | number : '1.2-2' }}</span
+      >
+      <span class="amount-currency">{{ GetDepositCurrency() }}</span>
+      <app-status-chip status="succeeded"></app-status-chip>
+    </div>
+
+    <div class="deposit-details">
+      @if (GetDepositDate()) {
+      <div class="deposit-row">
+        <span class="deposit-label">Received</span>
+        <span class="deposit-value">{{
+          GetDepositDate() | date : 'MMM d, h:mm a'
+        }}</span>
+      </div>
+      } @if (GetSenderAddress()) {
+      <div class="deposit-row">
+        <span class="deposit-label">From</span>
+        <span class="deposit-value deposit-mono">{{ GetSenderAddress() }}</span>
+      </div>
+      }
+    </div>
+  </div>
+</div>
+}

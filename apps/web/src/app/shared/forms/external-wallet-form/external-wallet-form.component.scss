@@ -1,0 +1,165 @@
+@use '../../../styles/base.scss' as *;
+@use '../../../styles/forms.scss' as *;
+@use '../../../styles/collapsible.scss' as *;
+
+.external-wallet-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing;
+}
+
+.wallet-info {
+  background-color: $mid-background-color;
+  border: 1px solid $lighter-background-color;
+  border-radius: $border-radius;
+  padding: $spacing;
+}
+
+.wallet-info-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+  padding: $spacing-small 0;
+
+  .info-label {
+    font-size: $font-size-med;
+    opacity: $dimmed;
+  }
+
+  .info-logo {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .info-value {
+    font-size: $font-size-med;
+    font-weight: 600;
+  }
+}
+
+.field-with-status {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+
+  input {
+    flex: 1;
+    font-family: monospace;
+    font-size: $font-size-med;
+  }
+}
+
+.status-badge {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: bold;
+  flex-shrink: 0;
+
+  &.valid {
+    background-color: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+  }
+
+  &.invalid {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+  }
+}
+
+.warning-box {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing;
+  background-color: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: $border-radius;
+  padding: $spacing;
+
+  .warning-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .warning-text {
+    font-size: $font-size-small;
+    line-height: 1.5;
+
+    strong {
+      display: block;
+      margin-bottom: $spacing-extra-small;
+    }
+  }
+}
+
+// Wallet Guide - Component-specific styles
+.wallet-guide {
+  .guide-header {
+    display: flex;
+    align-items: center;
+    gap: $spacing-extra-small;
+    margin-bottom: $spacing;
+    font-weight: 600;
+    font-size: $font-size;
+
+    .phantom-logo {
+      height: 18px;
+      width: auto;
+      position: relative;
+      top: 1px;
+    }
+  }
+
+  .guide-steps {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing;
+  }
+
+  .guide-step {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing;
+
+    .step-number {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: $base-color;
+      color: white;
+      border-radius: 50%;
+      font-size: $font-size-small;
+      font-weight: 600;
+    }
+
+    .step-content {
+      flex: 1;
+
+      .step-title {
+        font-weight: 600;
+        font-size: $font-size;
+        margin-bottom: $spacing-extra-small;
+      }
+
+      .step-description {
+        font-size: $font-size-small;
+        opacity: $dimmed;
+        line-height: 1.5;
+
+        a {
+          color: $base-color !important;
+          text-decoration: underline !important;
+          font-size: $font-size-small;
+        }
+      }
+    }
+  }
+}

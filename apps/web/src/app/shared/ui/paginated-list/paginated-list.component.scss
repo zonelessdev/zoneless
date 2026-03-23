@@ -1,0 +1,179 @@
+@use '../../../styles/base.scss' as *;
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: $font-size;
+}
+
+th,
+td {
+  text-align: left;
+  padding: $spacing-small $spacing-small;
+}
+
+th:first-child,
+td:first-child {
+  padding-left: 0;
+}
+
+th:last-child,
+td:last-child {
+  padding-right: 0;
+}
+
+th {
+  border-bottom: 1px solid $lightest-background-color;
+  font-weight: 600;
+  color: $text-color;
+  opacity: $dimmed;
+  font-size: $font-size-small;
+  padding-bottom: $spacing-small;
+}
+
+.row {
+  border-bottom: 1px solid $lighter-background-color;
+  transition: $transition-fast;
+  cursor: pointer;
+}
+
+.row:hover {
+  background-color: $light-background-color;
+}
+
+.row td {
+  padding-top: $spacing-small;
+  padding-bottom: $spacing-small;
+}
+
+.data-cell {
+  display: flex;
+  align-items: center;
+}
+
+.bold-cell {
+  font-weight: 500;
+}
+
+.dimmed-cell {
+  opacity: $dimmed;
+}
+
+.currency-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.currency-code {
+  font-size: $font-size-small;
+  opacity: $dimmed-extra;
+  font-weight: 400;
+}
+
+.empty-state {
+  text-align: center;
+  padding: $spacing-large;
+  opacity: $dimmed;
+}
+
+.loading-skeleton {
+  margin-top: $spacing-small;
+}
+
+.skeleton-row {
+  height: 40px;
+  background: linear-gradient(
+    90deg,
+    $lighter-background-color 25%,
+    $light-background-color 50%,
+    $lighter-background-color 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  margin-bottom: 1px;
+  border-radius: $border-radius-small;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: $spacing-large;
+  padding-top: $spacing;
+}
+
+.page-info {
+  font-size: $font-size;
+  color: $text-color;
+}
+
+.page-range {
+  font-weight: 500;
+}
+
+.page-total {
+  opacity: $dimmed;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: $spacing-small;
+}
+
+.pagination-button {
+  font-family: $text-font;
+  font-size: $font-size;
+  font-weight: 500;
+  padding: $spacing-small $spacing;
+  border-radius: $border-radius-small;
+  cursor: pointer;
+  transition: $transition-fast;
+  background-color: $background-color;
+  color: $text-color;
+  border: 1px solid $lightest-background-color;
+}
+
+.pagination-button:hover:not(.pagination-disabled) {
+  background-color: $light-background-color;
+}
+
+.pagination-disabled {
+  opacity: $dimmed-extra;
+  cursor: not-allowed;
+}
+
+.pagination-disabled:hover {
+  background-color: $background-color;
+}
+
+@media only screen and (max-width: 1000px) {
+  table {
+    font-size: $font-size-small;
+  }
+
+  th {
+    font-size: $font-size-small;
+  }
+
+  .pagination-wrapper {
+    flex-direction: column;
+    gap: $spacing;
+    align-items: flex-start;
+  }
+
+  .pagination-controls {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

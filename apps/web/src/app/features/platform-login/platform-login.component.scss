@@ -1,0 +1,92 @@
+@use 'sass:color';
+@use '../../styles/base.scss' as *;
+@use '../../styles/forms.scss' as *;
+@use '../../styles/buttons.scss' as *;
+
+.platform-login-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    $base-color 0%,
+    color.adjust($base-color, $lightness: -15%) 100%
+  );
+  padding: $spacing;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  padding: $spacing-extra-large;
+  background: $background-color;
+  border-radius: $border-radius;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: $spacing-large;
+
+  .logo {
+    height: 56px;
+    margin-bottom: $spacing;
+  }
+
+  h1 {
+    font-size: $font-size-extra-large;
+    font-weight: $title-weight;
+    font-family: $title-font;
+    color: $text-color;
+    margin: 0 0 $spacing-small;
+  }
+
+  .subtitle {
+    color: $text-color;
+    opacity: $dimmed;
+    font-size: $font-size;
+    margin: 0;
+  }
+}
+
+.login-form {
+  .field {
+    margin-bottom: $spacing;
+  }
+
+  input[type='password'] {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  }
+}
+
+.error-message {
+  padding: $spacing-small $spacing;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  border-radius: $border-radius-small;
+  font-size: $font-size-small;
+  margin-bottom: $spacing;
+}
+
+.action-button {
+  min-height: 48px;
+
+  &:disabled {
+    opacity: $dimmed;
+    cursor: not-allowed;
+  }
+}
+
+.login-footer {
+  margin-top: $spacing;
+  text-align: center;
+
+  p {
+    font-size: $font-size-small;
+    color: $text-color;
+    opacity: $dimmed;
+    line-height: 1.5;
+  }
+}

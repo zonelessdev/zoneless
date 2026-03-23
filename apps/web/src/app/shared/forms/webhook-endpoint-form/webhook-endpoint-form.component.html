@@ -1,0 +1,146 @@
+<div class="webhook-endpoint-form">
+  @if (createdSecret) {
+  <!-- Success state showing the secret -->
+  <div class="webhook-created-success">
+    <div class="success-icon">✓</div>
+    <p class="success-message">
+      Your webhook endpoint has been created. Copy and save the signing secret
+      below — you won't be able to see it again.
+    </p>
+    <div class="secret-container">
+      <div class="secret-label">Signing secret</div>
+      <div class="secret-value">
+        <code>{{ createdSecret }}</code>
+        <button
+          type="button"
+          class="copy-button"
+          title="Copy to clipboard"
+          (click)="CopySecretToClipboard()"
+        >
+          <img src="assets/icons/content_copy.svg" alt="Copy" />
+        </button>
+      </div>
+    </div>
+    <button
+      type="button"
+      class="action-button action-button-dainty"
+      (click)="OnDoneClick()"
+    >
+      Done
+    </button>
+  </div>
+  } @else {
+  <!-- Header (create mode only) -->
+  @if (mode === 'create') {
+  <h1>Create webhook endpoint</h1>
+  <p>
+    Set up a webhook endpoint to receive real-time event notifications from your
+    platform.
+  </p>
+  }
+
+  <!-- URL Field -->
+  <div class="field">
+    <div class="field-title">Endpoint URL</div>
+    <p class="field-help">
+      The URL where webhook events will be sent. Must be HTTPS in production.
+    </p>
+    <div class="field-value">
+      <input
+        [ngModel]="url()"
+        (ngModelChange)="OnUrlChange($event)"
+        type="text"
+        placeholder="https://example.com/webhooks"
+        [class.field-error]="showErrors && urlError()"
+      />
+    </div>
+    @if (showErrors && urlError()) {
+    <div class="error">{{ urlError() }}</div>
+    }
+  </div>
+
+  <!-- Events Field -->
+  <div class="field">
+    <div class="field-title">Events to listen for</div>
+    <p class="field-help">Select which events should trigger this webhook.</p>
+    <div class="events-selector">
+      <button
+        type="button"
+        class="events-dropdown-trigger"
+        (click)="ToggleEventsDropdown()"
+        [class.field-error]="showErrors && eventsError()"
+      >
+        <span>{{ GetSelectedEventsDisplay() }}</span>
+        <svg
+          class="dropdown-icon"
+          [class.open]="showEventsDropdown()"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M6 9L12 15L18 9"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+      @if (showEventsDropdown()) {
+      <div class="events-dropdown">
+        @for (event of eventTypes; track event.value) {
+        <label class="event-option">
+          <input
+            type="checkbox"
+            [checked]="IsEventSelected(event.value)"
+            (change)="ToggleEvent(event.value)"
+          />
+          <span class="event-label">{{ event.label }}</span>
+          @if (event.value !== '*') {
+          <span class="event-value">{{ event.value }}</span>
+          }
+        </label>
+        }
+      </div>
+      }
+    </div>
+    @if (showErrors && eventsError()) {
+    <div class="error">{{ eventsError() }}</div>
+    }
+  </div>
+
+  <!-- Description Field -->
+  <div class="field">
+    <div class="field-title">Description (optional)</div>
+    <p class="field-help">
+      An optional description to help you identify this webhook endpoint.
+    </p>
+    <div class="field-value">
+      <input
+        [ngModel]="description()"
+        (ngModelChange)="OnDescriptionChange($event)"
+        type="text"
+        placeholder="e.g., Production webhook for order notifications"
+      />
+    </div>
+  </div>
+
+  <!-- Status Toggle (edit mode only) -->
+  @if (mode === 'edit') {
+  <div class="field">
+    <div class="field-title">Status</div>
+    <label class="status-toggle">
+      <input
+        type="checkbox"
+        [ngModel]="disabled()"
+        (ngModelChange)="OnDisabledChange($event)"
+      />
+      <span class="toggle-label">Disable this webhook endpoint</span>
+    </label>
+    <p class="field-help">
+      Disabled webhooks will not receive any events until re-enabled.
+    </p>
+  </div>
+  } }
+</div>

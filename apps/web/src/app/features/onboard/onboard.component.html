@@ -1,0 +1,277 @@
+<div class="fixed-height-site-wrapper">
+  <app-page-loader [loading]="loading()"></app-page-loader>
+
+  <div class="onboard-wrapper">
+    <div class="onboard-layout">
+      @if(GetLinkContext(); as linkContext){
+      <!-- Left Panel -->
+      <div class="left-panel">
+        <div class="left-panel-content">
+          <!-- Platform Header -->
+          <div class="platform-header">
+            <app-platform-logo
+              size="medium"
+              [showName]="true"
+              theme="dark"
+            ></app-platform-logo>
+          </div>
+
+          <!-- Main Heading -->
+          <h1 class="partner-heading">
+            {{ configService.GetPlatformName() }} uses Zoneless for USDC
+            payouts.
+          </h1>
+
+          <!-- Return Link -->
+          @if(linkContext.return_url){
+          <a class="return-link" [href]="linkContext.return_url">
+            ← Return to {{ configService.GetPlatformName() }}
+          </a>
+          }
+        </div>
+
+        <!-- Footer -->
+        <div class="left-panel-footer">
+          <a href="https://zoneless.com" target="_blank">
+            <div class="powered-by">
+              <span>Powered by</span>
+              <img
+                src="assets/images/logos/zoneless-white-50h.png"
+                alt="Zoneless"
+                class="zoneless-logo"
+              />
+            </div>
+          </a>
+          @if(configService.HasTermsUrl() || configService.HasPrivacyUrl()){
+          <div class="footer-links">
+            @if(configService.HasTermsUrl()){
+            <a [href]="configService.GetTermsUrl()" target="_blank">Terms</a>
+            } @if(configService.HasPrivacyUrl()){
+            <a [href]="configService.GetPrivacyUrl()" target="_blank"
+              >Privacy</a
+            >
+            }
+          </div>
+          }
+          <div class="footer-contact">
+            Contact {{ configService.GetPlatformName() }} for support
+          </div>
+        </div>
+      </div>
+      }
+
+      <!-- Right Panel - Form Content -->
+      <div class="right-panel">
+        <div class="right-panel-content">
+          <!-- Step 1: Person Details -->
+          @if(step() === STEPS.PERSON){
+          <app-person-form
+            mode="onboard"
+            [person]="personService.person()"
+            [showErrors]="showPersonErrors()"
+            (formChange)="OnPersonFormChange()"
+            (validationChange)="OnPersonValidationChange($event)"
+          ></app-person-form>
+
+          <div class="form-navigation">
+            @if(apiError()){
+            <div class="error">{{ apiError() }}</div>
+            } @if(nextLoading()){
+            <div class="action-button action-button-wide loader-button">
+              <app-loader size="small" color="light"></app-loader>
+            </div>
+            } @else{
+            <button
+              type="button"
+              class="action-button action-button-wide"
+              (click)="Next()"
+              [class.disabled-button]="!IsNextButtonEnabled(step())"
+              [disabled]="!IsNextButtonEnabled(step())"
+            >
+              Continue
+            </button>
+            }
+          </div>
+          }
+
+          <!-- Step 2: Wallet Details -->
+          @if(step() === STEPS.WALLET){
+          <app-external-wallet-form
+            mode="onboard"
+            [wallet]="externalWalletService.wallet()"
+            [showErrors]="showWalletErrors()"
+            (validationChange)="OnWalletValidationChange($event)"
+          ></app-external-wallet-form>
+
+          <div class="form-navigation">
+            @if(apiError()){
+            <div class="error">{{ apiError() }}</div>
+            } @if(nextLoading()){
+            <div class="action-button action-button-wide loader-button">
+              <app-loader size="small" color="light"></app-loader>
+            </div>
+            } @else{
+            <button
+              type="button"
+              class="action-button action-button-wide"
+              (click)="Next()"
+              [class.disabled-button]="!IsNextButtonEnabled(step())"
+              [disabled]="!IsNextButtonEnabled(step())"
+            >
+              Continue
+            </button>
+            }
+          </div>
+          }
+
+          <!-- Step 3: Review and Submit -->
+          @if(step() === STEPS.FINISH){
+          <h1>Review and submit</h1>
+          <p>Take a moment to review your information.</p>
+
+          <div class="review-cards">
+            <!-- Personal Details Card -->
+            <div class="review-section">
+              <div class="review-section-title">Personal details</div>
+              <app-settings-card
+                [title]="personService.GetFullName(personService.person())"
+                [rows]="
+                  personService.GetSettingsCardRows(personService.person())
+                "
+                [showEditButton]="true"
+                (editClicked)="OnEditPersonClick()"
+              ></app-settings-card>
+            </div>
+
+            <!-- Wallet Details Card -->
+            <div class="review-section">
+              <div class="review-section-title">Payout wallet</div>
+              <app-settings-card
+                [title]="externalWalletService.GetWalletTitle()"
+                [rows]="externalWalletService.GetSettingsCardRows()"
+                [showEditButton]="true"
+                (editClicked)="OnEditWalletClick()"
+              ></app-settings-card>
+            </div>
+          </div>
+
+          <div class="confirmation-buttons-area">
+            @if(configService.HasTermsUrl() || configService.HasPrivacyUrl()){
+            <p class="field-help">
+              By clicking Agree and submit, you agree to
+              {{ configService.GetPlatformName() }}'s
+              @if(configService.HasTermsUrl()){
+              <a
+                [href]="configService.GetTermsUrl()"
+                class="uline"
+                target="_blank"
+                >Terms of Service</a
+              >} @if(configService.HasTermsUrl() &&
+              configService.HasPrivacyUrl()){ and }
+              @if(configService.HasPrivacyUrl()){
+              <a
+                [href]="configService.GetPrivacyUrl()"
+                class="uline"
+                target="_blank"
+                >Privacy Policy</a
+              >}.
+            </p>
+            } @if(nextLoading()){
+            <div class="action-button action-button-wide loader-button">
+              <app-loader size="small" color="light"></app-loader>
+            </div>
+            } @else{
+            <button
+              type="button"
+              class="action-button action-button-wide"
+              (click)="Next()"
+            >
+              Agree and submit
+            </button>
+            }
+          </div>
+          }
+
+          <!-- Step 4: Success -->
+          @if(step() === STEPS.SUCCESS){
+          <h1>Your account has been updated</h1>
+          <div class="feature-wrapper">
+            <div class="feature-row">
+              <app-platform-logo size="small"></app-platform-logo>
+              <div class="feature-text">
+                Next: Receive payments from
+                {{ configService.GetPlatformName() }}
+              </div>
+            </div>
+            <div class="feature-row">
+              <img
+                class="large-icon"
+                src="assets/icons/verified_user.svg"
+                alt="Secure"
+              />
+              <div class="feature-text">
+                Get paid directly to your wallet in USDC
+              </div>
+            </div>
+          </div>
+          <p class="custody-disclosure">
+            Zoneless is open-source payout software.
+            {{ configService.GetPlatformName() }} manages all fund transfers
+            directly — Zoneless never has custody of your funds.
+          </p>
+          <p class="return-note">
+            You can update your wallet or personal details anytime from your
+            account settings.
+          </p>
+          <button
+            type="button"
+            class="action-button review-applicants-button"
+            (click)="Finish()"
+          >
+            Finish Setup
+          </button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Person Slide Panel -->
+  <app-slide-panel
+    [isOpen]="editPersonPanelOpen()"
+    title="Edit personal details"
+    [loading]="editPersonLoading()"
+    submitLabel="Save"
+    [submitDisabled]="false"
+    (closed)="OnEditPersonPanelClosed()"
+    (submitted)="OnEditPersonSubmit()"
+  >
+    <app-person-form
+      #editPersonForm
+      mode="edit"
+      [person]="personService.person()"
+      [isOpen]="editPersonPanelOpen()"
+      [showErrors]="editPersonShowErrors()"
+    ></app-person-form>
+  </app-slide-panel>
+
+  <!-- Edit Wallet Slide Panel -->
+  <app-slide-panel
+    [isOpen]="editWalletPanelOpen()"
+    title="Edit payout wallet"
+    [loading]="editWalletLoading()"
+    submitLabel="Save"
+    [submitDisabled]="false"
+    (closed)="OnEditWalletPanelClosed()"
+    (submitted)="OnEditWalletSubmit()"
+  >
+    <app-external-wallet-form
+      #editWalletForm
+      mode="edit"
+      [wallet]="externalWalletService.wallet()"
+      [isOpen]="editWalletPanelOpen()"
+      [showErrors]="editWalletShowErrors()"
+      (validationChange)="OnWalletValidationChange($event)"
+    ></app-external-wallet-form>
+  </app-slide-panel>
+</div>

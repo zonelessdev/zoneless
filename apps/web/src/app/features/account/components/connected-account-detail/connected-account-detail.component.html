@@ -1,0 +1,174 @@
+<div class="panel-content">
+  <!-- Account Header -->
+  <div class="panel-amount-header">
+    <div class="panel-amount-row">
+      <span class="panel-account-name">{{ GetDisplayName() }}</span>
+      <app-status-chip [status]="GetStatus()"></app-status-chip>
+    </div>
+    <div class="panel-subtitle">
+      Connected {{ GetCreatedDate() | date : 'EEEE, d MMMM y' }}
+    </div>
+  </div>
+
+  <!-- View Dashboard Action -->
+  <button
+    type="button"
+    class="action-button action-button-dainty outline panel-action-button"
+    (click)="CopyLoginLink()"
+    [disabled]="loadingLoginLink()"
+  >
+    @if (loadingLoginLink()) {
+    <span>Copying...</span>
+    } @else if (copiedLoginLink()) {
+    <span>Copied! Open in incognito</span>
+    } @else {
+    <span>Copy login link</span>
+    }
+  </button>
+
+  <!-- Account Details Section -->
+  <div class="panel-section">
+    <h3 class="panel-section-title">Account details</h3>
+
+    <div class="panel-row">
+      <span class="panel-label">Account ID</span>
+      <span class="panel-value panel-id-wrapper">
+        <span class="panel-id-text">{{ GetId() }}</span>
+        <button
+          type="button"
+          class="panel-copy-button"
+          (click)="CopyToClipboard(GetId())"
+          title="Copy ID"
+        >
+          <img src="assets/icons/content_copy.svg" alt="Copy" />
+        </button>
+      </span>
+    </div>
+
+    @if (GetEmail()) {
+    <div class="panel-row">
+      <span class="panel-label">Email</span>
+      <span class="panel-value">{{ GetEmail() }}</span>
+    </div>
+    }
+
+    <div class="panel-row">
+      <span class="panel-label">Country</span>
+      <span class="panel-value">{{ GetCountry() }}</span>
+    </div>
+
+    <div class="panel-row">
+      <span class="panel-label">Account type</span>
+      <span class="panel-value">{{ GetAccountType() }}</span>
+    </div>
+
+    @if (GetBusinessType()) {
+    <div class="panel-row">
+      <span class="panel-label">Business type</span>
+      <span class="panel-value">{{ GetBusinessType() }}</span>
+    </div>
+    }
+  </div>
+
+  <!-- Capabilities Section -->
+  <div class="panel-section">
+    <h3 class="panel-section-title">Capabilities</h3>
+
+    <div class="panel-row">
+      <span class="panel-label">Charges enabled</span>
+      <span class="panel-value">
+        <app-status-chip
+          [status]="GetChargesEnabled() ? 'enabled' : 'restricted'"
+        ></app-status-chip>
+      </span>
+    </div>
+
+    <div class="panel-row">
+      <span class="panel-label">Payouts enabled</span>
+      <span class="panel-value">
+        <app-status-chip
+          [status]="GetPayoutsEnabled() ? 'enabled' : 'restricted'"
+        ></app-status-chip>
+      </span>
+    </div>
+
+    <div class="panel-row">
+      <span class="panel-label">Details submitted</span>
+      <span class="panel-value">{{
+        GetDetailsSubmitted() ? 'Yes' : 'No'
+      }}</span>
+    </div>
+
+    <div class="panel-row">
+      <span class="panel-label">External wallets</span>
+      <span class="panel-value">{{ GetExternalWalletsCount() }}</span>
+    </div>
+  </div>
+
+  <!-- Person Section (if available) -->
+  @if (person) {
+  <div class="panel-section">
+    <h3 class="panel-section-title">Person</h3>
+
+    @if (GetPersonFirstName()) {
+    <div class="panel-row">
+      <span class="panel-label">First name</span>
+      <span class="panel-value">{{ GetPersonFirstName() }}</span>
+    </div>
+    } @if (GetPersonLastName()) {
+    <div class="panel-row">
+      <span class="panel-label">Last name</span>
+      <span class="panel-value">{{ GetPersonLastName() }}</span>
+    </div>
+    } @if (GetEmail()) {
+    <div class="panel-row">
+      <span class="panel-label">Email</span>
+      <span class="panel-value">{{ GetEmail() }}</span>
+    </div>
+    } @if (GetPersonPhone()) {
+    <div class="panel-row">
+      <span class="panel-label">Phone</span>
+      <span class="panel-value">{{ GetPersonPhone() }}</span>
+    </div>
+    } @if (GetPersonDob()) {
+    <div class="panel-row">
+      <span class="panel-label">Date of birth</span>
+      <span class="panel-value">{{ GetPersonDob() }}</span>
+    </div>
+    }
+  </div>
+  }
+
+  <!-- Terms of Service Section -->
+  <div class="panel-section">
+    <h3 class="panel-section-title">Terms of service</h3>
+
+    <div class="panel-row">
+      <span class="panel-label">Accepted</span>
+      <span class="panel-value">{{ GetTosAccepted() ? 'Yes' : 'No' }}</span>
+    </div>
+
+    @if (GetTosAcceptedDate()) {
+    <div class="panel-row">
+      <span class="panel-label">Accepted on</span>
+      <span class="panel-value">{{
+        GetTosAcceptedDate() | date : 'd MMM y, HH:mm'
+      }}</span>
+    </div>
+    }
+  </div>
+
+  <!-- Metadata Section -->
+  @if (GetMetadataEntries().length > 0) {
+  <div class="panel-section">
+    <h3 class="panel-section-title">Metadata</h3>
+
+    @for (entry of GetMetadataEntries(); track entry.key) {
+    <div class="panel-row">
+      <span class="panel-label panel-metadata-key">{{ entry.key }}</span>
+      <span class="panel-value">{{ entry.value }}</span>
+    </div>
+    }
+  </div>
+  }
+</div>

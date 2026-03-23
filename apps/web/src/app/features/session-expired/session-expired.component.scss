@@ -1,0 +1,51 @@
+@use '../../styles/base.scss' as *;
+
+.session-expired-wrapper {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.session-expired-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: $spacing-extra-extra-large $spacing-large;
+}
+
+.session-expired-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: $spacing-large;
+  color: $text-color;
+  opacity: $dimmed;
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.session-expired-container h1 {
+  margin-bottom: $spacing;
+}
+
+.session-expired-description {
+  font-size: $font-size-large;
+  color: $text-color;
+  margin-bottom: $spacing-large;
+  line-height: 1.5;
+}
+
+.session-expired-help {
+  font-size: $font-size-med;
+  color: $text-color;
+  opacity: $dimmed;
+  margin-bottom: 0;
+}

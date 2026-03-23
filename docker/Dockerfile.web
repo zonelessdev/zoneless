@@ -1,0 +1,23 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+RUN echo 'export const environment = { production: true, apiUrl: "/v1" };' \
+  > apps/web/src/environments/environment.prod.ts
+
+RUN npx nx build web --configuration=production
+
+# ---
+
+FROM nginx:alpine
+
+COPY docker/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY --from=builder /app/dist/apps/web/browser /usr/share/nginx/html
+
+ENV API_PORT=3333
+EXPOSE 80

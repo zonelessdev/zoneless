@@ -1,0 +1,134 @@
+@if (balanceService.detailsLoading()) {
+<div class="panel-loading">
+  <app-loader size="medium"></app-loader>
+</div>
+} @else if (GetDetails(); as details) {
+<div class="panel-content">
+  <!-- Wallet Balances -->
+  <div class="panel-section">
+    <h3 class="panel-section-title">Wallet balances</h3>
+
+    <div class="panel-row">
+      <span class="panel-label">USDC</span>
+      <span class="panel-value balance-value"
+        >${{ GetWalletUsdc() }} <span class="currency-tag">USDC</span></span
+      >
+    </div>
+
+    <div class="panel-row">
+      <span class="panel-label">SOL</span>
+      <span class="panel-value balance-value"
+        >{{ GetWalletSol() }} <span class="currency-tag">SOL</span></span
+      >
+    </div>
+
+    <div class="panel-row">
+      <span class="panel-label">Wallet</span>
+      <span class="panel-value panel-id-wrapper">
+        <span class="panel-id-text">{{ GetWalletAddressShort() }}</span>
+        <button
+          type="button"
+          class="panel-copy-button"
+          (click)="CopyToClipboard(GetWalletAddress())"
+          title="Copy wallet address"
+        >
+          <img src="assets/icons/content_copy.svg" alt="Copy" />
+        </button>
+      </span>
+    </div>
+
+    <button
+      type="button"
+      class="action-button action-button-dainty outline panel-action-button"
+      (click)="OnViewOnExplorer()"
+    >
+      <span>View on Solana Explorer</span>
+      <img
+        src="assets/icons/arrow_forward.svg"
+        alt="View"
+        class="panel-action-icon"
+      />
+    </button>
+  </div>
+
+  <!-- Balance Breakdown -->
+  <div class="panel-section">
+    <h3 class="panel-section-title">Balance breakdown</h3>
+
+    <div class="panel-row">
+      <span class="panel-label">USDC in wallet</span>
+      <span class="panel-value">${{ GetWalletUsdc() }}</span>
+    </div>
+
+    <div class="panel-row">
+      <span class="panel-label">Owed to connected accounts</span>
+      <span class="panel-value balance-owed"
+        >-${{ GetConnectedAccountsOwed() | number : '1.2-2' }}</span
+      >
+    </div>
+
+    <div class="breakdown-divider"></div>
+
+    <div class="panel-row">
+      <span class="panel-label breakdown-total-label">Platform available</span>
+      <span class="panel-value breakdown-total-value"
+        >${{ GetPlatformAvailable() | number : '1.2-2' }}</span
+      >
+    </div>
+
+    @if (GetPlatformPending() > 0) {
+    <div class="panel-row">
+      <span class="panel-label">Pending</span>
+      <span class="panel-value"
+        >${{ GetPlatformPending() | number : '1.2-2' }}</span
+      >
+    </div>
+    }
+  </div>
+
+  <!-- Sync Section -->
+  <div class="panel-section">
+    <h3 class="panel-section-title">Sync</h3>
+
+    @if (!IsInSync()) {
+    <div class="sync-warning">
+      <img
+        src="assets/icons/info.svg"
+        alt="Warning"
+        class="sync-warning-icon"
+      />
+      <span
+        >Your internal balance is out of sync with your on-chain wallet.</span
+      >
+    </div>
+    } @else {
+    <div class="sync-ok">
+      <img
+        src="assets/icons/check_circle.svg"
+        alt="In sync"
+        class="sync-ok-icon"
+      />
+      <span>Balance is in sync with wallet.</span>
+    </div>
+    }
+
+    <button
+      type="button"
+      class="action-button action-button-dainty outline sync-button"
+      [class.loader-button]="balanceService.syncing()"
+      [disabled]="balanceService.syncing()"
+      (click)="OnSync()"
+    >
+      @if (balanceService.syncing()) {
+      <app-loader size="small"></app-loader>
+      } @else if (syncSuccess()) {
+      <img src="assets/icons/check_circle.svg" alt="" class="sync-btn-icon" />
+      <span>Synced</span>
+      } @else {
+      <img src="assets/icons/refresh.svg" alt="" class="sync-btn-icon" />
+      <span>Sync balance</span>
+      }
+    </button>
+  </div>
+</div>
+}

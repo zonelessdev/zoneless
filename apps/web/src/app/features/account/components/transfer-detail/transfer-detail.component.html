@@ -1,0 +1,154 @@
+<div class="panel-content">
+  <!-- Amount Header -->
+  <div class="panel-amount-header">
+    <div class="panel-amount-row">
+      <span class="panel-amount-value"
+        >${{ GetAmount() | number : '1.2-2' }}</span
+      >
+      <span class="panel-amount-currency">{{ GetCurrency() }}</span>
+    </div>
+  </div>
+
+  <!-- Payment Details Section -->
+  <div class="panel-section">
+    <h3 class="panel-section-title">Payment details</h3>
+
+    <div class="panel-row">
+      <span class="panel-label">Status</span>
+      <span class="panel-value">
+        <app-status-chip status="succeeded"></app-status-chip>
+      </span>
+    </div>
+
+    <div class="panel-row">
+      <span class="panel-label">Date received</span>
+      <span class="panel-value">{{
+        GetCreatedDate() | date : 'd MMM, HH:mm'
+      }}</span>
+    </div>
+
+    <div class="panel-row">
+      <span class="panel-label">Amount</span>
+      <span class="panel-value"
+        >${{ GetAmount() | number : '1.2-2' }} {{ GetCurrency() }}</span
+      >
+    </div>
+
+    <div class="panel-row">
+      <span class="panel-label">Net</span>
+      <span class="panel-value"
+        >${{ GetAmount() | number : '1.2-2' }} {{ GetCurrency() }}</span
+      >
+    </div>
+
+    @if (GetDescription()) {
+    <div class="panel-row">
+      <span class="panel-label">Description</span>
+      <span class="panel-value">{{ GetDescription() }}</span>
+    </div>
+    }
+
+    <div class="panel-row">
+      <span class="panel-label">Transfer ID</span>
+      <span class="panel-value panel-id-wrapper">
+        <span class="panel-id-text">{{ GetId() }}</span>
+        <button
+          type="button"
+          class="panel-copy-button"
+          (click)="CopyToClipboard(GetId())"
+          title="Copy ID"
+        >
+          <img src="assets/icons/content_copy.svg" alt="Copy" />
+        </button>
+      </span>
+    </div>
+
+    @if (GetTransferGroup()) {
+    <div class="panel-row">
+      <span class="panel-label">Transfer group</span>
+      <span class="panel-value">{{ GetTransferGroup() }}</span>
+    </div>
+    }
+  </div>
+
+  <!-- Timeline Section -->
+  <div class="panel-section">
+    <h3 class="panel-section-title">Timeline</h3>
+
+    <div class="panel-timeline">
+      <div class="panel-timeline-item">
+        <div class="panel-timeline-dot active"></div>
+        <div class="panel-timeline-line"></div>
+        <div class="panel-timeline-title">Payment succeeded</div>
+        <div class="panel-timeline-date">
+          {{ GetCreatedDate() | date : 'd MMM, HH:mm' }}
+        </div>
+      </div>
+
+      <div class="panel-timeline-item">
+        <div class="panel-timeline-dot active"></div>
+        <div class="panel-timeline-title">Payment started</div>
+        <div class="panel-timeline-date">
+          {{ GetCreatedDate() | date : 'd MMM, HH:mm' }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Destination Section -->
+  <div class="panel-section">
+    <h3 class="panel-section-title">Destination</h3>
+
+    <div class="panel-row">
+      <span class="panel-label">Account</span>
+      <span class="panel-value panel-id-wrapper">
+        @if (isPlatform) {
+        <button type="button" class="panel-link" (click)="OnAccountClick()">
+          {{ GetDestinationId() }}
+        </button>
+        } @else {
+        <span class="panel-id-text">{{ GetDestinationId() }}</span>
+        }
+        <button
+          type="button"
+          class="panel-copy-button"
+          (click)="CopyToClipboard(GetDestinationId())"
+          title="Copy account ID"
+        >
+          <img src="assets/icons/content_copy.svg" alt="Copy" />
+        </button>
+      </span>
+    </div>
+
+    @if (GetSourceAccount()) {
+    <div class="panel-row">
+      <span class="panel-label">Source account</span>
+      <span class="panel-value panel-id-wrapper">
+        <span class="panel-id-text">{{ GetSourceAccount() }}</span>
+        <button
+          type="button"
+          class="panel-copy-button"
+          (click)="CopyToClipboard(GetSourceAccount() || '')"
+          title="Copy source account ID"
+        >
+          <img src="assets/icons/content_copy.svg" alt="Copy" />
+        </button>
+      </span>
+    </div>
+    }
+  </div>
+
+  <!-- Metadata Section -->
+  @if (GetMetadataEntries().length > 0) {
+  <div class="panel-section">
+    <h3 class="panel-section-title">Metadata</h3>
+
+    @for (entry of GetMetadataEntries(); track entry.key) {
+    <div class="panel-row">
+      <span class="panel-label panel-metadata-key">{{ entry.key }}</span>
+      <span class="panel-value">{{ entry.value }}</span>
+    </div>
+    }
+  </div>
+  }
+</div>

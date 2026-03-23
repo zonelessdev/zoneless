@@ -1,0 +1,62 @@
+@use '../../../styles/base.scss' as *;
+
+.loader {
+  --size: 24px;
+  --stroke: 2.5px;
+
+  width: var(--size);
+  height: var(--size);
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: var(--stroke) solid $lightest-background-color;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: var(--stroke) solid transparent;
+    border-top-color: $button-color;
+    animation: spin 0.8s cubic-bezier(0.5, 0.15, 0.5, 0.85) infinite;
+  }
+}
+
+.small {
+  --size: 16px;
+  --stroke: 2px;
+}
+
+.medium {
+  --size: 24px;
+  --stroke: 2.5px;
+}
+
+.large {
+  --size: 40px;
+  --stroke: 3px;
+}
+
+.light {
+  &::before {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  &::after {
+    border-top-color: white;
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

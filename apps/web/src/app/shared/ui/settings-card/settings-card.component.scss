@@ -1,0 +1,151 @@
+@use '../../../styles/base.scss' as *;
+
+.settings-card {
+  background-color: $background-color;
+  border: 1px solid $lightest-background-color;
+  border-radius: $border-radius;
+  padding: $spacing-large;
+}
+
+.settings-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing;
+  gap: $spacing;
+}
+
+.settings-card-title {
+  font-size: $font-size;
+  font-weight: $title-weight;
+  font-family: $title-font;
+  flex: 1;
+}
+
+.settings-card-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+}
+
+.settings-card-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: $spacing-extra-small;
+  border-radius: $border-radius-small;
+  opacity: $dimmed-extra;
+  transition: opacity $transition, background-color $transition;
+  outline: none;
+
+  &:hover {
+    opacity: 1;
+    background-color: rgba($base-color, 0.1);
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    opacity: 1;
+    box-shadow: 0 0 0 2px $base-color;
+  }
+
+  img {
+    width: 18px;
+    height: 18px;
+    display: block;
+    filter: brightness(0) saturate(100%);
+  }
+
+  &:hover img {
+    filter: brightness(0) saturate(100%) invert(47%) sepia(89%) saturate(1345%)
+      hue-rotate(200deg) brightness(101%) contrast(91%);
+  }
+}
+
+.settings-card-action-danger {
+  &:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+  }
+
+  &:hover img {
+    filter: brightness(0) saturate(100%) invert(32%) sepia(98%) saturate(2318%)
+      hue-rotate(346deg) brightness(91%) contrast(93%);
+  }
+}
+
+.settings-card-edit {
+  background: none;
+  border: none;
+  color: $base-color;
+  font-size: $font-size;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity $transition;
+  outline: none;
+
+  &:hover {
+    opacity: $dimmed;
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    text-decoration: underline;
+  }
+}
+
+.settings-card-rows {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing;
+}
+
+.settings-card-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: $spacing;
+  align-items: flex-start;
+}
+
+.settings-card-label {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+}
+
+.settings-card-value {
+  font-size: $font-size;
+  color: $text-color;
+}
+
+.settings-card-value-multiline {
+  font-style: italic;
+}
+
+.settings-card-value-line {
+  line-height: 1.5;
+}
+
+@media only screen and (max-width: 600px) {
+  .settings-card {
+    padding: $spacing;
+  }
+
+  .settings-card-row {
+    grid-template-columns: 1fr;
+    gap: $spacing-extra-small;
+  }
+
+  .settings-card-label {
+    font-size: $font-size-small;
+  }
+}

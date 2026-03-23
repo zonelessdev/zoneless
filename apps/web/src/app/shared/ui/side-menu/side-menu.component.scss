@@ -1,0 +1,183 @@
+@use '../../../styles/base.scss' as *;
+@use '../../../styles/scrollbars.scss' as *;
+
+.side-menu-wrapper {
+  border-right: 1px solid $lighter-background-color;
+  height: 100%;
+  width: 64px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  text-align: center;
+  transition: $transition-slow;
+  background-color: $background-color;
+}
+
+.expanded-side-menu {
+  width: 180px;
+  text-align: left;
+}
+
+.side-menu-top {
+  padding: $spacing $spacing;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.expanded-side-menu .side-menu-top {
+  justify-content: flex-start;
+}
+
+.side-menu-bottom {
+  padding: $spacing;
+}
+
+.sub-menus-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding: $spacing-large $spacing;
+}
+
+ul {
+  margin-top: 0;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+li {
+  list-style: none;
+}
+
+li:last-child {
+  margin-bottom: $spacing;
+}
+
+.side-menu-item {
+  padding: $spacing-small 0;
+  display: inline-flex;
+  align-items: center;
+  transition: $transition-fast;
+  cursor: pointer;
+}
+
+.side-menu-text {
+  display: inline;
+  font-weight: 400;
+  display: inline-block;
+  vertical-align: top;
+  opacity: $dimmed-extra;
+  transition: $transition-fast;
+  font-size: $font-size;
+}
+
+.menu-icon {
+  margin-right: $spacing-small;
+  transition: $transition-fast;
+  opacity: $dimmed-extra;
+}
+
+.side-menu-item:hover .side-menu-text,
+.side-menu-item:hover .menu-icon {
+  opacity: $dimmed;
+}
+
+.text-selected {
+  opacity: 1 !important;
+  font-weight: 500;
+}
+
+.menu-icon-selected {
+  opacity: 1 !important;
+}
+
+.line {
+  margin: 0;
+}
+
+.side-menu-bottom ul {
+  margin-bottom: 0;
+}
+
+.side-menu-bottom li {
+  margin-bottom: 0;
+}
+
+.bottom-menu-items {
+  margin-bottom: $spacing-small;
+}
+
+.bottom-menu-items li {
+  margin-bottom: 0;
+}
+
+.toggle-button-wrapper li {
+  margin-bottom: 0;
+}
+
+.expanded-bottom {
+  text-align: right;
+}
+
+.expanded-bottom img {
+  transform: rotate(180deg);
+}
+
+// Hide bottom items in main menu on desktop (they show in side-menu-bottom)
+.desktop-hidden {
+  display: none;
+}
+
+@media only screen and (max-width: 1000px) {
+  .side-menu-wrapper {
+    width: 100%;
+    border-right: 0;
+    border-bottom: 1px solid $lighter-background-color;
+  }
+
+  .side-menu-top {
+    display: none;
+  }
+
+  .sub-menus-wrapper {
+    display: flex;
+    padding: $spacing;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  ul {
+    display: flex;
+    margin-bottom: 0;
+  }
+
+  li {
+    margin-right: $spacing-large;
+  }
+
+  .line {
+    display: none;
+  }
+
+  .side-menu-bottom {
+    display: none;
+  }
+
+  .side-menu-text {
+    font-size: $font-size;
+  }
+
+  .menu-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  li:last-child {
+    margin-bottom: 0;
+  }
+
+  // Show bottom items in main menu on mobile
+  .desktop-hidden {
+    display: inline-flex;
+  }
+}

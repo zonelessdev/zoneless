@@ -1,0 +1,120 @@
+@use './base.scss' as *;
+
+.chip {
+  padding: 4px 4px;
+  border-radius: 4px;
+  font-size: $font-size-small;
+  cursor: pointer;
+  line-height: 1;
+  font-weight: $text-weight;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.chip a {
+  font-size: $font-size-small;
+}
+
+.chip img {
+  height: $font-size-small;
+}
+
+.chip.hovertext ::before {
+  line-height: 1.5 !important;
+}
+
+.chip:hover .info-text {
+  opacity: 1;
+  visibility: visible;
+  top: 40%;
+  transform: translateX(-50%) translateY(-100%);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  line-height: 1.5 !important;
+}
+
+.green-chip {
+  background-color: #cbf4c9;
+  color: rgb(14, 98, 69);
+}
+
+.green-chip img {
+  filter: brightness(0) saturate(100%) invert(27%) sepia(82%) saturate(394%)
+    hue-rotate(107deg) brightness(96%) contrast(97%);
+}
+
+.red-chip {
+  background-color: #fde2dd;
+  color: #a41c4e;
+}
+
+.red-chip img {
+  filter: brightness(0) saturate(100%) invert(17%) sepia(97%) saturate(1772%)
+    hue-rotate(315deg) brightness(94%) contrast(100%);
+}
+
+.yellow-chip {
+  background-color: #ffeba5;
+  color: #8e6e00;
+}
+
+.yellow-chip img {
+  filter: brightness(0) saturate(100%) invert(36%) sepia(96%) saturate(588%)
+    hue-rotate(15deg) brightness(96%) contrast(102%);
+}
+
+.blue-chip {
+  background-color: #96daff;
+  color: #04293d;
+}
+
+.blue-chip img {
+  filter: brightness(0) saturate(100%) invert(12%) sepia(12%) saturate(5456%)
+    hue-rotate(168deg) brightness(99%) contrast(99%);
+}
+
+.orange-chip {
+  background-color: #ffc5a5;
+  color: #8e5000;
+}
+
+.orange-chip img {
+  filter: brightness(0) saturate(100%) invert(22%) sepia(51%) saturate(3703%)
+    hue-rotate(37deg) brightness(104%) contrast(104%);
+}
+
+.grey-chip {
+  background-color: #c0ccd3;
+  color: #545969;
+}
+
+.grey-chip img,
+.white-chip img {
+  filter: brightness(0) saturate(100%) invert(35%) sepia(8%) saturate(855%)
+    hue-rotate(188deg) brightness(94%) contrast(95%);
+}
+
+.purple-chip {
+  background-color: #dbb5fa;
+  color: #4c008d;
+}
+
+.purple-chip img {
+  filter: brightness(0) saturate(100%) invert(14%) sepia(49%) saturate(4021%)
+    hue-rotate(263deg) brightness(95%) contrast(131%);
+}
+
+.white-chip {
+  background-color: #ffffff;
+  color: #545969;
+}
+
+.gold-chip {
+  background-color: #e6cc80;
+  color: #8e6e00;
+}
+
+.gold-chip img {
+  filter: brightness(0) saturate(100%) invert(37%) sepia(93%) saturate(2125%)
+    hue-rotate(36deg) brightness(89%) contrast(101%);
+}

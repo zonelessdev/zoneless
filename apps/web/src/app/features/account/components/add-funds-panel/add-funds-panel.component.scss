@@ -1,0 +1,469 @@
+@use '../../../../styles/base.scss' as *;
+@use '../../../../styles/buttons.scss' as *;
+@use '../../../../styles/panels.scss' as *;
+
+.add-funds-content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-large;
+}
+
+.add-funds-header {
+  text-align: center;
+  padding-bottom: $spacing;
+  border-bottom: 1px solid $lightest-background-color;
+}
+
+.add-funds-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: $spacing;
+  opacity: 0.7;
+  filter: $base-filter;
+}
+
+.add-funds-title {
+  font-size: $font-size-extra-large;
+  font-weight: $title-weight;
+  font-family: $title-font;
+  margin: 0 0 $spacing-small 0;
+  color: $text-color;
+}
+
+.add-funds-subtitle {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.wallet-address-section {
+  background-color: $light-background-color;
+  border-radius: $border-radius;
+  padding: $spacing;
+}
+
+.wallet-address-label {
+  font-size: $font-size-small;
+  font-weight: 600;
+  color: $text-color;
+  opacity: $dimmed;
+  margin-bottom: $spacing-small;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.wallet-address-card {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-small;
+  margin-bottom: $spacing;
+}
+
+.wallet-address-value {
+  font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: $font-size;
+  color: $text-color;
+  word-break: break-all;
+  line-height: 1.5;
+  background-color: $background-color;
+  padding: $spacing;
+  border-radius: $border-radius-small;
+  border: 1px solid $lightest-background-color;
+}
+
+.wallet-copy-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-small;
+  padding: $spacing-small $spacing;
+  background-color: $base-color;
+  color: white;
+  border: none;
+  border-radius: $border-radius-small;
+  cursor: pointer;
+  font-family: $text-font;
+  font-size: $font-size;
+  font-weight: 600;
+  transition: $transition-fast;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &.copied {
+    background-color: $success-green;
+  }
+
+  img {
+    width: 16px;
+    height: 16px;
+    filter: brightness(0) invert(1);
+  }
+}
+
+.wallet-network-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-extra-small;
+  padding: $spacing-extra-small $spacing-small;
+  background-color: $lighter-background-color;
+  border-radius: $border-radius-small;
+  font-size: $font-size-small;
+  color: $text-color;
+}
+
+.network-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.badge-separator {
+  opacity: $dimmed-extra;
+  margin: 0 2px;
+}
+
+.instructions-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing;
+}
+
+.instructions-title {
+  font-size: $font-size-med;
+  font-weight: $title-weight;
+  font-family: $title-font;
+  margin: 0;
+  color: $text-color;
+}
+
+.instructions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing;
+  }
+}
+
+.instruction-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  background-color: $light-background-color;
+  border-radius: 50%;
+  font-size: $font-size-small;
+  font-weight: 600;
+  color: $text-color;
+}
+
+.instruction-text {
+  font-size: $font-size;
+  color: $text-color;
+  line-height: 24px;
+
+  strong {
+    font-weight: 600;
+  }
+}
+
+.notes-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-small;
+}
+
+.note-item {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-small;
+  padding: $spacing;
+  background-color: #fef3c7;
+  border-radius: $border-radius-small;
+  font-size: $font-size-small;
+  color: #92400e;
+  line-height: 1.4;
+
+  strong {
+    font-weight: 600;
+  }
+}
+
+.note-icon {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  margin-top: 2px;
+  filter: brightness(0) saturate(100%) invert(25%) sepia(99%) saturate(1000%)
+    hue-rotate(15deg);
+}
+
+.testmode-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing;
+}
+
+.testmode-banner {
+  padding: $spacing;
+  background-color: #eff6ff;
+  border-radius: $border-radius-small;
+  font-size: $font-size;
+  color: #1e40af;
+  line-height: 1.4;
+}
+
+.testmode-actions {
+  display: flex;
+  gap: $spacing-small;
+}
+
+.testmode-button {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-small;
+  flex: 1;
+  justify-content: center;
+}
+
+.testmode-btn-icon {
+  width: 16px;
+  height: 16px;
+  opacity: $dimmed;
+}
+
+.add-funds-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-small;
+
+  .action-button {
+    justify-content: center;
+    width: fit-content;
+  }
+}
+
+.btn-icon {
+  width: 14px;
+  height: 14px;
+  opacity: $dimmed;
+}
+
+.waiting-state {
+  text-align: center;
+  padding: $spacing-large 0;
+}
+
+.waiting-animation {
+  display: flex;
+  justify-content: center;
+  margin-bottom: $spacing-large;
+}
+
+.waiting-title {
+  font-size: $font-size-large;
+  font-weight: $title-weight;
+  font-family: $title-font;
+  margin: 0 0 $spacing-small 0;
+  color: $text-color;
+}
+
+.waiting-subtitle {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+  margin: 0 0 $spacing-large 0;
+  line-height: 1.5;
+}
+
+.waiting-address {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-extra-small;
+  padding: $spacing;
+  background-color: $light-background-color;
+  border-radius: $border-radius-small;
+  margin-bottom: $spacing-large;
+}
+
+.waiting-address-label {
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed;
+}
+
+.waiting-address-value {
+  font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: $font-size;
+  color: $text-color;
+}
+
+.waiting-tips {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-small;
+  margin-bottom: $spacing-large;
+  text-align: left;
+}
+
+.tip-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed;
+}
+
+.tip-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.5;
+}
+
+.waiting-actions {
+  display: flex;
+  justify-content: center;
+
+  .action-button {
+    width: fit-content;
+  }
+}
+
+.success-state {
+  text-align: center;
+  padding: $spacing-large 0;
+}
+
+.success-animation {
+  margin-bottom: $spacing-large;
+}
+
+.success-icon {
+  width: 64px;
+  height: 64px;
+  filter: brightness(0) saturate(100%) invert(44%) sepia(73%) saturate(552%)
+    hue-rotate(107deg) brightness(92%) contrast(92%);
+  animation: scaleIn 0.3s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.success-title {
+  font-size: $font-size-extra-large;
+  font-weight: $title-weight;
+  font-family: $title-font;
+  margin: 0 0 $spacing-small 0;
+  color: $text-color;
+}
+
+.success-subtitle {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+  margin: 0 0 $spacing-large 0;
+}
+
+.deposit-summary {
+  background-color: $light-background-color;
+  border-radius: $border-radius;
+  padding: $spacing;
+  text-align: left;
+}
+
+.deposit-amount {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+  padding-bottom: $spacing;
+  border-bottom: 1px solid $lightest-background-color;
+  margin-bottom: $spacing;
+}
+
+.amount-value {
+  font-size: $font-size-extra-large;
+  font-weight: $title-weight;
+  font-family: $title-font;
+  color: $success-green;
+}
+
+.amount-currency {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed-extra;
+}
+
+.deposit-details {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-small;
+}
+
+.deposit-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.deposit-label {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+}
+
+.deposit-value {
+  font-size: $font-size;
+  color: $text-color;
+}
+
+.deposit-mono {
+  font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: $font-size-small;
+}
+
+@media only screen and (max-width: 600px) {
+  .add-funds-title,
+  .success-title {
+    font-size: $font-size-large;
+  }
+
+  .wallet-address-value {
+    font-size: $font-size-small;
+  }
+
+  .instruction-text {
+    font-size: $font-size-small;
+    line-height: 20px;
+  }
+
+  .instruction-number {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    font-size: 11px;
+  }
+}

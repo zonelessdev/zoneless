@@ -1,0 +1,501 @@
+<div class="site-wrapper-dashboard">
+  <app-page-loader [loading]="loading()"></app-page-loader>
+
+  <div class="account-content-wrapper">
+    <div class="sidebar-wrapper">
+      <app-side-menu
+        [sideMenu]="sideMenu()"
+        [selected]="view()"
+        (selectedChange)="SetView($event)"
+        (selectedChanged)="OnViewChanged()"
+      ></app-side-menu>
+    </div>
+
+    <div class="views-wrapper content-wrapper">
+      @if (GetAccount() && GetBalance() && personService.person()) {
+      <!-- Home View -->
+      @if (view() === 'home') {
+      <div class="view">
+        <div class="view-section">
+          <div class="header-wrapper">
+            <h1>Hi {{ personService.person()?.first_name }} 👋</h1>
+            @if (IsPlatform()) {
+            <button
+              type="button"
+              class="action-button action-button-dainty"
+              (click)="OnAddFundsClick()"
+            >
+              <img
+                class="button-icon"
+                src="assets/icons/add_circle_outline.svg"
+                alt=""
+              />
+              <span>Add funds</span>
+            </button>
+            }
+          </div>
+
+          <div class="balance-label">Total balance</div>
+          <div class="balance-wrapper">
+            <div class="balance">
+              ${{ GetTotalBalance() | number : '1.2-2' }}
+            </div>
+            <div class="currency-label">USDC</div>
+            @if (IsPlatform()) {
+            <button
+              type="button"
+              class="action-button action-button-dainty outline balance-details-button"
+              (click)="OnBalanceDetailClick()"
+            >
+              Details
+            </button>
+            }
+          </div>
+
+          <div class="balance-label">Available to pay out</div>
+          <div class="balance-wrapper">
+            <div class="balance-secondary">
+              ${{ GetAvailableBalance() | number : '1.2-2' }}
+            </div>
+            <div class="currency-label">USDC</div>
+          </div>
+        </div>
+
+        <div class="view-section">
+          <h2 class="section-title">Recent transactions</h2>
+          <app-paginated-list
+            endpoint="balance_transactions"
+            [columns]="recentTransactionColumns"
+            [limit]="5"
+            [paginationEnabled]="false"
+            (rowClick)="OnTransactionClick($event)"
+          ></app-paginated-list>
+        </div>
+      </div>
+      }
+
+      <!-- Balance View -->
+      @if (view() === 'balance') {
+      <div class="view">
+        <div class="view-section">
+          <div class="balance-label">Total balance</div>
+          <div class="balance-wrapper">
+            <div class="balance">
+              ${{ GetTotalBalance() | number : '1.2-2' }}
+            </div>
+            <div class="currency-label">USDC</div>
+            @if (IsPlatform()) {
+            <button
+              type="button"
+              class="action-button action-button-dainty outline balance-details-button"
+              (click)="OnBalanceDetailClick()"
+            >
+              Details
+            </button>
+            }
+          </div>
+
+          <div class="balance-label">Available to pay out</div>
+          <div class="balance-wrapper">
+            <div class="balance-secondary">
+              ${{ GetAvailableBalance() | number : '1.2-2' }}
+            </div>
+            <div class="currency-label">USDC</div>
+          </div>
+        </div>
+
+        <div class="view-section">
+          <h2 class="section-title">Transactions</h2>
+
+          <div class="tab-bar">
+            <button
+              type="button"
+              class="tab-button"
+              [class.tab-active]="balanceTab() === 'all'"
+              (click)="SetBalanceTab('all')"
+            >
+              All
+            </button>
+            <button
+              type="button"
+              class="tab-button"
+              [class.tab-active]="balanceTab() === 'payouts'"
+              (click)="SetBalanceTab('payouts')"
+            >
+              Payouts
+            </button>
+          </div>
+
+          @if (balanceTab() === 'all') {
+          <app-paginated-list
+            endpoint="balance_transactions"
+            [columns]="balanceTransactionColumns"
+            [limit]="10"
+            (rowClick)="OnTransactionClick($event)"
+          ></app-paginated-list>
+          } @if (balanceTab() === 'payouts') {
+          <app-paginated-list
+            endpoint="balance_transactions"
+            [columns]="balanceTransactionColumns"
+            [queryParams]="payoutQueryParams"
+            [limit]="10"
+            (rowClick)="OnTransactionClick($event)"
+          ></app-paginated-list>
+          }
+        </div>
+      </div>
+      }
+
+      <!-- Connected Accounts View (Platform Only) -->
+      @if (view() === 'connected-accounts' && IsPlatform()) {
+      <div class="view">
+        <div class="view-section">
+          <div class="header-wrapper">
+            <h1>Connected Accounts</h1>
+          </div>
+          <p class="section-description">
+            Manage connected accounts on your platform.
+          </p>
+        </div>
+
+        <div class="view-section">
+          <app-paginated-list
+            endpoint="accounts"
+            [columns]="connectedAccountColumns"
+            [limit]="10"
+            (rowClick)="OnConnectedAccountClick($event)"
+          ></app-paginated-list>
+        </div>
+      </div>
+      }
+
+      <!-- Developers View (Platform Only) -->
+      @if (view() === 'developers' && IsPlatform()) {
+      <div class="view">
+        <div class="view-section">
+          <div class="header-wrapper">
+            <h1>Developers</h1>
+          </div>
+          <p class="section-description">
+            Manage your API integrations, webhooks, and developer settings.
+          </p>
+        </div>
+
+        <!-- API Keys Section -->
+        <div class="view-section">
+          <div class="section-header">
+            <div class="settings-section-title">API keys</div>
+            <button
+              type="button"
+              class="action-button action-button-dainty"
+              (click)="OnCreateApiKeyClick()"
+            >
+              <img
+                class="button-icon"
+                src="assets/icons/add_circle_outline.svg"
+                alt=""
+              />
+              <span>Create key</span>
+            </button>
+          </div>
+
+          @if (apiKeyService.loading()) {
+          <div class="loading-state">
+            <app-loader size="medium"></app-loader>
+          </div>
+          } @else if (apiKeyService.apiKeys().length === 0) {
+          <div class="empty-state">
+            <img
+              class="empty-state-icon"
+              src="assets/icons/key.svg"
+              alt="No API keys"
+            />
+            <div class="empty-state-title">No API keys</div>
+            <div class="empty-state-description">
+              API keys are used to authenticate requests to your platform's API.
+            </div>
+            <button
+              type="button"
+              class="action-button action-button-dainty outline"
+              (click)="OnCreateApiKeyClick()"
+            >
+              Create your first API key
+            </button>
+          </div>
+          } @else { @for (apiKey of apiKeyService.apiKeys(); track apiKey.id) {
+          <div class="api-key-card">
+            <app-settings-card
+              [title]="apiKeyService.GetKeyTitle(apiKey)"
+              [rows]="apiKeyService.GetSettingsCardRows(apiKey)"
+              [actions]="apiKeyActions"
+              [showEditButton]="true"
+              editLabel="Edit"
+              (actionClicked)="OnApiKeyAction($event, apiKey)"
+              (editClicked)="OnEditApiKeyClick(apiKey)"
+            ></app-settings-card>
+          </div>
+          } }
+        </div>
+
+        <!-- Webhooks Section -->
+        <div class="view-section">
+          <div class="section-header">
+            <div class="settings-section-title">Webhook endpoints</div>
+            <button
+              type="button"
+              class="action-button action-button-dainty"
+              (click)="OnCreateWebhookClick()"
+            >
+              <img
+                class="button-icon"
+                src="assets/icons/add_circle_outline.svg"
+                alt=""
+              />
+              <span>Add endpoint</span>
+            </button>
+          </div>
+
+          @if (webhookEndpointService.loading()) {
+          <div class="loading-state">
+            <app-loader size="medium"></app-loader>
+          </div>
+          } @else if (webhookEndpointService.webhookEndpoints().length === 0) {
+          <div class="empty-state">
+            <img
+              class="empty-state-icon"
+              src="assets/icons/code.svg"
+              alt="No webhooks"
+            />
+            <div class="empty-state-title">No webhook endpoints</div>
+            <div class="empty-state-description">
+              Webhook endpoints allow you to receive real-time notifications
+              when events happen in your platform.
+            </div>
+            <button
+              type="button"
+              class="action-button action-button-dainty outline"
+              (click)="OnCreateWebhookClick()"
+            >
+              Create your first webhook
+            </button>
+          </div>
+          } @else { @for (endpoint of webhookEndpointService.webhookEndpoints();
+          track endpoint.id) {
+          <div class="webhook-card">
+            <app-settings-card
+              [title]="webhookEndpointService.GetEndpointTitle(endpoint)"
+              [rows]="webhookEndpointService.GetSettingsCardRows(endpoint)"
+              [actions]="webhookActions"
+              [showEditButton]="true"
+              editLabel="Edit"
+              (actionClicked)="OnWebhookAction($event, endpoint)"
+              (editClicked)="OnEditWebhookClick(endpoint)"
+            ></app-settings-card>
+          </div>
+          } }
+        </div>
+      </div>
+      }
+
+      <!-- Settings View -->
+      @if (view() === 'settings') {
+      <div class="view">
+        <div class="view-section">
+          <h1>Settings</h1>
+        </div>
+
+        <!-- Personal Details Card -->
+        <div class="view-section">
+          <div class="settings-section-title">Personal details</div>
+          <app-settings-card
+            [title]="personService.GetFullName(personService.person())"
+            [rows]="personService.GetSettingsCardRows(personService.person())"
+            [showEditButton]="true"
+            (editClicked)="OnEditPersonClick()"
+          ></app-settings-card>
+        </div>
+
+        <!-- External Wallet Card -->
+        @if (externalWalletService.wallet()) {
+        <div class="view-section">
+          <div class="settings-section-title">Payout wallet</div>
+          <app-settings-card
+            [title]="externalWalletService.GetWalletTitle()"
+            [rows]="externalWalletService.GetSettingsCardRows()"
+            [showEditButton]="true"
+            (editClicked)="OnEditWalletClick()"
+          ></app-settings-card>
+        </div>
+        }
+
+        <div class="view-section">
+          <button
+            type="button"
+            class="action-button action-button-dainty outline"
+            (click)="LogOut()"
+          >
+            <span>Log Out</span>
+            <img class="icon" src="assets/icons/logout.svg" alt="Log Out" />
+          </button>
+        </div>
+      </div>
+      } }
+    </div>
+  </div>
+
+  <!-- Edit Person Slide Panel -->
+  <app-slide-panel
+    [isOpen]="editPersonPanelOpen()"
+    title="Edit personal details"
+    [loading]="editPersonLoading()"
+    submitLabel="Save"
+    [submitDisabled]="false"
+    (closed)="OnEditPersonPanelClosed()"
+    (submitted)="OnEditPersonSubmit()"
+  >
+    <app-person-form
+      #editPersonForm
+      mode="edit"
+      [person]="personService.person()"
+      [isOpen]="editPersonPanelOpen()"
+      [showErrors]="editPersonShowErrors()"
+    ></app-person-form>
+  </app-slide-panel>
+
+  <!-- Edit Wallet Slide Panel -->
+  <app-slide-panel
+    [isOpen]="editWalletPanelOpen()"
+    title="Edit payout wallet"
+    [loading]="editWalletLoading()"
+    submitLabel="Save"
+    [submitDisabled]="false"
+    (closed)="OnEditWalletPanelClosed()"
+    (submitted)="OnEditWalletSubmit()"
+  >
+    <app-external-wallet-form
+      #editWalletForm
+      mode="edit"
+      [wallet]="externalWalletService.wallet()"
+      [isOpen]="editWalletPanelOpen()"
+      [showErrors]="editWalletShowErrors()"
+      (validationChange)="OnWalletValidationChange($event)"
+    ></app-external-wallet-form>
+  </app-slide-panel>
+
+  <!-- Transaction Detail Slide Panel -->
+  <app-slide-panel
+    [isOpen]="transactionDetailPanelOpen()"
+    [title]="GetTransactionDetailTitle()"
+    [viewOnly]="true"
+    (closed)="OnTransactionDetailPanelClosed()"
+  >
+    @if (transactionService.selectedTransaction(); as detail) { @if (detail.type
+    === 'payout' && detail.payout) {
+    <app-payout-detail
+      [payout]="detail.payout"
+      [externalWallet]="detail.externalWallet ?? null"
+    ></app-payout-detail>
+    } @else if (detail.type === 'topup' && detail.topup) {
+    <app-topup-detail [topup]="detail.topup"></app-topup-detail>
+    } @else if (detail.type === 'transfer' && detail.transfer) {
+    <app-transfer-detail
+      [transfer]="detail.transfer"
+      [isPlatform]="IsPlatform()"
+      (accountClicked)="OnTransferAccountClick($event)"
+    ></app-transfer-detail>
+    } } @else {
+    <div class="loading-state">
+      <app-loader size="medium"></app-loader>
+    </div>
+    }
+  </app-slide-panel>
+
+  <!-- Webhook Endpoint Slide Panel -->
+  <app-slide-panel
+    [isOpen]="webhookPanelOpen()"
+    [title]="GetWebhookPanelTitle()"
+    [loading]="webhookPanelLoading()"
+    [submitLabel]="webhookPanelMode() === 'create' ? 'Create' : 'Save'"
+    [submitDisabled]="false"
+    [viewOnly]="!!newlyCreatedSecret()"
+    (closed)="OnWebhookPanelClosed()"
+    (submitted)="OnWebhookSubmit()"
+  >
+    <app-webhook-endpoint-form
+      #webhookEndpointForm
+      [mode]="webhookPanelMode()"
+      [endpoint]="selectedWebhookEndpoint()"
+      [isOpen]="webhookPanelOpen()"
+      [showErrors]="webhookPanelShowErrors()"
+      [createdSecret]="newlyCreatedSecret()"
+      (done)="OnWebhookFormDone()"
+    ></app-webhook-endpoint-form>
+  </app-slide-panel>
+
+  <!-- API Key Slide Panel -->
+  <app-slide-panel
+    [isOpen]="apiKeyPanelOpen()"
+    [title]="GetApiKeyPanelTitle()"
+    [loading]="apiKeyPanelLoading()"
+    [submitLabel]="apiKeyPanelMode() === 'create' ? 'Create' : 'Save'"
+    [submitDisabled]="false"
+    [viewOnly]="!!newlyCreatedToken()"
+    (closed)="OnApiKeyPanelClosed()"
+    (submitted)="OnApiKeySubmit()"
+  >
+    <app-api-key-form
+      #apiKeyForm
+      [mode]="apiKeyPanelMode()"
+      [apiKey]="selectedApiKey()"
+      [isOpen]="apiKeyPanelOpen()"
+      [showErrors]="apiKeyPanelShowErrors()"
+      [createdToken]="newlyCreatedToken()"
+      (done)="OnApiKeyFormDone()"
+    ></app-api-key-form>
+  </app-slide-panel>
+
+  <!-- Balance Detail Slide Panel (Platform Only) -->
+  <app-slide-panel
+    [isOpen]="balanceDetailPanelOpen()"
+    title="Balance details"
+    [viewOnly]="true"
+    (closed)="OnBalanceDetailPanelClosed()"
+  >
+    <app-balance-detail
+      [isOpen]="balanceDetailPanelOpen()"
+      (synced)="OnBalanceSynced()"
+    ></app-balance-detail>
+  </app-slide-panel>
+
+  <!-- Add Funds Slide Panel (Platform Only) -->
+  <app-slide-panel
+    [isOpen]="addFundsPanelOpen()"
+    title="Add funds"
+    [viewOnly]="true"
+    (closed)="OnAddFundsPanelClosed()"
+  >
+    <app-add-funds-panel
+      [isOpen]="addFundsPanelOpen()"
+      (depositCompleted)="OnDepositCompleted($event)"
+    ></app-add-funds-panel>
+  </app-slide-panel>
+
+  <!-- Connected Account Detail Slide Panel (Platform Only) -->
+  <app-slide-panel
+    [isOpen]="connectedAccountPanelOpen()"
+    [title]="GetConnectedAccountPanelTitle()"
+    [viewOnly]="true"
+    (closed)="OnConnectedAccountPanelClosed()"
+  >
+    @if (accountService.selectedConnectedAccount(); as account) {
+    <app-connected-account-detail
+      [account]="account"
+      [person]="account.individual ?? null"
+    ></app-connected-account-detail>
+    } @else {
+    <div class="loading-state">
+      <app-loader size="medium"></app-loader>
+    </div>
+    }
+  </app-slide-panel>
+</div>
