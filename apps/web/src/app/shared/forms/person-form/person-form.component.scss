@@ -57,6 +57,34 @@
   opacity: $dimmed-extra;
 }
 
+.dob-swap-warning {
+  margin-top: $spacing-small;
+  padding: $spacing-small;
+  font-size: $font-size-small;
+  color: #92400e;
+  background-color: #fffbeb;
+  border: 1px solid #fbbf24;
+  border-radius: $border-radius-small;
+  line-height: 1.5;
+
+  .swap-btn {
+    display: inline;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-size: inherit;
+    color: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: 600;
+
+    &:hover {
+      opacity: $dimmed;
+    }
+  }
+}
+
 select {
   width: 100%;
 }

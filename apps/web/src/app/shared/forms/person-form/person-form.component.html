@@ -65,7 +65,10 @@
 
   <!-- Date of Birth -->
   <div class="field-group">
-    <div class="field-title">Date of birth</div>
+    <div class="field-title">
+      Date of birth
+      <span class="field-optional">DD / MM / YYYY</span>
+    </div>
     <div class="dob-fields">
       <div class="field dob-field">
         <input
@@ -105,7 +108,15 @@
         />
       </div>
     </div>
-    @if (showErrors && dobError()) {
+    @if (dobSwapWarning()) {
+    <div class="dob-swap-warning">
+      It looks like you may have entered month/day in US format. The order is
+      <strong>Day / Month / Year</strong>.
+      <button type="button" class="swap-btn" (click)="SwapDobDayMonth()">
+        Swap day &amp; month
+      </button>
+    </div>
+    } @if (showErrors && dobError()) {
     <div class="error">{{ dobError() }}</div>
     }
   </div>
