@@ -38,17 +38,17 @@ await client.payouts.create({
 
 ## Zoneless vs Stripe Connect
 
-|                       | Zoneless                    | Stripe Connect         |
-| --------------------- | --------------------------- | ---------------------- |
-| Monthly account fee   | Free                        | $2/active account      |
-| Payout fee (domestic) | ~$0.002 (SOL gas)           | 0.25% + $0.25          |
-| Payout fee (intl)     | ~$0.002 (SOL gas)           | $1.50 per payout       |
-| Cross-border fee      | None                        | +0.25–1.25%            |
-| Currency conversion   | None (USDC)                 | +0.50–1% FX fee        |
-| Payout speed          | Seconds                     | 2–7 business days      |
-| Global coverage       | 220+ countries & regions    | ~47 countries          |
-| Source code           | Open source (Apache 2.0)    | Proprietary            |
-| Self-hostable         | Yes                         | No                     |
+|                       | Zoneless                 | Stripe Connect    |
+| --------------------- | ------------------------ | ----------------- |
+| Monthly account fee   | Free                     | $2/active account |
+| Payout fee (domestic) | ~$0.002 (SOL gas)        | 0.25% + $0.25     |
+| Payout fee (intl)     | ~$0.002 (SOL gas)        | $1.50 per payout  |
+| Cross-border fee      | None                     | +0.25–1.25%       |
+| Currency conversion   | None (USDC)              | +0.50–1% FX fee   |
+| Payout speed          | Seconds                  | 2–7 business days |
+| Global coverage       | 220+ countries & regions | ~47 countries     |
+| Source code           | Open source (Apache 2.0) | Proprietary       |
+| Self-hostable         | Yes                      | No                |
 
 ## Quick Start
 
