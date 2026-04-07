@@ -76,6 +76,7 @@ export class PersonFormComponent implements OnInit, OnChanges {
   dobMonth: WritableSignal<number | null> = signal(null);
   dobYear: WritableSignal<number | null> = signal(null);
   dobError: WritableSignal<string> = signal('');
+  dobSwapWarning: WritableSignal<boolean> = signal(false);
 
   // Address fields
   addressLine1: WritableSignal<string> = signal('');
@@ -225,6 +226,7 @@ export class PersonFormComponent implements OnInit, OnChanges {
   OnDobDayChange(value: string): void {
     const numValue = value ? parseInt(value, 10) : null;
     this.dobDay.set(numValue);
+    this.CheckDobSwapWarning();
     this.ValidateDob();
     this.EmitFormChange();
   }
@@ -232,6 +234,7 @@ export class PersonFormComponent implements OnInit, OnChanges {
   OnDobMonthChange(value: string): void {
     const numValue = value ? parseInt(value, 10) : null;
     this.dobMonth.set(numValue);
+    this.CheckDobSwapWarning();
     this.ValidateDob();
     this.EmitFormChange();
   }
@@ -241,6 +244,24 @@ export class PersonFormComponent implements OnInit, OnChanges {
     this.dobYear.set(numValue);
     this.ValidateDob();
     this.EmitFormChange();
+  }
+
+  SwapDobDayMonth(): void {
+    const day = this.dobDay();
+    const month = this.dobMonth();
+    this.dobDay.set(month);
+    this.dobMonth.set(day);
+    this.dobSwapWarning.set(false);
+    this.ValidateDob();
+    this.EmitFormChange();
+  }
+
+  private CheckDobSwapWarning(): void {
+    const day = this.dobDay();
+    const month = this.dobMonth();
+    const looksSwapped =
+      day !== null && month !== null && day <= 12 && month > 12;
+    this.dobSwapWarning.set(looksSwapped);
   }
 
   // Address handlers
