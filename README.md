@@ -7,7 +7,13 @@
 
 > **The Open-source Stripe Connect Alternative. Pay your marketplace sellers globally with USDC. Near-zero fees. Instant payouts. No vendor lock-in. Self-host your entire payout stack.**
 
-Zoneless is a self-hosted payment infrastructure for marketplaces and platforms. It provides a Stripe-compatible API for account onboarding, transfers, and payouts — except sellers get paid in USDC to their Solana wallet.
+Zoneless is a free, open-source drop-in replacement for the payout part of Stripe Connect. It lets you pay marketplace sellers globally with stablecoins (USDC) using an identical API to Stripe — at near-zero fees.
+
+<p align="center">
+  <img src="https://zoneless.com/assets/images/screenshots/dashboard1.png" alt="Zoneless Express Dashboard" width="700" />
+</p>
+
+**[See the Live Demo →](https://zoneless.com/#live-demo)**
 
 ```typescript
 // import Stripe from 'stripe';
@@ -29,6 +35,20 @@ await client.payouts.create({
   destination: account.id,
 });
 ```
+
+## Zoneless vs Stripe Connect
+
+|                       | Zoneless                 | Stripe Connect    |
+| --------------------- | ------------------------ | ----------------- |
+| Monthly account fee   | Free                     | $2/active account |
+| Payout fee (domestic) | ~$0.002 (SOL gas)        | 0.25% + $0.25     |
+| Payout fee (intl)     | ~$0.002 (SOL gas)        | $1.50 per payout  |
+| Cross-border fee      | None                     | +0.25–1.25%       |
+| Currency conversion   | None (USDC)              | +0.50–1% FX fee   |
+| Payout speed          | Seconds                  | 2–7 business days |
+| Global coverage       | 220+ countries & regions | ~47 countries     |
+| Source code           | Open source (Apache 2.0) | Proprietary       |
+| Self-hostable         | Yes                      | No                |
 
 ## Quick Start
 
