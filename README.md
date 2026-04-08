@@ -1,24 +1,89 @@
-# Zoneless
-
-[![CI](https://github.com/zonelessdev/zoneless/actions/workflows/ci.yml/badge.svg)](https://github.com/zonelessdev/zoneless/actions/workflows/ci.yml)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
-[![Angular](https://img.shields.io/badge/Angular-20-dd0031)](https://angular.dev)
-
-> **The Open-source Stripe Connect Alternative. Pay your marketplace sellers globally with USDC. Near-zero fees. Instant payouts. No vendor lock-in. Self-host your entire payout stack.**
-
-Zoneless is a free, open-source drop-in replacement for the payout part of Stripe Connect. It lets you pay marketplace sellers globally with stablecoins (USDC) using an identical API to Stripe — at near-zero fees.
-
 <p align="center">
-  <img src="https://zoneless.com/assets/images/screenshots/dashboard1.png" alt="Zoneless Express Dashboard" width="700" />
+  <a href="https://zoneless.com">
+    <img src="https://zoneless.com/assets/images/screenshots/og.png" alt="Zoneless — The open-source Stripe Connect alternative" width="800" />
+  </a>
 </p>
 
-**[See the Live Demo →](https://zoneless.com/#live-demo)**
+<h1 align="center">Zoneless</h1>
+
+<p align="center">
+  <strong>The open-source Stripe Connect alternative.<br>Pay marketplace sellers globally with USDC. ~$0.002 fees. Instant payouts. Self-hosted.</strong>
+</p>
+
+<p align="center">
+  <a href="https://zoneless.com/docs">Docs</a> &middot;
+  <a href="https://zoneless.com/#live-demo">Live Demo</a> &middot;
+  <a href="https://zoneless.com">Website</a> &middot;
+  <a href="https://discord.gg/WcYqPmjpjm">Discord</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/zonelessdev/zoneless/actions/workflows/ci.yml"><img src="https://github.com/zonelessdev/zoneless/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0"></a>
+</p>
+
+---
+
+Zoneless is a free, open-source drop-in replacement for the **payout part of Stripe Connect**. It lets you pay marketplace sellers globally with stablecoins (USDC) using an API identical to Stripe — at near-zero cost.
+
+If you know Stripe, you already know how to use Zoneless. Same webhooks, same object shapes, same SDK patterns. Just swap `stripe` for `@zoneless/node` and you're live.
+
+## Battle-tested in production
+
+Zoneless powers payouts on [PromptBase](https://promptbase.com), an AI marketplace with **450,000+ users**. At the peak, PromptBase was burning **$9,400/month** in opaque Stripe Connect fees for seller payouts. After switching to Zoneless:
+
+<table>
+  <tr>
+    <td align="center"><strong>~$0.002</strong><br><sub>avg. payout cost</sub></td>
+    <td align="center"><strong>1,400+</strong><br><sub>payouts completed</sub></td>
+    <td align="center"><strong>73%</strong><br><sub>of sellers chose Zoneless over Stripe</sub></td>
+    <td align="center"><strong>2,200+</strong><br><sub>sellers onboarded</sub></td>
+  </tr>
+</table>
+
+<sub>Based on 2,500 fully-onboarded sellers given the choice of Stripe or Zoneless payouts, Dec 2025 – Apr 2026.</sub>
+
+> _"Our payout costs dropped significantly, sellers get paid faster, and we can onboard more countries — which has helped grow the buyer side too. A big worry was that sellers would be confused and hate USDC, but they actually love it."_
+>
+> — **Ben Stokes**, Founder of [PromptBase](https://promptbase.com)
+
+## Why Zoneless?
+
+- **Near-zero fees** — Payouts cost ~$0.002 in SOL gas. No $2/month per account, no 0.25% + $0.25 per payout.
+- **Stripe-compatible API** — Same webhooks, events, object shapes, and SDK patterns. Migrate with minimal code changes.
+- **Truly global** — Pay anyone in 220+ countries & regions. No banking restrictions.
+- **Instant payouts** — USDC settles on Solana in seconds, 24/7/365. Not 2–7 business days.
+- **Open source** — Apache 2.0 licensed. Audit, fork, self-host. No vendor lock-in or surprise shutdowns.
+- **Self-custodial** — You hold your keys. Funds never touch a third party.
+
+## Zoneless vs Stripe Connect
+
+|                       | Zoneless                 | Stripe Connect    |
+| --------------------- | ------------------------ | ----------------- |
+| Monthly account fee   | Free                     | $2/active account |
+| Payout fee (domestic) | ~$0.002 (SOL gas)        | 0.25% + $0.25     |
+| Payout fee (intl)     | ~$0.002 (SOL gas)        | $1.50 per payout  |
+| Cross-border fee      | None                     | +0.25–1.25%       |
+| Currency conversion   | None (USDC)              | +0.50–1% FX fee   |
+| Payout speed          | Seconds                  | 2–7 business days |
+| Global coverage       | 220+ countries & regions | ~47 countries     |
+| Source code           | Open source (Apache 2.0) | Proprietary       |
+| Self-hostable         | Yes                      | No                |
+
+## Built for
+
+- **Microtransaction marketplaces** — When payouts cost fractions of a cent, small transactions finally make sense. Digital goods, templates, prompts, and more.
+- **Global creator platforms** — Pay creators worldwide without banking restrictions. No more "sorry, we don't support your country."
+- **AI agent economies** — Programmatic payouts for AI agents and autonomous systems. Machine-to-machine commerce at scale.
+
+## Migrate in minutes
 
 ```typescript
+// Before — Stripe Connect
 // import Stripe from 'stripe';
 // const client = new Stripe('sk_live_...');
 
+// After — Zoneless
 import { Zoneless } from '@zoneless/node';
 const client = new Zoneless('sk_z_...', 'api.example.com');
 
@@ -36,19 +101,23 @@ await client.payouts.create({
 });
 ```
 
-## Zoneless vs Stripe Connect
+## Express Dashboard
 
-|                       | Zoneless                 | Stripe Connect    |
-| --------------------- | ------------------------ | ----------------- |
-| Monthly account fee   | Free                     | $2/active account |
-| Payout fee (domestic) | ~$0.002 (SOL gas)        | 0.25% + $0.25     |
-| Payout fee (intl)     | ~$0.002 (SOL gas)        | $1.50 per payout  |
-| Cross-border fee      | None                     | +0.25–1.25%       |
-| Currency conversion   | None (USDC)              | +0.50–1% FX fee   |
-| Payout speed          | Seconds                  | 2–7 business days |
-| Global coverage       | 220+ countries & regions | ~47 countries     |
-| Source code           | Open source (Apache 2.0) | Proprietary       |
-| Self-hostable         | Yes                      | No                |
+Sellers get a familiar Express-style dashboard to view payouts, track earnings, and manage their account — plus guided wallet onboarding.
+
+<p align="center">
+  <img src="https://zoneless.com/assets/images/screenshots/dashboard1.webp" alt="Zoneless Express Dashboard" width="700" />
+</p>
+
+**[Try the Live Demo →](https://zoneless.com/#live-demo)**
+
+## How sellers get paid
+
+1. **Seller connects a wallet** — During onboarding, sellers connect a Solana wallet (e.g. Phantom). Takes 30 seconds with guided instructions.
+2. **You send USDC** — Trigger payouts via the API. Funds arrive in the seller's wallet in seconds, not days.
+3. **Seller spends or off-ramps** — Sellers spend USDC directly, or convert to local currency via an exchange like Coinbase.
+
+You create and manage your own platform wallet — top it up with USDC via any exchange and you're ready to send payouts.
 
 ## Quick Start
 
@@ -69,6 +138,7 @@ All guides and API reference docs live at **[zoneless.com/docs](https://zoneless
 - [Quickstart](https://zoneless.com/docs/quickstart) — end-to-end setup in under 5 minutes
 - [Deployment](https://zoneless.com/docs/deployment) — deploy to a VPS with Docker
 - [API Reference](https://zoneless.com/docs/account-links) — Accounts, Transfers, Payouts, Webhooks, and more
+- [Migrate from Stripe](https://zoneless.com/docs/migrate-from-stripe) — step-by-step migration guide
 
 ## Local Development
 
@@ -116,3 +186,7 @@ See [SECURITY.md](./SECURITY.md) to report vulnerabilities.
 ## License
 
 [Apache License 2.0](./LICENSE)
+
+---
+
+If Zoneless is useful to you, consider giving it a star — it helps others find the project.
