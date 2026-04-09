@@ -94,6 +94,7 @@ const account = await client.accounts.create({
   email: 'seller@example.com',
 });
 
+// Fee: $0.002 instead of $2+
 await client.payouts.create({
   amount: 10000,
   currency: 'usdc',
