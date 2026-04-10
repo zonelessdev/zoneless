@@ -14,7 +14,7 @@
   <a href="https://zoneless.com/docs">Docs</a> &middot;
   <a href="https://zoneless.com/#live-demo">Live Demo</a> &middot;
   <a href="https://zoneless.com">Website</a> &middot;
-  <a href="https://discord.gg/WcYqPmjpjm">Discord</a>
+  <a href="https://discord.gg/mdMQJug9mG">Discord</a>
 </p>
 
 <p align="center">
