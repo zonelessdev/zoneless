@@ -68,6 +68,8 @@ export class PayoutModule {
   private readonly platformListHelper: ListHelper<PayoutType>;
   private readonly accountModule: AccountModule;
   private readonly externalWalletModule: ExternalWalletModule;
+  private readonly balanceModule: BalanceModule;
+  private readonly balanceTransactionModule: BalanceTransactionModule;
   private readonly solana: Solana;
 
   constructor(db: Database, eventService?: EventService) {
@@ -75,6 +77,8 @@ export class PayoutModule {
     this.eventService = eventService || null;
     this.accountModule = new AccountModule(db);
     this.externalWalletModule = new ExternalWalletModule(db);
+    this.balanceModule = new BalanceModule(db);
+    this.balanceTransactionModule = new BalanceTransactionModule(db);
     this.solana = new Solana();
     this.listHelper = new ListHelper<PayoutType>(db, {
       collection: 'Payouts',
@@ -126,12 +130,11 @@ export class PayoutModule {
     }
 
     // Get the destination wallet - either specified or the account's default
-    const externalWalletModule = new ExternalWalletModule(this.db);
     let wallet;
 
     if (destination) {
       // Use specified destination wallet
-      wallet = await externalWalletModule.GetExternalWallet(destination);
+      wallet = await this.externalWalletModule.GetExternalWallet(destination);
 
       if (!wallet) {
         throw new AppError(
@@ -158,9 +161,8 @@ export class PayoutModule {
       }
     } else {
       // Get the account's default external wallet
-      const wallets = await externalWalletModule.GetExternalWalletsByAccount(
-        account
-      );
+      const wallets =
+        await this.externalWalletModule.GetExternalWalletsByAccount(account);
 
       if (wallets.length === 0) {
         throw new AppError(
@@ -200,9 +202,6 @@ export class PayoutModule {
 
     const payout = await this.db.RunTransaction(
       async (session: ClientSession) => {
-        const balanceTransactionModule = new BalanceTransactionModule(this.db);
-        const balanceModule = new BalanceModule(this.db);
-
         // Store the wallet ID as destination (not the wallet address)
         const newPayout = this.PayoutObject({
           account,
@@ -218,7 +217,7 @@ export class PayoutModule {
 
         const timestamp = Now();
         const balanceTransaction =
-          balanceTransactionModule.BalanceTransactionObject({
+          this.balanceTransactionModule.BalanceTransactionObject({
             amount: -amount,
             currency: currency ?? 'usdc',
             account: account,
@@ -234,7 +233,10 @@ export class PayoutModule {
         newPayout.balance_transaction = balanceTransaction.id;
 
         // Verify account has sufficient funds
-        const balanceData = await balanceModule.GetBalance(account, session);
+        const balanceData = await this.balanceModule.GetBalance(
+          account,
+          session
+        );
         if (!balanceData) {
           throw new AppError(
             ERRORS.BALANCE_NOT_FOUND.message,
@@ -265,7 +267,7 @@ export class PayoutModule {
         );
 
         // Deduct from available balance
-        const updatedBalance = balanceModule.UpdateBalance(
+        const updatedBalance = this.balanceModule.UpdateBalance(
           balanceData,
           -amount,
           currency ?? 'usdc',
@@ -564,7 +566,6 @@ export class PayoutModule {
 
     // Fetch all payouts and validate they exist and are pending
     const payouts: PayoutType[] = [];
-    const externalWalletModule = new ExternalWalletModule(this.db);
 
     for (const payoutId of payoutIds) {
       const payout = await this.GetPayout(payoutId);
@@ -613,7 +614,7 @@ export class PayoutModule {
       [];
 
     for (const payout of payouts) {
-      const wallet = await externalWalletModule.GetExternalWallet(
+      const wallet = await this.externalWalletModule.GetExternalWallet(
         payout.destination
       );
 
@@ -901,11 +902,13 @@ export class PayoutModule {
     payout: PayoutType,
     session?: ClientSession
   ): Promise<void> {
-    const balanceModule = new BalanceModule(this.db);
-    const balanceData = await balanceModule.GetBalance(payout.account, session);
+    const balanceData = await this.balanceModule.GetBalance(
+      payout.account,
+      session
+    );
 
     if (balanceData) {
-      const updatedBalance = balanceModule.UpdateBalance(
+      const updatedBalance = this.balanceModule.UpdateBalance(
         balanceData,
         payout.amount,
         payout.currency,
