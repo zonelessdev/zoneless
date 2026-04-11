@@ -161,9 +161,8 @@ export class PayoutModule {
       }
     } else {
       // Get the account's default external wallet
-      const wallets = await this.externalWalletModule.GetExternalWalletsByAccount(
-        account
-      );
+      const wallets =
+        await this.externalWalletModule.GetExternalWalletsByAccount(account);
 
       if (wallets.length === 0) {
         throw new AppError(
@@ -234,7 +233,10 @@ export class PayoutModule {
         newPayout.balance_transaction = balanceTransaction.id;
 
         // Verify account has sufficient funds
-        const balanceData = await this.balanceModule.GetBalance(account, session);
+        const balanceData = await this.balanceModule.GetBalance(
+          account,
+          session
+        );
         if (!balanceData) {
           throw new AppError(
             ERRORS.BALANCE_NOT_FOUND.message,
@@ -900,7 +902,10 @@ export class PayoutModule {
     payout: PayoutType,
     session?: ClientSession
   ): Promise<void> {
-    const balanceData = await this.balanceModule.GetBalance(payout.account, session);
+    const balanceData = await this.balanceModule.GetBalance(
+      payout.account,
+      session
+    );
 
     if (balanceData) {
       const updatedBalance = this.balanceModule.UpdateBalance(
