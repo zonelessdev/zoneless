@@ -80,6 +80,7 @@ export class OnboardComponent implements OnInit {
   loading: WritableSignal<boolean> = signal(true);
   nextLoading: WritableSignal<boolean> = signal(false);
   apiError: WritableSignal<string> = signal('');
+  initError: WritableSignal<boolean> = signal(false);
 
   showPersonErrors: WritableSignal<boolean> = signal(false);
   showWalletErrors: WritableSignal<boolean> = signal(false);
@@ -96,6 +97,10 @@ export class OnboardComponent implements OnInit {
   editWalletLoading: WritableSignal<boolean> = signal(false);
   editWalletShowErrors: WritableSignal<boolean> = signal(false);
 
+  private tokenExchanged = false;
+  private initRetries = 0;
+  private readonly MAX_INIT_RETRIES = 3;
+
   async ngOnInit(): Promise<void> {
     this.meta.SetMeta(this.seo);
     try {
@@ -106,9 +111,10 @@ export class OnboardComponent implements OnInit {
       // Load platform config for branding (pass token for correct platform context)
       await this.configService.LoadConfig(token || undefined);
 
-      // Exchange token for session if present
-      if (token) {
+      // Exchange token for session if present (only on first load, not retries)
+      if (token && !this.tokenExchanged) {
         await this.accountLinkService.ExchangeToken(token);
+        this.tokenExchanged = true;
       }
 
       const account = await this.accountService.GetAccount();
@@ -118,17 +124,36 @@ export class OnboardComponent implements OnInit {
       if (account) {
         await this.externalWalletService.GetExternalWallets(account.id);
       }
+
+      // Check: may fail loading data due to network error after token exchange, allows for retries.
+      if (!this.accountService.account() || !this.personService.person()) {
+        this.initError.set(true);
+        this.loading.set(false);
+        return;
+      }
+
       this.DetermineInitialStep();
       this.loading.set(false);
     } catch (error) {
       console.error(error);
-      // Redirect to session expired page on any auth error
       if (this.accountLinkService.linkError()) {
         this.router.navigateByUrl('/session-expired?reason=link_expired');
         return;
       }
+      this.initError.set(true);
       this.loading.set(false);
     }
+  }
+
+  async RetryInit(): Promise<void> {
+    this.initRetries++;
+    if (this.initRetries >= this.MAX_INIT_RETRIES) {
+      this.router.navigateByUrl('/session-expired?reason=load_failed');
+      return;
+    }
+    this.initError.set(false);
+    this.loading.set(true);
+    await this.ngOnInit();
   }
 
   CheckUrlParams(): void {
