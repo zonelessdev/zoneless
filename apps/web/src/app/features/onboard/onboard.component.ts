@@ -124,8 +124,8 @@ export class OnboardComponent implements OnInit {
       if (account) {
         await this.externalWalletService.GetExternalWallets(account.id);
       }
-			
-			// Check: may fail loading data due to network error after token exchange, allows for retries.
+
+      // Check: may fail loading data due to network error after token exchange, allows for retries.
       if (!this.accountService.account() || !this.personService.person()) {
         this.initError.set(true);
         this.loading.set(false);
