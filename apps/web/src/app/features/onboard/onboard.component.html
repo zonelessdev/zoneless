@@ -63,6 +63,17 @@
       <!-- Right Panel - Form Content -->
       <div class="right-panel">
         <div class="right-panel-content">
+          @if(initError()){
+          <h1>Something went wrong</h1>
+          <p>We couldn't load your account. This can happen due to a temporary connection issue.</p>
+          <button
+            type="button"
+            class="action-button action-button-wide"
+            (click)="RetryInit()"
+          >
+            Try again
+          </button>
+          } @else {
           <!-- Step 1: Person Details -->
           @if(step() === STEPS.PERSON){
           <app-person-form
@@ -230,6 +241,7 @@
           >
             Finish Setup
           </button>
+          }
           }
         </div>
       </div>
