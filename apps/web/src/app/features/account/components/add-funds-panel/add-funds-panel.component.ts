@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import { DecimalPipe, DatePipe } from '@angular/common';
 
-import { TopupService } from '../../../../data';
+import { TopupService, ConfigService } from '../../../../data';
 import { LoaderComponent, StatusChipComponent } from '../../../../shared';
 import { DepositInfo, TopUp } from '@zoneless/shared-types';
 
@@ -30,6 +30,7 @@ type PanelState = 'loading' | 'info' | 'waiting' | 'success';
 })
 export class AddFundsPanelComponent implements OnChanges, OnDestroy {
   private readonly topupService = inject(TopupService);
+  private readonly configService = inject(ConfigService);
   private readonly elementRef = inject(ElementRef);
   private checkInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -108,8 +109,7 @@ export class AddFundsPanelComponent implements OnChanges, OnDestroy {
   }
 
   IsTestMode(): boolean {
-    const url = this.depositInfo()?.explorer_url || '';
-    return url.includes('cluster=devnet');
+    return this.configService.IsTestMode();
   }
 
   GetExplorerUrl(): string {

@@ -1,6 +1,16 @@
 @use '../../styles/base.scss' as *;
 @use '../../styles/buttons.scss' as *;
 
+.test-mode-bar {
+  background-color: #f59e0b;
+  color: white;
+  text-align: center;
+  padding: $spacing-small $spacing;
+  font-size: $font-size;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
 .site-wrapper-dashboard {
   padding: 0;
   max-width: none;

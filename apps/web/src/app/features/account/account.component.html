@@ -1,6 +1,12 @@
 <div class="site-wrapper-dashboard">
   <app-page-loader [loading]="loading()"></app-page-loader>
 
+  @if (configService.IsTestMode()) {
+  <div class="test-mode-bar">
+    You're using test data. Transactions use the Solana devnet.
+  </div>
+  }
+
   <div class="account-content-wrapper">
     <div class="sidebar-wrapper">
       <app-side-menu

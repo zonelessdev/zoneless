@@ -137,6 +137,13 @@ export class ConfigService {
   }
 
   /**
+   * Returns true if the platform is running in test mode (not live).
+   */
+  IsTestMode(): boolean {
+    return this.config()?.livemode === false;
+  }
+
+  /**
    * Clear the cached config. Useful when switching contexts.
    */
   ClearConfig(): void {

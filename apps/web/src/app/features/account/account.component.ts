@@ -106,7 +106,7 @@ export class AccountComponent implements OnInit {
   private readonly authService = inject(AuthService);
   readonly accountService = inject(AccountService);
   private readonly balanceService = inject(BalanceService);
-  private readonly configService = inject(ConfigService);
+  readonly configService = inject(ConfigService);
   private readonly topupService = inject(TopupService);
   readonly personService = inject(PersonService);
   readonly externalWalletService = inject(ExternalWalletService);

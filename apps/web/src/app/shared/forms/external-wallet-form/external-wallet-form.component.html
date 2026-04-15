@@ -1,4 +1,13 @@
 <div class="external-wallet-form">
+  <!-- Test Mode Banner -->
+  @if (mode === 'onboard' && configService.IsTestMode()) {
+  <app-test-mode-banner
+    message="You're using a test account."
+    actionLabel="Use test wallet"
+    (actionClicked)="FillTestData()"
+  ></app-test-mode-banner>
+  }
+
   <!-- Header (onboard mode only) -->
   @if (mode === 'onboard') {
   <h1>Add your payout wallet</h1>
