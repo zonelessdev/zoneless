@@ -1,4 +1,13 @@
 <div class="person-form">
+  <!-- Test Mode Banner -->
+  @if (mode === 'onboard' && configService.IsTestMode()) {
+  <app-test-mode-banner
+    message="You're using a test account with test data."
+    actionLabel="Use test data"
+    (actionClicked)="FillTestData()"
+  ></app-test-mode-banner>
+  }
+
   <!-- Header (onboard mode only) -->
   @if (mode === 'onboard') {
   <h1>Verify your personal details</h1>

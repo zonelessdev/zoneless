@@ -12,13 +12,15 @@ import {
   inject,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-
 import { Person } from '@zoneless/shared-types';
+
+import { TestModeBannerComponent } from '../../ui';
 import {
   NAME_MIN_LENGTH,
   NAME_MAX_LENGTH,
   ISO_CODES,
   GetCountryDialCode,
+  TEST_PERSON_DATA,
 } from '../../../utils';
 import { ConfigService } from '../../../data';
 
@@ -43,7 +45,7 @@ export interface PersonFormData {
 @Component({
   selector: 'app-person-form',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, TestModeBannerComponent],
   templateUrl: './person-form.component.html',
   styleUrls: ['./person-form.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -555,6 +557,32 @@ export class PersonFormComponent implements OnInit, OnChanges {
         country: this.addressCountry() || null,
       },
     };
+  }
+
+  FillTestData(): void {
+    this.firstName.set(TEST_PERSON_DATA.firstName);
+    this.lastName.set(TEST_PERSON_DATA.lastName);
+    this.email.set(TEST_PERSON_DATA.email);
+    this.dobDay.set(TEST_PERSON_DATA.dobDay);
+    this.dobMonth.set(TEST_PERSON_DATA.dobMonth);
+    this.dobYear.set(TEST_PERSON_DATA.dobYear);
+    this.addressLine1.set(TEST_PERSON_DATA.addressLine1);
+    this.addressLine2.set(TEST_PERSON_DATA.addressLine2);
+    this.addressCity.set(TEST_PERSON_DATA.addressCity);
+    this.addressState.set(TEST_PERSON_DATA.addressState);
+    this.addressPostalCode.set(TEST_PERSON_DATA.addressPostalCode);
+    this.addressCountry.set(TEST_PERSON_DATA.addressCountry);
+
+    const country = ISO_CODES.find(
+      (c) => c.code === TEST_PERSON_DATA.addressCountry
+    );
+    if (country) {
+      this.phoneCountryCode.set(country.code);
+    }
+    this.ParseAndSetPhone(TEST_PERSON_DATA.phone);
+
+    this.ValidateAll();
+    this.EmitFormChange();
   }
 
   private IsValidEmail(email: string): boolean {

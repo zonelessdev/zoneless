@@ -1,0 +1,52 @@
+@use '../../../styles/base.scss' as *;
+
+.test-mode-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing;
+  padding: $spacing;
+  background-color: #eff6ff;
+  border-radius: $border-radius-small;
+  font-size: $font-size;
+  color: #1e40af;
+  line-height: 1.4;
+}
+
+.test-mode-banner-content {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+  flex: 1;
+  min-width: 0;
+}
+
+.test-mode-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.test-mode-message {
+  flex: 1;
+}
+
+.test-mode-action {
+  flex-shrink: 0;
+  padding: $spacing-small $spacing;
+  background-color: white;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  border-radius: $border-radius-small;
+  font-family: $text-font;
+  font-size: $font-size;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: #dbeafe;
+  }
+}

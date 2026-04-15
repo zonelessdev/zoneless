@@ -40,4 +40,4 @@ export function GetSolanaAddressError(address: string): string {
 }
 
 export const SOLANA_NETWORK = 'solana';
-export const SOLANA_CURRENCY = 'USDC';
+export const SOLANA_CURRENCY = 'usdc';

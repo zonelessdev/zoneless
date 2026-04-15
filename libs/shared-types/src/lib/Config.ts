@@ -48,6 +48,8 @@ export interface PublicConfig {
   terms_url: string;
   /** URL to the platform's Privacy Policy page (empty string if not set) */
   privacy_url: string;
+  /** True if running in live mode, false for test mode */
+  livemode: boolean;
 }
 
 /**
