@@ -49,6 +49,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'checkout',
+    loadComponent: () =>
+      import('./features/checkout/checkout.component').then(
+        (mod) => mod.CheckoutComponent
+      ),
+  },
+  {
     path: '',
     redirectTo: '/account/home',
     pathMatch: 'full',
