@@ -11,7 +11,9 @@ router.get(
     const subscriberPublicKey = req.params.subscriberPublicKey;
 
     const subscriptionModule = new SubscriptionModule();
-    const result = await subscriptionModule.GetSubscription(subscriberPublicKey);
+    const result = await subscriptionModule.GetSubscription(
+      subscriberPublicKey
+    );
 
     Logger.info('Fetched subscription state', {
       subscriberPublicKey,
@@ -27,13 +29,17 @@ router.post(
   '/',
   AsyncHandler(async (req: express.Request, res: express.Response) => {
     const accountId = req.user.account;
-		const subscriberPublicKey = req.body.subscriberPublicKey;
-		const amount = req.body.amount;
-		const periodSeconds = req.body.periodSeconds;
+    const subscriberPublicKey = req.body.subscriberPublicKey;
+    const amount = req.body.amount;
+    const periodSeconds = req.body.periodSeconds;
     Logger.info('Subscription account', { accountId });
 
-		const subscriptionModule = new SubscriptionModule();
-		const result = await subscriptionModule.CreateSubscription(subscriberPublicKey, amount, periodSeconds);
+    const subscriptionModule = new SubscriptionModule();
+    const result = await subscriptionModule.CreateSubscription(
+      subscriberPublicKey,
+      amount,
+      periodSeconds
+    );
 
     Logger.info('Subscription called');
 

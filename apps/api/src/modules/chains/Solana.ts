@@ -585,7 +585,7 @@ export class Solana {
   async CreateSubscription(
     subscriberPublicKey: string,
     amount: number,
-    periodSeconds: number,
+    periodSeconds: number
   ): Promise<{
     unsigned_transaction: string;
     estimated_fee_lamports: number;
@@ -611,10 +611,10 @@ export class Solana {
 
     // Input amount is expected in USD (e.g. 0.01), then converted:
     // dollars -> cents -> USDC atomic units (6 decimals => 1 cent = 10_000 units)
-    const chargeAmountAtomic = amount * 10_000; 
-		
-		// Approve for 60 months (60 times monthly price)
-		const approvedAmountAtomic = chargeAmountAtomic * 60;
+    const chargeAmountAtomic = amount * 10_000;
+
+    // Approve for 60 months (60 times monthly price)
+    const approvedAmountAtomic = chargeAmountAtomic * 60;
 
     // Combined one-signature flow:
     // 1) Approve delegate (authority PDA) to spend subscription amount
@@ -640,7 +640,10 @@ export class Solana {
     transaction.feePayer = subscriberPubkey;
 
     const fee = await this.WithRetry(() =>
-      this.connection.getFeeForMessage(transaction.compileMessage(), 'confirmed')
+      this.connection.getFeeForMessage(
+        transaction.compileMessage(),
+        'confirmed'
+      )
     );
 
     const serializedTransaction = transaction
@@ -664,7 +667,7 @@ export class Solana {
   }
 
   private GetMerchantPubkey(): PublicKey {
-		const MERCHANT_PUBLIC_KEY = "HxXyrNpFT6oioH2whDC3oCu54auNcQUhSwh6yX48EsEJ";
+    const MERCHANT_PUBLIC_KEY = 'HxXyrNpFT6oioH2whDC3oCu54auNcQUhSwh6yX48EsEJ';
     return new PublicKey(MERCHANT_PUBLIC_KEY);
   }
 
@@ -735,7 +738,11 @@ export class Solana {
       programId: this.GetProgramId(),
       keys: [
         { pubkey: subscriberPubkey, isSigner: true, isWritable: true },
-        { pubkey: this.GetMerchantPubkey(), isSigner: false, isWritable: false },
+        {
+          pubkey: this.GetMerchantPubkey(),
+          isSigner: false,
+          isWritable: false,
+        },
         { pubkey: mintPubkey, isSigner: false, isWritable: false },
         {
           pubkey: this.GetSubscriptionPda(subscriberPubkey),
@@ -765,7 +772,9 @@ export class Solana {
       throw new Error('Subscriber public key is required');
     }
 
-    const programId = new PublicKey('9JAVCcRBhZz4Jjx1qMdCgZj7bzEkVE5aMSeHwM94278F');
+    const programId = new PublicKey(
+      '9JAVCcRBhZz4Jjx1qMdCgZj7bzEkVE5aMSeHwM94278F'
+    );
     const merchantPubkey = new PublicKey(
       'HxXyrNpFT6oioH2whDC3oCu54auNcQUhSwh6yX48EsEJ'
     );
@@ -792,7 +801,9 @@ export class Solana {
     }
 
     if (!accountInfo.owner.equals(programId)) {
-      throw new Error('Subscription PDA exists but is not owned by the program');
+      throw new Error(
+        'Subscription PDA exists but is not owned by the program'
+      );
     }
 
     const data = accountInfo.data;
@@ -803,9 +814,13 @@ export class Solana {
 
     let offset = 8; // Skip account discriminator
 
-    const subscriber = new PublicKey(data.subarray(offset, offset + 32)).toBase58();
+    const subscriber = new PublicKey(
+      data.subarray(offset, offset + 32)
+    ).toBase58();
     offset += 32;
-    const merchant = new PublicKey(data.subarray(offset, offset + 32)).toBase58();
+    const merchant = new PublicKey(
+      data.subarray(offset, offset + 32)
+    ).toBase58();
     offset += 32;
     const mint = new PublicKey(data.subarray(offset, offset + 32)).toBase58();
     offset += 32;
@@ -854,7 +869,8 @@ export class Solana {
     }
 
     const subscriberPubkey = new PublicKey(subscriberPublicKey);
-    const cancelInstruction = this.CancelSubscriptionInstruction(subscriberPubkey);
+    const cancelInstruction =
+      this.CancelSubscriptionInstruction(subscriberPubkey);
 
     const transaction = new Transaction().add(cancelInstruction);
     const { blockhash, lastValidBlockHeight } = await this.WithRetry(() =>
@@ -864,7 +880,10 @@ export class Solana {
     transaction.feePayer = subscriberPubkey;
 
     const fee = await this.WithRetry(() =>
-      this.connection.getFeeForMessage(transaction.compileMessage(), 'confirmed')
+      this.connection.getFeeForMessage(
+        transaction.compileMessage(),
+        'confirmed'
+      )
     );
 
     const serializedTransaction = transaction
@@ -937,7 +956,10 @@ export class Solana {
     transaction.feePayer = feePayerPubkey;
 
     const fee = await this.WithRetry(() =>
-      this.connection.getFeeForMessage(transaction.compileMessage(), 'confirmed')
+      this.connection.getFeeForMessage(
+        transaction.compileMessage(),
+        'confirmed'
+      )
     );
 
     const serializedTransaction = transaction
@@ -1000,7 +1022,9 @@ export class Solana {
       )
     );
 
-    const parseTokenInfo = (accountInfo: Awaited<ReturnType<Connection['getAccountInfo']>>) => {
+    const parseTokenInfo = (
+      accountInfo: Awaited<ReturnType<Connection['getAccountInfo']>>
+    ) => {
       if (!accountInfo) {
         return {
           token_account_exists: false,
@@ -1073,7 +1097,11 @@ export class Solana {
           isWritable: true,
         },
         { pubkey: subscriberPubkey, isSigner: false, isWritable: true },
-        { pubkey: this.GetMerchantPubkey(), isSigner: false, isWritable: false },
+        {
+          pubkey: this.GetMerchantPubkey(),
+          isSigner: false,
+          isWritable: false,
+        },
         { pubkey: subscriberPubkey, isSigner: true, isWritable: false },
       ],
       data: discriminator,
@@ -1099,7 +1127,11 @@ export class Solana {
           isWritable: true,
         },
         { pubkey: subscriberPubkey, isSigner: false, isWritable: false },
-        { pubkey: this.GetMerchantPubkey(), isSigner: false, isWritable: false },
+        {
+          pubkey: this.GetMerchantPubkey(),
+          isSigner: false,
+          isWritable: false,
+        },
         {
           pubkey: new PublicKey(this.GetUSDCMintAddress()),
           isSigner: false,

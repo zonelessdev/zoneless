@@ -8,14 +8,20 @@
 import { Solana } from './chains/Solana';
 
 export class SubscriptionModule {
-  constructor() {
+  constructor() {}
 
-  }
-
-  async CreateSubscription(subscriberPublicKey: string, amount: number, periodSeconds: number): Promise<any> {
-		const solana = new Solana();
-		const result = await solana.CreateSubscription(subscriberPublicKey, amount, periodSeconds);
-		return result;
+  async CreateSubscription(
+    subscriberPublicKey: string,
+    amount: number,
+    periodSeconds: number
+  ): Promise<any> {
+    const solana = new Solana();
+    const result = await solana.CreateSubscription(
+      subscriberPublicKey,
+      amount,
+      periodSeconds
+    );
+    return result;
   }
 
   async GetSubscription(subscriberPublicKey: string): Promise<any> {

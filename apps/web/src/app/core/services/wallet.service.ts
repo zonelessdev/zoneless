@@ -31,9 +31,9 @@ export class SolanaWalletService {
     const selectedWallet = this.wallet();
     if (!selectedWallet) throw new Error('No wallet found');
 
-    const connectFeature = selectedWallet.features[
-      'standard:connect'
-    ] as ConnectFeature | undefined;
+    const connectFeature = selectedWallet.features['standard:connect'] as
+      | ConnectFeature
+      | undefined;
     if (!connectFeature) throw new Error('Wallet does not support connect');
 
     const connected = await connectFeature.connect();
@@ -56,39 +56,41 @@ export class SolanaWalletService {
     return connectedAccount.address;
   }
 
-	async SignAndSendUnsignedTransaction(unsignedTxBase64: string): Promise<Uint8Array> {
-		const selectedWallet = this.wallet();
-		const connectedAccount = this.account();
-		if (!selectedWallet || !connectedAccount) {
-			throw new Error('Connect wallet first');
-		}
-		const feature = selectedWallet.features['solana:signAndSendTransaction'] as
-			| {
-					signAndSendTransaction: (input: {
-						account: WalletAccount;
-						transaction: Uint8Array;
-						chain?: string;
-					}) => Promise<readonly { signature: Uint8Array }[]>;
-				}
-			| undefined;
-		if (!feature) {
-			throw new Error('Wallet does not support solana:signAndSendTransaction');
-		}
-		const transactionBytes = this.Base64ToBytes(unsignedTxBase64);
-		const result = await feature.signAndSendTransaction({
-			account: connectedAccount,
-			transaction: transactionBytes,
-			chain: 'solana:devnet', // match backend network
-		});
-		return result[0].signature;
-	}
+  async SignAndSendUnsignedTransaction(
+    unsignedTxBase64: string
+  ): Promise<Uint8Array> {
+    const selectedWallet = this.wallet();
+    const connectedAccount = this.account();
+    if (!selectedWallet || !connectedAccount) {
+      throw new Error('Connect wallet first');
+    }
+    const feature = selectedWallet.features['solana:signAndSendTransaction'] as
+      | {
+          signAndSendTransaction: (input: {
+            account: WalletAccount;
+            transaction: Uint8Array;
+            chain?: string;
+          }) => Promise<readonly { signature: Uint8Array }[]>;
+        }
+      | undefined;
+    if (!feature) {
+      throw new Error('Wallet does not support solana:signAndSendTransaction');
+    }
+    const transactionBytes = this.Base64ToBytes(unsignedTxBase64);
+    const result = await feature.signAndSendTransaction({
+      account: connectedAccount,
+      transaction: transactionBytes,
+      chain: 'solana:devnet', // match backend network
+    });
+    return result[0].signature;
+  }
 
-	private Base64ToBytes(base64: string): Uint8Array {
-		const binary = atob(base64);
-		const bytes = new Uint8Array(binary.length);
-		for (let i = 0; i < binary.length; i += 1) {
-			bytes[i] = binary.charCodeAt(i);
-		}
-		return bytes;
-	}
+  private Base64ToBytes(base64: string): Uint8Array {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  }
 }
