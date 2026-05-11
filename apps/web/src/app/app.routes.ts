@@ -48,6 +48,13 @@ export const routes: Routes = [
         (mod) => mod.SessionExpiredComponent
       ),
   },
+	{
+    path: 'checkout',
+    loadComponent: () =>
+      import('./features/checkout/checkout.component').then(
+        (mod) => mod.CheckoutComponent
+      ),
+  },
   {
     path: '',
     redirectTo: '/account/home',
