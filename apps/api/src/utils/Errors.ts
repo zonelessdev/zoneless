@@ -119,6 +119,11 @@ export const ERRORS = {
     status: 404,
     type: 'invalid_request_error',
   },
+  PRODUCT_NOT_FOUND: {
+    message: 'Product not found',
+    status: 404,
+    type: 'resource_missing',
+  },
 
   // Validation errors
   VALIDATION_ERROR: {

@@ -245,6 +245,7 @@ export type TimestampFilter =
  * Parse a generic timestamp filter from request query parameters.
  * Supports simple timestamp format: ?field=123
  * And object notation: ?field[gt]=123&field[gte]=456
+ * And nested objects from Express/qs: field: { gt, gte, lt, lte }
  *
  * @param query - The query parameters object
  * @param fieldName - The name of the timestamp field (e.g., 'created', 'arrival_date')
@@ -287,7 +288,42 @@ export function ParseTimestampFilter(
     filter.lte = parseInt(String(query[`${fieldName}[lte]`]), 10);
   }
 
+  MergeNestedTimestampBounds(query[fieldName], filter);
+
   return Object.keys(filter).length > 0 ? filter : undefined;
+}
+
+/**
+ * Reads gt/gte/lt/lte from a nested query object (Express qs shape for field[gt]=…).
+ */
+function MergeNestedTimestampBounds(
+  raw: unknown,
+  filter: {
+    gt?: number;
+    gte?: number;
+    lt?: number;
+    lte?: number;
+  }
+): void {
+  const timestampBoundKeys = ['gt', 'gte', 'lt', 'lte'] as const;
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    return;
+  }
+  const o = raw as Record<string, unknown>;
+  for (const key of timestampBoundKeys) {
+    const v = o[key];
+    if (v === undefined || v === null || v === '') {
+      continue;
+    }
+    const first = Array.isArray(v) && v.length > 0 ? v[0] : v;
+    if (first === undefined || first === '') {
+      continue;
+    }
+    const n = parseInt(String(first), 10);
+    if (Number.isFinite(n)) {
+      filter[key] = n;
+    }
+  }
 }
 
 /**
@@ -316,4 +352,30 @@ export function ParseCreatedFilter(
   query: Record<string, unknown>
 ): ListOptions['created'] | undefined {
   return ParseTimestampFilter(query, 'created');
+}
+
+/**
+ * Parse optional boolean from Express query values (strings or string[]).
+ * Supports ?key=true and ?key=false. Unknown or empty values yield undefined.
+ */
+export function ParseOptionalQueryBoolean(value: unknown): boolean | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  const first =
+    typeof value === 'string'
+      ? value
+      : Array.isArray(value) && typeof value[0] === 'string'
+      ? value[0]
+      : undefined;
+  if (first === undefined || first === '') {
+    return undefined;
+  }
+  if (first === 'true') {
+    return true;
+  }
+  if (first === 'false') {
+    return false;
+  }
+  return undefined;
 }
