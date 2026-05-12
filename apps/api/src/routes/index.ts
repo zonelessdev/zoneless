@@ -19,6 +19,7 @@ import authExchangeRouter from './exchange.routes';
 import configRouter from './config.routes';
 import setupRouter from './setup.routes';
 import subscriptionsRouter from './subscriptions.routes';
+import productsRouter from './products.routes';
 
 const router = express.Router();
 
@@ -51,4 +52,5 @@ router.use('/webhook_endpoints', webhookEndpointsRouter);
 router.use('/api_keys', apiKeysRouter);
 router.use('/events', eventsRouter);
 router.use('/subscriptions', subscriptionsRouter);
+router.use('/products', productsRouter);
 export default router;

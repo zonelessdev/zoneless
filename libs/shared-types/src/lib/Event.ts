@@ -7,6 +7,7 @@ import { ExternalWallet } from './ExternalWallet';
 import { IdempotencyKey } from './IdempotencyKey';
 import { Payout } from './Payout';
 import { Person } from './Person';
+import { Product } from './Product';
 import { TopUp } from './TopUp';
 import { Transfer, TransferReversal } from './Transfer';
 
@@ -52,6 +53,11 @@ export const EVENT_TYPES = [
   'person.updated',
   'person.deleted',
 
+  // Product events
+  'product.created',
+  'product.updated',
+  'product.deleted',
+
   // Top-up events
   'topup.created',
   'topup.canceled',
@@ -81,6 +87,7 @@ export type EventDataObject =
   | IdempotencyKey
   | Payout
   | Person
+  | Product
   | TopUp
   | Transfer
   | TransferReversal
