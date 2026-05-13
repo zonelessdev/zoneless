@@ -20,6 +20,7 @@ import configRouter from './config.routes';
 import setupRouter from './setup.routes';
 import subscriptionsRouter from './subscriptions.routes';
 import productsRouter from './products.routes';
+import pricesRouter from './prices.routes';
 
 const router = express.Router();
 
@@ -53,4 +54,5 @@ router.use('/api_keys', apiKeysRouter);
 router.use('/events', eventsRouter);
 router.use('/subscriptions', subscriptionsRouter);
 router.use('/products', productsRouter);
+router.use('/prices', pricesRouter);
 export default router;

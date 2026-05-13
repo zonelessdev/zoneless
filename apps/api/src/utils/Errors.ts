@@ -124,6 +124,11 @@ export const ERRORS = {
     status: 404,
     type: 'resource_missing',
   },
+  PRICE_NOT_FOUND: {
+    message: 'Price not found',
+    status: 404,
+    type: 'resource_missing',
+  },
 
   // Validation errors
   VALIDATION_ERROR: {

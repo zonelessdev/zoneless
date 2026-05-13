@@ -13,6 +13,7 @@ export * from './ExternalWallet';
 export * from './IdempotencyKey';
 export * from './Payout';
 export * from './Person';
+export * from './Price';
 export * from './Product';
 export * from './QueryParameters';
 export * from './TopUp';
