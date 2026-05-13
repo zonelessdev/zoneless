@@ -25,6 +25,7 @@ import {
 import { ListHelper, ListOptions, ListResult } from '../utils/ListHelper';
 import { Now } from '../utils/Timestamp';
 import { GetAppConfig } from './AppConfig';
+import type { PriceModule } from './Price';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
 
@@ -32,8 +33,13 @@ export class ProductModule {
   private readonly db: Database;
   private readonly eventService: EventService | null;
   private readonly listHelper: ListHelper<ProductType>;
+  private readonly priceModule: PriceModule;
 
-  constructor(db: Database, eventService?: EventService) {
+  constructor(
+    db: Database,
+    eventService?: EventService,
+    priceModule?: PriceModule
+  ) {
     this.db = db;
     this.eventService = eventService || null;
     this.listHelper = new ListHelper<ProductType>(db, {
@@ -43,6 +49,7 @@ export class ProductModule {
       urlPath: '/v1/products',
       accountField: 'platform_account',
     });
+    this.priceModule = priceModule || null;
   }
 
   /**
@@ -59,6 +66,17 @@ export class ProductModule {
     const validatedInput = ValidateUpdate(CreateProductSchema, input);
 
     const product = this.ProductObject(platformAccountId, validatedInput);
+
+    if (validatedInput.default_price_data) {
+      validatedInput.default_price_data.product = product.id; //Put the product id here so CreatePrice doesn't return an erro.
+      const price = await this.priceModule.CreatePrice(
+        platformAccountId,
+        validatedInput.default_price_data,
+        true
+      ); //Skip product check as the product is not yet created.
+      product.default_price = price.id;
+    }
+
     await this.db.Set('Products', product.id, product);
 
     if (this.eventService) {
@@ -80,7 +98,7 @@ export class ProductModule {
       object: 'product',
       active: input.active ?? true,
       created: Now(),
-      default_price: input.default_price ?? null,
+      default_price: null,
       description: input.description ?? null,
       images: input.images ?? [],
       marketing_features: input.marketing_features ?? [],

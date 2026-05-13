@@ -11,6 +11,7 @@ import { GenerateId } from '../utils/IdGenerator';
 import { Price as PriceType, QueryOperators } from '@zoneless/shared-types';
 import { ValidateUpdate } from './Util';
 import { ExtractChangedFields } from './Event';
+import type { ProductModule } from './Product';
 import {
   CreatePriceSchema,
   CreatePriceInput,
@@ -27,8 +28,13 @@ export class PriceModule {
   private readonly db: Database;
   private readonly eventService: EventService | null;
   private readonly listHelper: ListHelper<PriceType>;
+  private readonly productModule: ProductModule | null;
 
-  constructor(db: Database, eventService?: EventService) {
+  constructor(
+    db: Database,
+    eventService?: EventService,
+    productModule?: ProductModule
+  ) {
     this.db = db;
     this.eventService = eventService || null;
     this.listHelper = new ListHelper<PriceType>(db, {
@@ -38,6 +44,7 @@ export class PriceModule {
       urlPath: '/v1/prices',
       accountField: 'platform_account',
     });
+    this.productModule = productModule || null;
   }
 
   /**
@@ -49,11 +56,56 @@ export class PriceModule {
    */
   async CreatePrice(
     platformAccountId: string,
-    input: CreatePriceInput
+    input: CreatePriceInput,
+    skipProductCheck: boolean = false
   ): Promise<PriceType> {
     const validatedInput = ValidateUpdate(CreatePriceSchema, input);
 
     const price = this.PriceObject(platformAccountId, validatedInput);
+
+    if (!validatedInput.product && !validatedInput.product_data) {
+      throw new AppError(
+        'product id or product_data is required',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    } else if (validatedInput.product_data) {
+      if (!this.productModule) {
+        throw new AppError(
+          'ProductModule not configured',
+          ERRORS.INVALID_REQUEST.status,
+          ERRORS.INVALID_REQUEST.type
+        );
+      }
+      //Create a product from the product_data supplied and link it to the price.
+      const product = await this.productModule.CreateProduct(
+        platformAccountId,
+        validatedInput.product_data
+      );
+      price.product = product.id;
+    } else if (validatedInput.product && !skipProductCheck) {
+      //Skip this check if creating a price via the product module, as the product is not yet created.
+      if (!this.productModule) {
+        throw new AppError(
+          'ProductModule not configured',
+          ERRORS.INVALID_REQUEST.status,
+          ERRORS.INVALID_REQUEST.type
+        );
+      }
+      //Get the product from the database and link it to the price.
+      const product = await this.productModule.GetProduct(
+        validatedInput.product
+      );
+      if (!product) {
+        throw new AppError(
+          ERRORS.PRODUCT_NOT_FOUND.message,
+          ERRORS.PRODUCT_NOT_FOUND.status,
+          ERRORS.PRODUCT_NOT_FOUND.type
+        );
+      }
+      price.product = product.id;
+    }
+
     await this.db.Set('Prices', price.id, price);
 
     if (this.eventService) {
