@@ -1,8 +1,8 @@
 /**
- * @fileOverview Methods for Products
+ * @fileOverview Methods for Prices
  *
  *
- * @module Product
+ * @module Price
  */
 
 import { Database } from './Database';

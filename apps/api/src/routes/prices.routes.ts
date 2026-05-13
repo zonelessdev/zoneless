@@ -64,7 +64,7 @@ router.post(
     // Verify the API key exists and belongs to this platform
     const existingPrice = await priceModule.GetPrice(id);
 
-    // Product exists
+    // Price exists
     if (!existingPrice) {
       throw new AppError(
         ERRORS.PRICE_NOT_FOUND.message,
@@ -73,7 +73,7 @@ router.post(
       );
     }
 
-    // Product belongs to this platform
+    // Price belongs to this platform
     if (existingPrice.platform_account !== platformAccountId) {
       throw new AppError(
         ERRORS.PRICE_NOT_FOUND.message,
@@ -181,7 +181,7 @@ router.get(
       recurring,
     });
 
-    Logger.info('Products listed successfully', {
+    Logger.info('Prices listed successfully', {
       platformAccountId,
       count: result.data.length,
       hasMore: result.has_more,

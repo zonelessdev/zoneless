@@ -1,5 +1,5 @@
 /**
- * Stripe-compatible Balance Price object for Zoneless.
+ * Stripe-compatible Price object for Zoneless.
  * Represents the price of a product.
  *
  * @see https://docs.stripe.com/api/prices/object
