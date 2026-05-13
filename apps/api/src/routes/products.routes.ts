@@ -11,6 +11,7 @@ import {
 import { db } from '../modules/Database';
 import { EventService } from '../modules/EventService';
 import { ProductModule } from '../modules/Product';
+import { PriceModule } from '../modules/Price';
 
 import { ValidateRequest } from '../middleware/ValidateRequest';
 import { RequirePlatform } from '../middleware/Authorization';
@@ -23,7 +24,8 @@ import {
 const router = express.Router();
 
 const eventService = new EventService(db);
-const productModule = new ProductModule(db, eventService);
+const priceModule = new PriceModule(db, eventService); //Pass into product module to enable creating prices.
+const productModule = new ProductModule(db, eventService, priceModule);
 
 /**
  * POST /v1/products

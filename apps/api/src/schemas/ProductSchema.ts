@@ -21,7 +21,83 @@ export const CreateProductSchema = z.object({
   id: z.string().min(1).max(32).optional(),
   metadata: z.record(z.string(), z.string()).optional(),
   tax_code: z.string().optional(),
-  default_price: z.any().optional(), //TODO: add price schema
+  tax_details: z
+    .object({
+      performance_locations: z.string().optional(),
+      tax_code: z.string().optional(),
+    })
+    .optional(),
+  default_price_data: z
+    .object({
+      currency: z.string().min(1).max(4),
+      product: z.string().min(1).max(32).optional(), //Used to set product id after creating product then creating price.
+      currency_options: z
+        .record(
+          z.string(),
+          z.object({
+            custom_unit_amount: z
+              .object({
+                enabled: z.boolean().default(true),
+                maximum: z.number().int().positive(),
+                minimum: z.number().int().positive(),
+                preset: z.number().int().positive(),
+              })
+              .optional(),
+            tax_behavior: z
+              .enum(['exclusive', 'inclusive', 'unspecified'])
+              .optional(),
+            tiers: z
+              .array(
+                z.object({
+                  flat_amount: z.number().int().positive(),
+                  flat_amount_decimal: z.string().optional(),
+                  unit_amount: z.number().int().positive().optional(),
+                  unit_amount_decimal: z.string().optional(),
+                  up_to: z.number().int().positive(),
+                })
+              )
+              .optional(),
+            unit_amount: z.number().int().positive().optional(),
+            unit_amount_decimal: z.string().optional(),
+          })
+        )
+        .optional(),
+      custom_unit_amount: z
+        .object({
+          enabled: z.boolean().default(true),
+          maximum: z.number().int().positive(),
+          minimum: z.number().int().positive(),
+          preset: z.number().int().positive(),
+        })
+        .optional(),
+      metadata: z.record(z.string(), z.string()).optional(),
+      recurring: z
+        .object({
+          interval: z.enum(['day', 'week', 'month', 'year']),
+          interval_count: z.number().int().positive().optional(),
+          trial_period_days: z.number().int().positive().optional(),
+          usage_type: z.enum(['metered', 'licensed']).optional(),
+          meter: z.string().optional(),
+        })
+        .optional(),
+      tax_behavior: z
+        .enum(['exclusive', 'inclusive', 'unspecified'])
+        .optional(),
+      unit_amount: z.number().int().positive(),
+      unit_amount_decimal: z.string().optional(),
+    })
+    .optional(),
+  identifiers: z
+    .object({
+      ean: z.string().max(500).optional(),
+      gtin: z.string().max(500).optional(),
+      isbn: z.string().max(500).optional(),
+      jan: z.string().max(500).optional(),
+      mpn: z.string().max(70).optional(),
+      nsn: z.string().max(500).optional(),
+      upc: z.string().max(500).optional(),
+    })
+    .optional(),
   images: z.array(z.string()).max(8).optional(),
   marketing_features: z.array(MarketingFeatureSchema).max(15).optional(),
   package_dimensions: PackageDimensionsSchema.optional(),
@@ -38,7 +114,7 @@ export type CreateProductInput = z.infer<typeof CreateProductSchema>;
  */
 export const UpdateProductSchema = z.object({
   active: z.boolean().optional(),
-  default_price: z.string().optional(), //TODO: add price schema
+  default_price: z.string().optional(),
   description: z.string().max(40000).optional(),
   metadata: z.record(z.string(), z.string()).optional(),
   name: z.string().min(1).max(200).optional(),

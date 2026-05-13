@@ -8,7 +8,7 @@ export const CreatePriceSchema = z.object({
   active: z.boolean().default(true).optional(),
   metadata: z.record(z.string(), z.string()).optional(),
   nickname: z.string().max(22).optional(),
-  product: z.string().min(1).max(32),
+  product: z.string().min(1).max(32).optional(),
   recurring: z
     .object({
       interval: z.enum(['day', 'week', 'month', 'year']),

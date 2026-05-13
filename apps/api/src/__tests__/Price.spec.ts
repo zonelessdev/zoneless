@@ -1,6 +1,7 @@
 import { PriceModule } from '../modules/Price';
 import { Database } from '../modules/Database';
 import { Price, Product, QueryOperators } from '@zoneless/shared-types';
+import { ProductModule } from '../modules/Product';
 import { ListHelper } from '../utils/ListHelper';
 import {
   CreateMockDatabase,
@@ -27,12 +28,13 @@ jest.mock('../modules/AppConfig', () => ({
 describe('PriceModule', () => {
   let module: PriceModule;
   let mockDb: jest.Mocked<Database>;
-
+  let productModule: ProductModule;
   beforeEach(() => {
     jest.clearAllMocks();
     ResetIdCounter();
     mockDb = CreateMockDatabase();
-    module = new PriceModule(mockDb);
+    productModule = new ProductModule(mockDb);
+    module = new PriceModule(mockDb, null, productModule);
   });
 
   describe('PriceObject', () => {
@@ -84,10 +86,14 @@ describe('PriceModule', () => {
 
   describe('CreatePrice', () => {
     it('should persist the price to the database', async () => {
+      const product = await productModule.CreateProduct('acct_z_platform', {
+        name: 'Test Product',
+      });
+      mockDb.Get.mockResolvedValueOnce(product);
       const price = await module.CreatePrice('acct_z_platform', {
         unit_amount: 1000,
         currency: 'usdc',
-        product: 'prod_z_1',
+        product: product.id,
         tax_behavior: 'exclusive',
         billing_scheme: 'per_unit',
         currency_options: {
@@ -96,7 +102,8 @@ describe('PriceModule', () => {
           },
         },
       });
-      expect(mockDb.Set).toHaveBeenCalledTimes(1);
+      expect(mockDb.Set).toHaveBeenCalledTimes(2);
+      expect(mockDb.Set).toHaveBeenCalledWith('Products', product.id, product);
       expect(mockDb.Set).toHaveBeenCalledWith('Prices', price.id, price);
     });
   });
