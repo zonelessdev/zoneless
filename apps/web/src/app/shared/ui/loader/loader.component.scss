@@ -13,7 +13,7 @@
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    border: var(--stroke) solid $lightest-background-color;
+    border: var(--stroke) solid $darkest-background-color;
   }
 
   &::after {

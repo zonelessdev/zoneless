@@ -34,7 +34,7 @@
   justify-content: space-between;
   align-items: center;
   padding: $spacing-large;
-  border-bottom: 1px solid $lightest-background-color;
+  border-bottom: 1px solid $darkest-background-color;
 
   h2 {
     margin: 0;
@@ -55,7 +55,7 @@
   justify-content: center;
 
   &:hover {
-    background-color: $lighter-background-color;
+    background-color: $darker-background-color;
   }
 
   &:disabled {
@@ -80,7 +80,7 @@
   justify-content: flex-end;
   gap: $spacing;
   padding: $spacing-large;
-  border-top: 1px solid $lightest-background-color;
+  border-top: 1px solid $darkest-background-color;
 }
 
 .slide-panel-view-only {

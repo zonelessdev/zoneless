@@ -116,7 +116,8 @@
 }
 
 select {
-  background-color: $lighter-background-color;
+  background-color: $background-color;
+  border: 1px solid $darkest-background-color;
   color: $text-color;
   box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px,
     rgba(0, 0, 0, 0.12) 0px 1px 1px 0px, rgba(60, 66, 87, 0.16) 0px 0px 0px 1px,
@@ -129,7 +130,6 @@ select {
   text-decoration: none;
   vertical-align: middle;
   word-break: normal;
-  border: 0px;
   outline: 0px;
   transition: color $transition;
   padding: $spacing-small;
@@ -167,8 +167,9 @@ input[type='tel'] {
   padding: $spacing-small;
   -webkit-font-smoothing: antialiased;
   color: $text-color;
-  background-color: $lighter-background-color;
+  background-color: $background-color;
   font-size: $font-size;
+  border: 1px solid $darkest-background-color;
 }
 
 textarea {
@@ -248,14 +249,14 @@ input[type='range'] {
   width: 100%;
   height: 8px;
   cursor: pointer;
-  background: $lighter-background-color; /* Change track color */
+  background: $darker-background-color; /* Change track color */
   border-radius: $border-radius-small;
 }
 .slider::-moz-range-track {
   width: 100%;
   height: 8px;
   cursor: pointer;
-  background: $lighter-background-color; /* Change track color */
+  background: $darker-background-color; /* Change track color */
   border-radius: $border-radius-small;
 }
 
@@ -311,8 +312,8 @@ input[type='range'] {
   width: 16px;
   height: 16px;
   border-radius: $border-radius-small;
-  border: 1px solid $lighter-background-color;
-  background-color: $lighter-background-color;
+  border: 1px solid $darker-background-color;
+  background-color: $darker-background-color;
   cursor: pointer;
 }
 
@@ -339,17 +340,18 @@ input[type='range'] {
   top: 1px;
   width: 4px;
   height: 8px;
-  border: solid $lighter-background-color;
+  border: solid $darker-background-color;
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
 
 .field-pill {
   display: flex;
-  border-radius: $border-radius;
   overflow: hidden;
   position: relative;
-  display: inline-flex;
+  display: flex;
+  width: 100%;
+  gap: $spacing-small;
 }
 
 .field-pill-option {
@@ -359,12 +361,12 @@ input[type='range'] {
   padding: $spacing-small $spacing;
   cursor: pointer;
   display: flex;
+  flex: 1;
   align-items: center;
-  justify-content: center;
-  background-color: $lighter-background-color;
-  -webkit-box-shadow: -3px 3px 41px -7px rgba(0, 0, 0, 0.75);
-  -moz-box-shadow: -3px 3px 41px -7px rgba(0, 0, 0, 0.75);
-  box-shadow: -3px 3px 41px -7px rgba(0, 0, 0, 0.75);
+  justify-content: flex-start;
+  border-radius: $border-radius;
+  background-color: $background-color;
+  border: 1px solid $darkest-background-color;
 }
 
 .field-pill-option:hover {
@@ -372,10 +374,8 @@ input[type='range'] {
 }
 
 .field-pill-option-selected {
-  background-color: $light-background-color;
-  -webkit-box-shadow: inset -3px 3px 41px -7px rgba(0, 0, 0, 0.75);
-  -moz-box-shadow: inset -3px 3px 41px -7px rgba(0, 0, 0, 0.75);
-  box-shadow: inset -3px 3px 41px -7px rgba(0, 0, 0, 0.75);
+  border: 1px solid $base-color;
+  color: $base-color;
 }
 
 .field-pill-option img {
@@ -386,7 +386,7 @@ input[type='range'] {
 .bento-text {
   word-break: break-word;
   white-space: pre-wrap !important;
-  background-color: $lighter-background-color;
+  background-color: $darker-background-color;
   padding: $spacing;
   border-radius: $border-radius;
 }
@@ -401,9 +401,9 @@ input[type='range'] {
 }
 
 .dollar-input input {
-  text-align: right;
-  width: 96px; // Increased width to accommodate the dollar sign
-  padding-left: $spacing; // Make room for the dollar sign
+  text-align: left;
+  width: 100%;
+  padding-left: 60px;
 }
 
 .dollar-input span:first-child {
@@ -411,7 +411,7 @@ input[type='range'] {
   position: absolute;
   left: $spacing-small;
   color: $text-color;
-  opacity: $dimmed;
+  font-weight: bold;
   z-index: 1;
 }
 
@@ -436,5 +436,5 @@ input[type='radio'] {
 
 input[type='radio']:hover {
   cursor: pointer;
-  accent-color: $lighter-background-color;
+  accent-color: $darker-background-color;
 }

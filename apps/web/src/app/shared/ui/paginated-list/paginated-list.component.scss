@@ -1,4 +1,6 @@
 @use '../../../styles/base.scss' as *;
+@use '../../../styles/icons.scss' as *;
+@use '../../../styles/popup-menu.scss' as *;
 
 table {
   width: 100%;
@@ -24,7 +26,7 @@ td:last-child {
 }
 
 th {
-  border-bottom: 1px solid $lightest-background-color;
+  border-bottom: 1px solid $darkest-background-color;
   font-weight: 600;
   color: $text-color;
   opacity: $dimmed;
@@ -33,13 +35,13 @@ th {
 }
 
 .row {
-  border-bottom: 1px solid $lighter-background-color;
+  border-bottom: 1px solid $darker-background-color;
   transition: $transition-fast;
   cursor: pointer;
 }
 
 .row:hover {
-  background-color: $light-background-color;
+  background-color: $dark-background-color;
 }
 
 .row td {
@@ -58,6 +60,53 @@ th {
 
 .dimmed-cell {
   opacity: $dimmed;
+}
+
+.image-cell {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $dark-background-color;
+  border-radius: $border-radius-small;
+  overflow: hidden;
+  margin-right: $spacing-snug;
+  position: relative;
+}
+
+.image-cell .image-thumbnail {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
+}
+
+.image-cell .large-icon {
+  opacity: $dimmed-disabled;
+  width: 20px;
+  height: 20px;
+}
+
+.actions-cell {
+  position: relative;
+  display: inline-flex;
+}
+
+.more-icon {
+  padding: 1px 4px;
+  width: 28px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+
+.row:hover .more-icon {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background-color: $background-color;
+  box-shadow: 0 1px 4px 0 rgba(30, 41, 59, 0.06);
+}
+
+.row:hover .more-icon:hover {
+  border: 1px solid $base-color;
 }
 
 .currency-value {
@@ -86,9 +135,9 @@ th {
   height: 40px;
   background: linear-gradient(
     90deg,
-    $lighter-background-color 25%,
-    $light-background-color 50%,
-    $lighter-background-color 75%
+    $darker-background-color 25%,
+    $dark-background-color 50%,
+    $darker-background-color 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
@@ -141,11 +190,11 @@ th {
   transition: $transition-fast;
   background-color: $background-color;
   color: $text-color;
-  border: 1px solid $lightest-background-color;
+  border: 1px solid $darkest-background-color;
 }
 
 .pagination-button:hover:not(.pagination-disabled) {
-  background-color: $light-background-color;
+  background-color: $dark-background-color;
 }
 
 .pagination-disabled {

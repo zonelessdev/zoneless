@@ -1,0 +1,63 @@
+@if (isVisible()) {
+<div
+  class="dialog-backdrop"
+  [class.dialog-backdrop-open]="isAnimating()"
+  role="presentation"
+  tabindex="-1"
+  (click)="OnBackdropClick()"
+  (keydown.escape)="OnBackdropClick()"
+>
+  <div
+    class="dialog-surface"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="'confirm-dialog-title'"
+    [class.dialog-surface-open]="isAnimating()"
+    (click)="OnSurfaceClick($event)"
+    (keydown)="OnSurfaceClick($event)"
+  >
+    <div class="dialog-header">
+      <h2 id="confirm-dialog-title" class="dialog-title">{{ title }}</h2>
+      <button
+        type="button"
+        class="dialog-close"
+        (click)="OnCancel()"
+        [disabled]="loading"
+      >
+        <img src="assets/icons/close.svg" alt="Close" />
+      </button>
+    </div>
+
+    @if (description) {
+    <div class="dialog-body">
+      <p class="dialog-description">{{ description }}</p>
+    </div>
+    }
+
+    <div class="dialog-actions">
+      <button
+        type="button"
+        class="action-button action-button-dainty outline"
+        (click)="OnCancel()"
+        [disabled]="loading"
+      >
+        {{ cancelLabel }}
+      </button>
+      <button
+        type="button"
+        class="action-button action-button-dainty"
+        [class.dialog-confirm-destructive]="destructive"
+        [class.loader-button]="loading"
+        [disabled]="loading"
+        (click)="OnConfirm()"
+      >
+        @if (loading) {
+        <app-loader size="small" color="light"></app-loader>
+        } @else {
+        {{ confirmLabel }}
+        }
+      </button>
+    </div>
+  </div>
+</div>
+}

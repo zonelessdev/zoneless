@@ -21,7 +21,7 @@
 .panel-amount-header {
   text-align: left;
   padding-bottom: $spacing;
-  border-bottom: 1px solid $lightest-background-color;
+  border-bottom: 1px solid $darkest-background-color;
 }
 
 .panel-amount-row {
@@ -72,7 +72,7 @@
   color: $text-color;
   margin: 0;
   padding-bottom: $spacing-small;
-  border-bottom: 1px solid $lightest-background-color;
+  border-bottom: 1px solid $darkest-background-color;
 }
 
 // -----------------------------------------------------------------------------
@@ -138,7 +138,7 @@
   flex-shrink: 0;
 
   &:hover {
-    background-color: $lighter-background-color;
+    background-color: $darker-background-color;
   }
 
   img {
@@ -165,7 +165,7 @@
   display: inline-flex;
   align-items: center;
   gap: $spacing-small;
-  background-color: $light-background-color;
+  background-color: $dark-background-color;
   padding: $spacing-extra-small $spacing-small;
   border-radius: $border-radius-small;
 }
@@ -230,8 +230,8 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background-color: $lightest-background-color;
-  border: 2px solid $light-background-color;
+  background-color: $darkest-background-color;
+  border: 2px solid $dark-background-color;
 
   &.active {
     background-color: $success-green;
@@ -245,7 +245,7 @@
   top: 14px;
   bottom: -$spacing-small;
   width: 2px;
-  background-color: $lightest-background-color;
+  background-color: $darkest-background-color;
 }
 
 .panel-timeline-item:last-child .panel-timeline-line {

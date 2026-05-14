@@ -2,7 +2,7 @@
 @use '../../../styles/scrollbars.scss' as *;
 
 .side-menu-wrapper {
-  border-right: 1px solid $lighter-background-color;
+  border-right: 1px solid $darker-background-color;
   height: 100%;
   width: 64px;
   display: flex;
@@ -132,7 +132,7 @@ li:last-child {
   .side-menu-wrapper {
     width: 100%;
     border-right: 0;
-    border-bottom: 1px solid $lighter-background-color;
+    border-bottom: 1px solid $darker-background-color;
   }
 
   .side-menu-top {
