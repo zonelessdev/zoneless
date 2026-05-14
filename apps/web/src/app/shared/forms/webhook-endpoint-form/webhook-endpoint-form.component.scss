@@ -32,7 +32,7 @@ p {
   align-items: center;
   justify-content: space-between;
   padding: $spacing-small;
-  background-color: $lighter-background-color;
+  background-color: $darker-background-color;
   border: none;
   border-radius: $border-radius-small;
   font-size: $font-size;
@@ -43,7 +43,7 @@ p {
   transition: background-color $transition;
 
   &:hover {
-    background-color: $lightest-background-color;
+    background-color: $darkest-background-color;
   }
 
   &.field-error {
@@ -68,7 +68,7 @@ p {
   right: 0;
   margin-top: $spacing-extra-small;
   background-color: $background-color;
-  border: 1px solid $lightest-background-color;
+  border: 1px solid $darkest-background-color;
   border-radius: $border-radius-small;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   max-height: 300px;
@@ -84,7 +84,7 @@ p {
   transition: background-color $transition;
 
   &:hover {
-    background-color: $light-background-color;
+    background-color: $dark-background-color;
   }
 
   input[type='checkbox'] {
@@ -161,7 +161,7 @@ p {
 
 .secret-container {
   width: 100%;
-  background-color: $light-background-color;
+  background-color: $dark-background-color;
   border-radius: $border-radius;
   padding: $spacing;
   margin-bottom: $spacing-large;
@@ -184,7 +184,7 @@ p {
     flex: 1;
     font-family: monospace;
     font-size: $font-size-small;
-    background-color: $lighter-background-color;
+    background-color: $darker-background-color;
     padding: $spacing-small;
     border-radius: $border-radius-small;
     word-break: break-all;
@@ -202,7 +202,7 @@ p {
 
   &:hover {
     opacity: 1;
-    background-color: $lighter-background-color;
+    background-color: $darker-background-color;
   }
 
   img {

@@ -3,7 +3,7 @@
 
   @if (configService.IsTestMode()) {
   <div class="test-mode-bar">
-    You're using test data. Transactions use the Solana devnet.
+    You're using test data. No real transactions will be processed.
   </div>
   }
 
@@ -171,6 +171,15 @@
             [limit]="10"
             (rowClick)="OnConnectedAccountClick($event)"
           ></app-paginated-list>
+        </div>
+      </div>
+      }
+
+      <!-- Products View -->
+      @if (view() === 'products') {
+      <div class="view">
+        <div class="view-section">
+          <app-product-catalogue></app-product-catalogue>
         </div>
       </div>
       }

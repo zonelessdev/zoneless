@@ -1,13 +1,13 @@
 @use '../../styles/base.scss' as *;
 @use '../../styles/buttons.scss' as *;
+@use '../../styles/account.scss' as *;
 
 .test-mode-bar {
-  background-color: #f59e0b;
+  background-color: #0e3459;
   color: white;
   text-align: center;
-  padding: $spacing-small $spacing;
+  padding: $spacing-snug;
   font-size: $font-size;
-  font-weight: 600;
   flex-shrink: 0;
 }
 
@@ -35,25 +35,6 @@
   padding: $spacing-large $spacing-extra-large;
   height: 100%;
   overflow-y: auto;
-}
-
-.header-wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: $spacing;
-}
-
-h1 {
-  font-size: 28px;
-  font-weight: $title-weight;
-  margin: 0;
-}
-
-h2.section-title {
-  font-size: 20px;
-  font-weight: $title-weight;
-  margin: 0 0 $spacing 0;
 }
 
 .section-description {
@@ -121,48 +102,6 @@ h2.section-title {
   margin-bottom: 0;
 }
 
-.tab-bar {
-  display: flex;
-  gap: 0;
-  margin-bottom: $spacing-large;
-  border-bottom: 1px solid $lightest-background-color;
-}
-
-.tab-button {
-  font-family: $text-font;
-  font-size: $font-size;
-  font-weight: 600;
-  padding: $spacing-small $spacing;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: $text-color;
-  opacity: $dimmed;
-  position: relative;
-  transition: $transition-fast;
-  margin-bottom: -1px;
-}
-
-.tab-button:hover {
-  opacity: $dimmed;
-  color: $base-color;
-}
-
-.tab-active {
-  opacity: 1;
-  color: $base-color;
-}
-
-.tab-active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: $base-color;
-}
-
 .loading-state {
   display: flex;
   justify-content: center;
@@ -176,7 +115,7 @@ h2.section-title {
   align-items: center;
   justify-content: center;
   padding: $spacing-extra-large;
-  background-color: $light-background-color;
+  background-color: $dark-background-color;
   border-radius: $border-radius;
   text-align: center;
 }
@@ -217,12 +156,6 @@ h2.section-title {
   &:last-child {
     margin-bottom: 0;
   }
-}
-
-.button-icon {
-  width: 16px;
-  height: 16px;
-  filter: $background-color-filter;
 }
 
 @media only screen and (max-width: 1000px) {

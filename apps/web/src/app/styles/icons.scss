@@ -1,0 +1,21 @@
+@use './base.scss' as *;
+
+.icon {
+  width: 16px;
+  height: 16px;
+}
+
+.large-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.hover-icon {
+  cursor: pointer;
+  opacity: $dimmed;
+  transition: $transition;
+}
+
+.hover-icon:hover {
+  opacity: 1;
+}

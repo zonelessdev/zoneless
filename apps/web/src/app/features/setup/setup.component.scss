@@ -23,7 +23,7 @@
 
 .progress-bar {
   height: 4px;
-  background: $lighter-background-color;
+  background: $darker-background-color;
   width: 100%;
 }
 
@@ -79,7 +79,7 @@ h1 {
   padding: $spacing;
   margin-bottom: $spacing-small;
   border-radius: $border-radius-small;
-  background: $light-background-color;
+  background: $dark-background-color;
 }
 
 img.feature-icon {
@@ -141,7 +141,7 @@ img.feature-icon {
 .form-input {
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid $lightest-background-color;
+  border: 1px solid $darkest-background-color;
   border-radius: $border-radius-small;
   font-size: $font-size;
   font-family: $text-font;
@@ -182,7 +182,7 @@ img.feature-icon {
   align-items: flex-start;
   gap: $spacing;
   padding: $spacing;
-  border: 2px solid $lighter-background-color;
+  border: 2px solid $darker-background-color;
   border-radius: $border-radius;
   cursor: pointer;
   transition: border-color $transition-fast, background $transition-fast;
@@ -220,7 +220,7 @@ img.feature-icon {
 
 .import-fields {
   padding: $spacing;
-  background: $light-background-color;
+  background: $dark-background-color;
   border-radius: $border-radius;
   margin-bottom: $spacing-large;
 }
@@ -265,11 +265,11 @@ img.feature-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $lighter-background-color;
+  background: $darker-background-color;
   cursor: default;
 
   &:hover {
-    background: $lighter-background-color;
+    background: $darker-background-color;
     box-shadow: none;
     transform: none;
   }
@@ -291,7 +291,7 @@ img.success-icon {
 }
 
 .credential-card {
-  background: $light-background-color;
+  background: $dark-background-color;
   border-radius: $border-radius;
   padding: $spacing;
   margin-bottom: $spacing;
@@ -322,7 +322,7 @@ img.success-icon {
 
 .copy-button {
   background: white;
-  border: 1px solid $lightest-background-color;
+  border: 1px solid $darkest-background-color;
   border-radius: 4px;
   padding: 4px 12px;
   font-size: $font-size-small;
@@ -331,8 +331,8 @@ img.success-icon {
   transition: background $transition-fast, border-color $transition-fast;
 
   &:hover {
-    background: $lighter-background-color;
-    border-color: color.adjust($lightest-background-color, $lightness: -10%);
+    background: $darker-background-color;
+    border-color: color.adjust($darkest-background-color, $lightness: -10%);
   }
 }
 
@@ -360,7 +360,7 @@ img.success-icon {
   color: color.adjust($text-color, $lightness: 35%);
 
   code {
-    background: $lighter-background-color;
+    background: $darker-background-color;
     padding: 2px 6px;
     border-radius: 4px;
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
@@ -376,7 +376,7 @@ img.success-icon {
   text-align: left;
   margin-bottom: $spacing-extra-large;
   padding: $spacing;
-  background: $light-background-color;
+  background: $dark-background-color;
   border-radius: $border-radius;
 
   h3 {

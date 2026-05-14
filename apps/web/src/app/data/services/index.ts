@@ -5,6 +5,7 @@ export * from './balance.service';
 export * from './config.service';
 export * from './external-wallet.service';
 export * from './person.service';
+export * from './product.service';
 export * from './setup.service';
 export * from './topup.service';
 export * from './transaction.service';

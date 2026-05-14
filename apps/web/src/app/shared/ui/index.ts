@@ -7,3 +7,4 @@ export * from './side-menu/side-menu.component';
 export * from './slide-panel/slide-panel.component';
 export * from './status-chip/status-chip.component';
 export * from './test-mode-banner/test-mode-banner.component';
+export * from './confirm-dialog/confirm-dialog.component';

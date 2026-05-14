@@ -17,7 +17,8 @@ export type AccountView =
   | 'balance'
   | 'connected-accounts'
   | 'developers'
-  | 'settings';
+  | 'settings'
+  | 'products';
 
 /** List of valid view slugs for validation */
 const VALID_VIEWS: AccountView[] = [
@@ -26,6 +27,7 @@ const VALID_VIEWS: AccountView[] = [
   'connected-accounts',
   'developers',
   'settings',
+  'products',
 ];
 
 /** Default view when no view parameter is provided or the view is invalid */
@@ -66,6 +68,7 @@ import {
   TopupDetailComponent,
   TransferDetailComponent,
 } from './components';
+import { ProductCatalogueComponent } from './views';
 import {
   Account,
   ApiKey,
@@ -94,6 +97,7 @@ import {
     TopupDetailComponent,
     TransferDetailComponent,
     LoaderComponent,
+    ProductCatalogueComponent,
   ],
   templateUrl: './account.component.html',
   styleUrl: './account.component.scss',
@@ -196,6 +200,11 @@ export class AccountComponent implements OnInit {
         title: 'Connected',
         icon: 'groups_outline.svg',
         id: 'connected-accounts',
+      });
+      baseMenu[0].push({
+        title: 'Products',
+        icon: 'package_outline.svg',
+        id: 'products',
       });
       baseMenu[0].push({
         title: 'Developers',

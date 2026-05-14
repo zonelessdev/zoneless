@@ -35,7 +35,7 @@
 
 .collapsible-content {
   background-color: $mid-background-color;
-  border: 1px solid $lighter-background-color;
+  border: 1px solid $darker-background-color;
   border-radius: $border-radius;
   padding: $spacing;
   animation: collapsibleSlideDown $transition ease-out;

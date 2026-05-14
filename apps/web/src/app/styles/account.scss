@@ -1,0 +1,68 @@
+@use './base.scss' as *;
+
+.header-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: $title-weight;
+  margin: 0;
+}
+
+h2.section-title {
+  font-size: 20px;
+  font-weight: $title-weight;
+  margin: 0 0 $spacing 0;
+}
+
+.button-icon {
+  width: 16px;
+  height: 16px;
+  filter: $background-color-filter;
+}
+
+.tab-bar {
+  display: flex;
+  gap: 0;
+  margin-bottom: $spacing-large;
+  border-bottom: 1px solid $darkest-background-color;
+}
+
+.tab-button {
+  font-family: $text-font;
+  font-size: $font-size;
+  font-weight: 600;
+  padding: $spacing-small $spacing;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $text-color;
+  opacity: $dimmed;
+  position: relative;
+  transition: $transition-fast;
+  margin-bottom: -1px;
+}
+
+.tab-button:hover {
+  opacity: $dimmed;
+  color: $base-color;
+}
+
+.tab-active {
+  opacity: 1;
+  color: $base-color;
+}
+
+.tab-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: $base-color;
+}

@@ -1,0 +1,71 @@
+@use './base.scss' as *;
+
+// Popup Menu Styles
+// Usage: Wrap the trigger and `.popup-menu` in a relatively-positioned container.
+// The menu floats below the trigger and contains `.popup-menu-item` entries with
+// an optional `.popup-menu-item-description`. Apply `.popup-menu-item-disabled`
+// for non-actionable entries.
+
+.popup-menu {
+  position: absolute;
+  top: calc(100% + #{$spacing-extra-small});
+  right: 0;
+  z-index: 20;
+  min-width: 240px;
+  background-color: $background-color;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  padding: $spacing-small 0;
+  box-shadow: 0 8px 24px rgba(30, 41, 59, 0.12),
+    0 2px 6px rgba(30, 41, 59, 0.08);
+  animation: popupMenuFadeIn $transition-fast ease-out;
+}
+
+.popup-menu-item {
+  padding: $spacing-small $spacing;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+  color: $text-color;
+
+  &:hover {
+    background-color: $dark-background-color;
+  }
+}
+
+.popup-menu-item-title {
+  font-size: $font-size;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.popup-menu-item-description {
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed-extra;
+  margin-top: $spacing-extra-small;
+  line-height: 1.4;
+}
+
+.popup-menu-item-disabled {
+  cursor: not-allowed;
+  opacity: $dimmed-extra;
+
+  &:hover {
+    background-color: transparent;
+  }
+}
+
+.popup-menu-item-hidden {
+  display: none;
+}
+
+@keyframes popupMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -239,7 +239,7 @@ em {
   top: 110%;
   left: 50%;
   transform: translateX(-50%) translateY(-90%);
-  background-color: $lighter-background-color;
+  background-color: $darker-background-color;
   border: 1px solid $background-color;
   padding: $spacing $spacing-small;
   width: 200px;
@@ -294,7 +294,7 @@ em {
   content: attr(data-hover);
   visibility: hidden;
   opacity: 0;
-  background-color: $light-background-color;
+  background-color: $dark-background-color;
   color: $text-color;
   text-align: center;
   border-radius: $border-radius-small;
@@ -320,8 +320,8 @@ em {
 .skeleton-text {
   background: linear-gradient(
     270deg,
-    $light-background-color,
-    $lighter-background-color
+    $dark-background-color,
+    $darker-background-color
   );
   background-size: 400% 400%;
   border-radius: 2px;
@@ -330,8 +330,8 @@ em {
 .skeleton-background {
   background: linear-gradient(
     270deg,
-    $light-background-color,
-    $lighter-background-color
+    $dark-background-color,
+    $darker-background-color
   );
   background-size: 400% 400%;
 }

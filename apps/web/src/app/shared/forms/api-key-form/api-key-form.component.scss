@@ -32,13 +32,13 @@ p {
   display: flex;
   flex-direction: column;
   padding: $spacing;
-  background-color: $light-background-color;
+  background-color: $dark-background-color;
   border-radius: $border-radius-small;
   cursor: pointer;
   transition: background-color $transition;
 
   &:hover {
-    background-color: $lighter-background-color;
+    background-color: $darker-background-color;
   }
 
   input[type='radio'] {
@@ -46,7 +46,7 @@ p {
   }
 
   &:has(input:checked) {
-    background-color: $lighter-background-color;
+    background-color: $darker-background-color;
     outline: 2px solid $base-color;
   }
 }
@@ -64,7 +64,7 @@ p {
 }
 
 .key-details {
-  background-color: $light-background-color;
+  background-color: $dark-background-color;
   border-radius: $border-radius-small;
   padding: $spacing;
 }
@@ -76,7 +76,7 @@ p {
   padding: $spacing-small 0;
 
   &:not(:last-child) {
-    border-bottom: 1px solid $lightest-background-color;
+    border-bottom: 1px solid $darkest-background-color;
   }
 }
 
@@ -93,7 +93,7 @@ p {
   &.monospace {
     font-family: monospace;
     font-size: $font-size-small;
-    background-color: $lighter-background-color;
+    background-color: $darker-background-color;
     padding: $spacing-extra-small $spacing-small;
     border-radius: $border-radius-small;
   }
@@ -132,7 +132,7 @@ p {
 
 .token-container {
   width: 100%;
-  background-color: $light-background-color;
+  background-color: $dark-background-color;
   border-radius: $border-radius;
   padding: $spacing;
   margin-bottom: $spacing-large;
@@ -155,7 +155,7 @@ p {
     flex: 1;
     font-family: monospace;
     font-size: $font-size-small;
-    background-color: $lighter-background-color;
+    background-color: $darker-background-color;
     padding: $spacing-small;
     border-radius: $border-radius-small;
     word-break: break-all;
@@ -173,7 +173,7 @@ p {
 
   &:hover {
     opacity: 1;
-    background-color: $lighter-background-color;
+    background-color: $darker-background-color;
   }
 
   img {

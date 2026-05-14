@@ -1,0 +1,130 @@
+<div class="field">
+  <div class="field-title">Name (required)</div>
+  <p class="field-help">
+    Name of the product or service, visible to customers.
+  </p>
+  <div class="field-value">
+    <input
+      [ngModel]="name()"
+      (ngModelChange)="OnNameChange($event)"
+      type="text"
+      [maxlength]="NAME_MAX_LENGTH"
+      [class.field-error]="showErrors && nameError()"
+    />
+  </div>
+  @if (showErrors && nameError()) {
+  <div class="error">{{ nameError() }}</div>
+  }
+</div>
+
+<div class="field">
+  <div class="field-title">Description</div>
+  <p class="field-help">
+    Appears at checkout, on the customer portal, and in quotes.
+  </p>
+  <div class="field-value">
+    <textarea
+      [ngModel]="description()"
+      (ngModelChange)="OnDescriptionChange($event)"
+      class="draggable"
+    ></textarea>
+  </div>
+</div>
+
+<div class="field">
+  <div class="field-top">
+    <div class="field-title">Image</div>
+    @if (image()) {
+    <div
+      class="remove-image-button"
+      role="button"
+      tabindex="0"
+      (click)="RemoveImage()"
+      (keydown.enter)="RemoveImage()"
+      (keydown.space)="RemoveImage()"
+    >
+      <img class="icon" src="assets/icons/delete.svg" alt="Remove image" />
+      <span>Remove</span>
+    </div>
+    }
+  </div>
+  <p class="field-help">Appears at checkout. Paste an image URL.</p>
+  <div class="field-value">
+    <input
+      [ngModel]="image()"
+      type="text"
+      (ngModelChange)="OnImageChange($event)"
+    />
+  </div>
+  @if (image()) {
+  <div class="product-image-preview">
+    <img [src]="image()" alt="Product image" />
+  </div>
+  }
+</div>
+
+@if(mode === 'create'){
+
+<div class="line"></div>
+
+<div class="field">
+  <div class="field-title">Pricing</div>
+  <div class="field-value">
+    <div class="field-pill">
+      <div
+        class="field-pill-option"
+        role="button"
+        tabindex="0"
+        [class.field-pill-option-selected]="selectedPricing() === 'recurring'"
+        (click)="ChangePricing('recurring')"
+        (keydown.enter)="ChangePricing('recurring')"
+        (keydown.space)="ChangePricing('recurring')"
+      >
+        <span>Recurring</span>
+      </div>
+      <div
+        class="field-pill-option"
+        role="button"
+        tabindex="0"
+        [class.field-pill-option-selected]="selectedPricing() === 'one-time'"
+        (click)="ChangePricing('one-time')"
+        (keydown.enter)="ChangePricing('one-time')"
+        (keydown.space)="ChangePricing('one-time')"
+      >
+        <span>One-time</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="field">
+  <div class="field-title">Amount (required)</div>
+  <div class="field-value">
+    <div class="dollar-input">
+      <span>USDC$</span>
+      <input
+        [ngModel]="unitAmount()"
+        (ngModelChange)="OnUnitAmountChange($event)"
+        type="number"
+        [class.field-error]="showErrors && unitAmountError()"
+      />
+    </div>
+  </div>
+  @if (showErrors && unitAmountError()) {
+  <div class="error">{{ unitAmountError() }}</div>
+  }
+</div>
+
+@if(selectedPricing() === 'recurring') {
+<div class="field">
+  <div class="field-title">Billing Period</div>
+  <div class="field-value">
+    <select [ngModel]="interval()" (ngModelChange)="OnIntervalChange($event)">
+      <option value="day">Day</option>
+      <option value="week">Week</option>
+      <option value="month">Month</option>
+      <option value="year">Year</option>
+    </select>
+  </div>
+</div>
+} }
