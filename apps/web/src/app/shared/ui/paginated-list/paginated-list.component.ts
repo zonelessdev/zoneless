@@ -100,6 +100,9 @@ export class PaginatedListComponent<T extends ListItem>
   /** Additional query parameters for filtering */
   @Input() queryParams: Record<string, string> = {};
 
+  /** Which fields to expand */
+  @Input() expand: string[] = [];
+
   /** Emits when a row is clicked */
   @Output() rowClick = new EventEmitter<T>();
 
@@ -174,6 +177,15 @@ export class PaginatedListComponent<T extends ListItem>
         if (value) {
           url += `&${key}=${value}`;
         }
+      }
+
+      // Add expand info
+      if (this.expand.length > 0) {
+        url += `&expand[]=`;
+        for (const expand of this.expand) {
+          url += `data.${expand},`;
+        }
+        url = url.slice(0, -1);
       }
 
       const response = await this.api.Call<ListResponse<T>>('GET', url);
@@ -261,16 +273,28 @@ export class PaginatedListComponent<T extends ListItem>
   }
 
   GetItemValue(item: T, field: string): unknown {
+    if (field.includes('.')) {
+      for (const part of field.split('.')) {
+        item = item[part] as T;
+      }
+      return item;
+    }
+    if (field.includes('[')) {
+      const [key, index] = field.split('[');
+      const indexNumber = parseInt(index.replace(']', ''));
+      const value = item[key] as unknown[];
+      return value[indexNumber] ?? '';
+    }
     return item[field];
   }
 
   GetItemNumber(item: T, field: string): number {
-    const value = item[field];
+    const value = this.GetItemValue(item, field);
     return typeof value === 'number' ? value / 100 : 0;
   }
 
   GetItemDate(item: T, field: string): number {
-    const value = item[field];
+    const value = this.GetItemValue(item, field);
     // API returns Unix timestamps in seconds, DatePipe expects milliseconds
     return typeof value === 'number' ? value * 1000 : 0;
   }
@@ -280,7 +304,7 @@ export class PaginatedListComponent<T extends ListItem>
     if (column.formatter) {
       return column.formatter(item);
     }
-    const value = item[column.field];
+    const value = this.GetItemValue(item, column.field);
     return String(value ?? '');
   }
 
@@ -293,11 +317,12 @@ export class PaginatedListComponent<T extends ListItem>
       return String(value[indexNumber] ?? '');
     }
     //A single field, e.g. "imageUrl"
-    return String(item[field] ?? '');
+    const value = this.GetItemValue(item, field);
+    return String(value ?? '');
   }
 
   GetItemCurrency(item: T, field: string): string {
-    const value = item[field];
+    const value = this.GetItemValue(item, field);
     return String(value ?? 'usdc').toUpperCase();
   }
 

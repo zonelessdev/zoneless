@@ -64,6 +64,7 @@
   [columns]="productColumns"
   [limit]="10"
   [queryParams]="productsQueryParams()"
+  [expand]="productsExpand()"
   (rowClick)="OnProductListClick($event)"
 ></app-paginated-list>
 }

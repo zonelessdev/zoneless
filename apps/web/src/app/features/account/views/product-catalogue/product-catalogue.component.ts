@@ -13,7 +13,7 @@ import {
   ProductFormComponent,
   ConfirmDialogComponent,
 } from '../../../../shared';
-import type { Product } from '@zoneless/shared-types';
+import type { Product, Price } from '@zoneless/shared-types';
 
 import { ProductService } from '../../../../data';
 
@@ -66,6 +66,31 @@ export class ProductCatalogueComponent {
       placeholderIcon: 'package_outline.svg',
     },
     {
+      header: 'Pricing',
+      field: 'default_price.unit_amount',
+      type: 'text',
+      formatter: (item: unknown) => {
+        const product = item as Product;
+        if (product.default_price === null) {
+          return 'No prices';
+        }
+        const unitAmount = (product.default_price as Price)?.unit_amount ?? 0;
+        if ((product.default_price as Price)?.recurring) {
+          const recurringData = (product.default_price as Price)?.recurring;
+          if (recurringData?.interval === 'day') {
+            return `$${(unitAmount / 100).toFixed(2)} / day`;
+          }
+          if (recurringData?.interval === 'week') {
+            return `$${(unitAmount / 100).toFixed(2)} / week`;
+          }
+          if (recurringData?.interval === 'month') {
+            return `$${(unitAmount / 100).toFixed(2)} / month`;
+          }
+        }
+        return `$${(unitAmount / 100).toFixed(2)}`;
+      },
+    },
+    {
       header: 'Status',
       field: 'active',
       type: 'status',
@@ -114,6 +139,7 @@ export class ProductCatalogueComponent {
   productsQueryParams: WritableSignal<Record<string, string>> = signal({
     active: 'true',
   });
+  productsExpand: WritableSignal<string[]> = signal(['default_price']);
 
   SetProductsTab(tab: 'all'): void {
     this.productsTab.set(tab);

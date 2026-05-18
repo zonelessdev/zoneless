@@ -1,3 +1,5 @@
+import { Price } from './Price';
+
 /**
  * Stripe-compatible Balance Product object for Zoneless.
  * Represents a product that can be sold.
@@ -14,7 +16,7 @@ export interface Product {
   /** Time at which the object was created. Measured in seconds since the Unix epoch.*/
   created: number;
   /** The ID of the Price object that is the default price for this product.*/
-  default_price: string | null;
+  default_price: string | Price | null;
   /** The product’s description, meant to be displayable to the customer. Use this field to optionally store a long form explanation of the product being sold for your own rendering purposes.*/
   description: string | null;
   /** A list of up to 8 URLs of images for this product, meant to be displayable to the customer.*/

@@ -129,6 +129,30 @@ export class PriceModule {
   }
 
   /**
+   * Batch-load prices by id, scoped to a single platform account.
+   * Used by the expansion engine to avoid N+1 lookups.
+   */
+  async BatchGet(
+    ids: string[],
+    platformAccount: string
+  ): Promise<Map<string, PriceType>> {
+    if (ids.length === 0) return new Map();
+    const prices = await this.db.Query<PriceType>({
+      collection: 'Prices',
+      method: 'READ',
+      parameters: [
+        { key: 'id', operator: QueryOperators['in'], value: ids },
+        {
+          key: 'platform_account',
+          operator: QueryOperators['=='],
+          value: platformAccount,
+        },
+      ],
+    });
+    return new Map(prices.map((price) => [price.id, price]));
+  }
+
+  /**
    * Update a price.
    * Emits an 'price.updated' event if EventService is configured.
    *
