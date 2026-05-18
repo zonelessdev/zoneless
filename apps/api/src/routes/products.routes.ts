@@ -20,12 +20,21 @@ import {
   CreateProductSchema,
   UpdateProductSchema,
 } from '../schemas/ProductSchema';
+import { ApplyExpand, RegisterExpansions } from '../utils/Expand';
 
 const router = express.Router();
 
 const eventService = new EventService(db);
 const priceModule = new PriceModule(db, eventService); //Pass into product module to enable creating prices.
 const productModule = new ProductModule(db, eventService, priceModule);
+
+RegisterExpansions('product', {
+  default_price: {
+    sourcePath: 'default_price',
+    targetObject: 'price',
+    BatchLoad: (ids, ctx) => priceModule.BatchGet(ids, ctx.platformAccount),
+  },
+});
 
 /**
  * POST /v1/products
@@ -52,7 +61,7 @@ router.post(
       productId: product.id,
     });
 
-    res.status(201).json(product);
+    res.status(201).json(await ApplyExpand(req, product));
   })
 );
 
@@ -100,7 +109,7 @@ router.post(
       productId: updatedProduct.id,
     });
 
-    res.json(updatedProduct);
+    res.json(await ApplyExpand(req, updatedProduct));
   })
 );
 
@@ -134,7 +143,7 @@ router.get(
       );
     }
 
-    res.json(product);
+    res.json(await ApplyExpand(req, product));
   })
 );
 
@@ -224,7 +233,7 @@ router.get(
       hasMore: result.has_more,
     });
 
-    res.json(result);
+    res.json(await ApplyExpand(req, result));
   })
 );
 
