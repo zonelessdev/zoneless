@@ -190,8 +190,6 @@ export class PaginatedListComponent<T extends ListItem>
 
       const response = await this.api.Call<ListResponse<T>>('GET', url);
 
-      console.log(response);
-
       this.items.set(response.data);
       this.hasMore.set(response.has_more);
       // Estimate total count based on page data
