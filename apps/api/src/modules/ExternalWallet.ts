@@ -26,7 +26,7 @@ import {
   CreateExternalWalletInput,
   UpdateExternalWalletSchema,
   UpdateExternalWalletInput,
-} from '../schemas/ExternalWalletSchema';
+} from '@zoneless/shared-schemas';
 
 /** Response object for deleted external wallet */
 export interface DeletedExternalWallet {

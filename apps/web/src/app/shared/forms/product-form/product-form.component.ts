@@ -14,7 +14,10 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Product } from '@zoneless/shared-types';
 import { ConfigService } from '../../../data';
-import { CreateProductInput, UpdateProductInput } from '../../../data';
+import {
+  CreateProductInput,
+  UpdateProductInput,
+} from '@zoneless/shared-schemas';
 
 export type ProductFormMode = 'create' | 'edit';
 
@@ -54,8 +57,7 @@ export class ProductFormComponent implements OnInit, OnChanges {
   selectedPricing: WritableSignal<'one-time' | 'recurring'> =
     signal('recurring');
 
-  interval: WritableSignal<'day' | 'week' | 'month' | 'year' | null> =
-    signal('month');
+  interval: WritableSignal<'day' | 'week' | 'month' | 'year'> = signal('month');
   intervalError: WritableSignal<string> = signal('');
 
   ngOnInit(): void {
@@ -110,8 +112,6 @@ export class ProductFormComponent implements OnInit, OnChanges {
     this.selectedPricing.set(pricing);
     if (pricing === 'recurring') {
       this.interval.set('month');
-    } else {
-      this.interval.set(null);
     }
     this.EmitFormChange();
   }
@@ -162,11 +162,9 @@ export class ProductFormComponent implements OnInit, OnChanges {
     if (this.selectedPricing() === 'recurring') {
       data.default_price_data = {
         currency: 'usdc',
-        recurring: this.interval()
-          ? {
-              interval: this.interval(),
-            }
-          : null,
+        recurring: {
+          interval: this.interval(),
+        },
         unit_amount: this.FormatUnitAmount(this.unitAmount()),
       };
     }

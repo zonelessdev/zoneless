@@ -19,7 +19,7 @@ import { RequirePlatform } from '../middleware/Authorization';
 import {
   CreateProductSchema,
   UpdateProductSchema,
-} from '../schemas/ProductSchema';
+} from '@zoneless/shared-schemas';
 import { ApplyExpand, RegisterExpansions } from '../utils/Expand';
 
 const router = express.Router();

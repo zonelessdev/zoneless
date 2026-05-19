@@ -27,7 +27,7 @@ import {
   CreateApiKeyInput,
   UpdateApiKeySchema,
   UpdateApiKeyInput,
-} from '../schemas/ApiKeySchema';
+} from '@zoneless/shared-schemas';
 
 /**
  * Hash an API key token using SHA-256.

@@ -33,7 +33,7 @@ import {
   CreateTransferInput,
   UpdateTransferSchema,
   UpdateTransferInput,
-} from '../schemas/TransferSchema';
+} from '@zoneless/shared-schemas';
 
 /**
  * Extended list options for transfers with additional filters

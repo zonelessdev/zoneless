@@ -1,27 +1,10 @@
 import { Injectable, inject, signal, WritableSignal } from '@angular/core';
 import { ApiService } from '../../core';
 import { Product } from '@zoneless/shared-types';
-
-//TODO: Use the shared schema for this, or switch to node SDK.
-export interface CreateProductInput {
-  name: string;
-  description: string;
-  default_price_data?: {
-    currency: 'usdc';
-    recurring: {
-      interval: 'day' | 'week' | 'month' | 'year' | null;
-    } | null;
-    unit_amount: number;
-  };
-  images?: string[];
-}
-
-export interface UpdateProductInput {
-  active?: boolean;
-  name?: string;
-  description?: string;
-  images?: string[];
-}
+import {
+  CreateProductInput,
+  UpdateProductInput,
+} from '@zoneless/shared-schemas';
 
 @Injectable({
   providedIn: 'root',

@@ -15,7 +15,8 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@zoneless/shared-types": ["libs/shared-types/src/index.ts"]
+      "@zoneless/shared-types": ["libs/shared-types/src/index.ts"],
+      "@zoneless/shared-schemas": ["libs/shared-schemas/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

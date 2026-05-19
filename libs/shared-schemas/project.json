@@ -1,0 +1,26 @@
+{
+  "name": "shared-schemas",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared-schemas/src",
+  "projectType": "library",
+  "tags": ["scope:shared", "type:schemas"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/shared-schemas",
+        "main": "libs/shared-schemas/src/index.ts",
+        "tsConfig": "libs/shared-schemas/tsconfig.lib.json",
+        "assets": ["libs/shared-schemas/*.md"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/shared-schemas/jest.config.ts"
+      }
+    }
+  }
+}

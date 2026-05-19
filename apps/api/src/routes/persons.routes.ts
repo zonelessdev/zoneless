@@ -28,7 +28,7 @@ import {
   CreatePersonSchema,
   UpdatePersonSchema,
   ParseRelationshipFilters,
-} from '../schemas/PersonSchema';
+} from '@zoneless/shared-schemas';
 
 import { Person as PersonType } from '@zoneless/shared-types';
 

@@ -23,7 +23,7 @@ import { ValidateUpdate } from './Util';
 import {
   CreateBalanceTransactionSchema,
   CreateBalanceTransactionInput,
-} from '../schemas/BalanceTransactionSchema';
+} from '@zoneless/shared-schemas';
 
 export class BalanceTransactionModule {
   db: Database;
