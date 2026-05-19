@@ -27,7 +27,7 @@ import {
 } from '@zoneless/shared-types';
 import { ListHelper, ListOptions, ListResult } from '../utils/ListHelper';
 import { IncomingDeposit, SolanaExplorerUrl } from './chains/Solana';
-import { CreateTopUpInput, UpdateTopUpInput } from '../schemas/TopUpSchema';
+import { CreateTopUpInput, UpdateTopUpInput } from '@zoneless/shared-schemas';
 
 export class TopUpModule {
   private readonly db: Database;

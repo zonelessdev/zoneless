@@ -26,7 +26,7 @@ import {
 import {
   CreateTransferSchema,
   UpdateTransferSchema,
-} from '../schemas/TransferSchema';
+} from '@zoneless/shared-schemas';
 import { Transfer as TransferType } from '@zoneless/shared-types';
 
 const router = express.Router();

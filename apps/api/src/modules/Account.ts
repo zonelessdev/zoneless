@@ -28,7 +28,7 @@ import {
   UpdateAccountSchema,
   UpdateAccountInput,
   RejectAccountInput,
-} from '../schemas/AccountSchema';
+} from '@zoneless/shared-schemas';
 
 export class AccountModule {
   private readonly db: Database;

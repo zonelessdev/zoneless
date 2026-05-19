@@ -18,7 +18,7 @@ import {
   UpdatePayoutSchema,
   BuildPayoutsBatchSchema,
   BroadcastPayoutsBatchSchema,
-} from '../schemas/PayoutSchema';
+} from '@zoneless/shared-schemas';
 
 const router = express.Router();
 

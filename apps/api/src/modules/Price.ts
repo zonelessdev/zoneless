@@ -18,7 +18,7 @@ import {
   UpdatePriceSchema,
   UpdatePriceInput,
   ListPricesFiltersInput,
-} from '../schemas/PriceSchema';
+} from '@zoneless/shared-schemas';
 import { ListHelper, ListOptions, ListResult } from '../utils/ListHelper';
 import { Now } from '../utils/Timestamp';
 import { GetAppConfig } from './AppConfig';

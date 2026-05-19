@@ -23,7 +23,7 @@ import {
   CreateAccountSchema,
   UpdateAccountSchema,
   RejectAccountSchema,
-} from '../schemas/AccountSchema';
+} from '@zoneless/shared-schemas';
 
 import { Account as AccountType } from '@zoneless/shared-types';
 

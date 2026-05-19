@@ -26,7 +26,7 @@ import {
   CreateWebhookEndpointInput,
   UpdateWebhookEndpointSchema,
   UpdateWebhookEndpointInput,
-} from '../schemas/WebhookEndpointSchema';
+} from '@zoneless/shared-schemas';
 
 export class WebhookEndpointModule {
   private readonly db: Database;

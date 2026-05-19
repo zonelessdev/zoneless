@@ -34,7 +34,7 @@ import {
   UpdatePersonSchema,
   UpdatePersonInput,
   RelationshipFilters,
-} from '../schemas/PersonSchema';
+} from '@zoneless/shared-schemas';
 
 export class PersonModule {
   private readonly db: Database;

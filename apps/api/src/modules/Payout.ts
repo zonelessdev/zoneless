@@ -35,7 +35,7 @@ import {
   UpdatePayoutInput,
   BuildPayoutsBatchInput,
   BroadcastPayoutsBatchInput,
-} from '../schemas/PayoutSchema';
+} from '@zoneless/shared-schemas';
 
 /**
  * Extended list options for payouts with additional filters

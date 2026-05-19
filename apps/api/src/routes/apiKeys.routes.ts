@@ -15,7 +15,7 @@ import { RequirePlatform } from '../middleware/Authorization';
 import {
   CreateApiKeySchema,
   UpdateApiKeySchema,
-} from '../schemas/ApiKeySchema';
+} from '@zoneless/shared-schemas';
 
 const router = express.Router();
 

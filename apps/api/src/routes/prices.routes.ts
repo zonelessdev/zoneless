@@ -12,7 +12,7 @@ import { ProductModule } from '../modules/Product';
 import { ValidateRequest } from '../middleware/ValidateRequest';
 import { RequirePlatform } from '../middleware/Authorization';
 
-import { CreatePriceSchema, UpdatePriceSchema } from '../schemas/PriceSchema';
+import { CreatePriceSchema, UpdatePriceSchema } from '@zoneless/shared-schemas';
 import {
   ParseCreatedFilter,
   ParseOptionalQueryBoolean,

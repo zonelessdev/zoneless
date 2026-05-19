@@ -16,7 +16,7 @@ import { RequireAccountOwnership } from '../middleware/Authorization';
 import {
   CreateExternalWalletSchema,
   UpdateExternalWalletSchema,
-} from '../schemas/ExternalWalletSchema';
+} from '@zoneless/shared-schemas';
 
 const router = express.Router();
 

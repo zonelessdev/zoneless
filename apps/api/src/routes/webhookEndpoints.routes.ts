@@ -14,7 +14,7 @@ import { RequirePlatform } from '../middleware/Authorization';
 import {
   CreateWebhookEndpointSchema,
   UpdateWebhookEndpointSchema,
-} from '../schemas/WebhookEndpointSchema';
+} from '@zoneless/shared-schemas';
 
 const router = express.Router();
 

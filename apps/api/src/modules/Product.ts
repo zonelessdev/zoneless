@@ -21,7 +21,7 @@ import {
   UpdateProductSchema,
   UpdateProductInput,
   ListProductsFiltersInput,
-} from '../schemas/ProductSchema';
+} from '@zoneless/shared-schemas';
 import { ListHelper, ListOptions, ListResult } from '../utils/ListHelper';
 import { Now } from '../utils/Timestamp';
 import { GetAppConfig } from './AppConfig';

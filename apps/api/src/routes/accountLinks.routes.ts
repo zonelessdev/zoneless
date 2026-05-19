@@ -8,7 +8,7 @@ import { AccountLinkModule } from '../modules/AccountLink';
 import { AccountModule } from '../modules/Account';
 import { ValidateRequest } from '../middleware/ValidateRequest';
 import { RequirePlatform } from '../middleware/Authorization';
-import { CreateAccountLinkSchema } from '../schemas/AccountLinkSchema';
+import { CreateAccountLinkSchema } from '@zoneless/shared-schemas';
 
 const router = express.Router();
 const db = new Database();
