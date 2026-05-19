@@ -17,20 +17,18 @@
           class="side-menu-item"
           [class.desktop-hidden]="sideMenuItem.bottom"
           tabindex="0"
-          (click)="SelectItem(sideMenuItem.id)"
-          (keyup.enter)="SelectItem(sideMenuItem.id)"
+          [routerLink]="LinkFor(sideMenuItem.id)"
+          routerLinkActive
+          #rla="routerLinkActive"
         >
           <img
             class="menu-icon icon large-icon"
-            [class.menu-icon-selected]="selected === sideMenuItem.id"
+            [class.menu-icon-selected]="rla.isActive"
             [src]="'assets/icons/' + sideMenuItem.icon"
             [alt]="sideMenuItem.title"
           />
           @if (expanded()) {
-          <span
-            class="side-menu-text"
-            [class.text-selected]="selected === sideMenuItem.id"
-          >
+          <span class="side-menu-text" [class.text-selected]="rla.isActive">
             {{ sideMenuItem.title }}
           </span>
           }
@@ -49,20 +47,18 @@
         <a
           class="side-menu-item"
           tabindex="0"
-          (click)="SelectItem(sideMenuItem.id)"
-          (keyup.enter)="SelectItem(sideMenuItem.id)"
+          [routerLink]="LinkFor(sideMenuItem.id)"
+          routerLinkActive
+          #rla="routerLinkActive"
         >
           <img
             class="menu-icon icon large-icon"
-            [class.menu-icon-selected]="selected === sideMenuItem.id"
+            [class.menu-icon-selected]="rla.isActive"
             [src]="'assets/icons/' + sideMenuItem.icon"
             [alt]="sideMenuItem.title"
           />
           @if (expanded()) {
-          <span
-            class="side-menu-text"
-            [class.text-selected]="selected === sideMenuItem.id"
-          >
+          <span class="side-menu-text" [class.text-selected]="rla.isActive">
             {{ sideMenuItem.title }}
           </span>
           }

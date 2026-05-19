@@ -1,13 +1,12 @@
 import {
   Component,
   Input,
-  Output,
-  EventEmitter,
   ChangeDetectionStrategy,
   signal,
   inject,
   WritableSignal,
 } from '@angular/core';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 import { StorageService } from '../../../core';
 import { PlatformLogoComponent } from '../platform-logo/platform-logo.component';
 
@@ -25,15 +24,14 @@ export interface SideMenuItem {
   templateUrl: './side-menu.component.html',
   styleUrls: ['./side-menu.component.scss'],
   standalone: true,
-  imports: [PlatformLogoComponent],
+  imports: [PlatformLogoComponent, RouterLink, RouterLinkActive],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SideMenuComponent {
   private readonly storage = inject(StorageService);
 
-  @Input() selected = '';
-  @Output() selectedChange = new EventEmitter<string>();
-  @Output() selectedChanged = new EventEmitter<void>();
+  /** Route prefix that every menu item id is appended to */
+  @Input() basePath: (string | number)[] = ['/account'];
 
   @Input() sideMenu: SideMenuItem[][] = [];
 
@@ -53,11 +51,8 @@ export class SideMenuComponent {
     this.storage.StoreItemString('sidebar-expanded', String(this.expanded()));
   }
 
-  SelectItem(id: string): void {
-    this.selected = id;
-    this.ScrollToSelectedItem();
-    this.selectedChange.emit(this.selected);
-    this.selectedChanged.emit();
+  LinkFor(itemId: string): (string | number)[] {
+    return [...this.basePath, itemId];
   }
 
   ScrollToSelectedItem(): void {

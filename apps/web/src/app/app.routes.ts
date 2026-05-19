@@ -7,11 +7,13 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
   {
-    path: 'account/:view',
+    path: 'account',
     loadComponent: () =>
       import('./features/account/account.component').then(
-        (mod) => mod.AccountComponent
+        (m) => m.AccountComponent
       ),
+    loadChildren: () =>
+      import('./features/account/account.routes').then((m) => m.accountRoutes),
   },
   {
     path: 'setup',

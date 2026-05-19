@@ -1,0 +1,77 @@
+<div class="view-section">
+  <div class="header-wrapper">
+    <h1>Hi {{ personService.person()?.first_name }} 👋</h1>
+    @if (IsPlatform()) {
+    <button
+      type="button"
+      class="action-button action-button-dainty"
+      (click)="OnAddFundsClick()"
+    >
+      <img
+        class="button-icon"
+        src="assets/icons/add_circle_outline.svg"
+        alt=""
+      />
+      <span>Add funds</span>
+    </button>
+    }
+  </div>
+
+  <div class="balance-label">Total balance</div>
+  <div class="balance-wrapper">
+    <div class="balance">${{ GetTotalBalance() | number : '1.2-2' }}</div>
+    <div class="currency-label">USDC</div>
+    @if (IsPlatform()) {
+    <button
+      type="button"
+      class="action-button action-button-dainty outline balance-details-button"
+      (click)="OnBalanceDetailClick()"
+    >
+      Details
+    </button>
+    }
+  </div>
+
+  <div class="balance-label">Available to pay out</div>
+  <div class="balance-wrapper">
+    <div class="balance-secondary">
+      ${{ GetAvailableBalance() | number : '1.2-2' }}
+    </div>
+    <div class="currency-label">USDC</div>
+  </div>
+</div>
+
+<div class="view-section">
+  <h2 class="section-title">Recent transactions</h2>
+  <app-transaction-list
+    [transactionColumns]="recentTransactionColumns"
+    [limit]="5"
+    [paginationEnabled]="false"
+  ></app-transaction-list>
+</div>
+
+<!-- Add Funds Slide Panel (Platform Only) -->
+<app-slide-panel
+  [isOpen]="addFundsPanelOpen()"
+  title="Add funds"
+  [viewOnly]="true"
+  (closed)="OnAddFundsPanelClosed()"
+>
+  <app-add-funds-panel
+    [isOpen]="addFundsPanelOpen()"
+    (depositCompleted)="OnDepositCompleted($event)"
+  ></app-add-funds-panel>
+</app-slide-panel>
+
+<!-- Balance Detail Slide Panel (Platform Only) -->
+<app-slide-panel
+  [isOpen]="balanceDetailPanelOpen()"
+  title="Balance details"
+  [viewOnly]="true"
+  (closed)="OnBalanceDetailPanelClosed()"
+>
+  <app-balance-detail
+    [isOpen]="balanceDetailPanelOpen()"
+    (synced)="OnBalanceSynced()"
+  ></app-balance-detail>
+</app-slide-panel>

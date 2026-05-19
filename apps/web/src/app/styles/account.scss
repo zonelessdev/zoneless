@@ -7,6 +7,10 @@
   margin-bottom: $spacing;
 }
 
+.view-section {
+  margin-bottom: $spacing-extra-large;
+}
+
 h1 {
   font-size: 28px;
   font-weight: $title-weight;
@@ -17,6 +21,33 @@ h2.section-title {
   font-size: 20px;
   font-weight: $title-weight;
   margin: 0 0 $spacing 0;
+}
+
+.section-description {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing;
+}
+
+.settings-section-title {
+  font-size: $font-size-med;
+  font-weight: $title-weight;
+  font-family: $title-font;
+  color: $text-color;
+  margin-bottom: $spacing;
+}
+
+.section-header .settings-section-title {
+  margin-bottom: 0;
 }
 
 .button-icon {
@@ -65,4 +96,58 @@ h2.section-title {
   right: 0;
   height: 2px;
   background-color: $base-color;
+}
+
+.balance-label {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+  margin-bottom: $spacing-extra-small;
+}
+
+.balance-wrapper {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: $spacing;
+  gap: $spacing-small;
+}
+
+.balance {
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.balance-secondary {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.currency-label {
+  font-size: $font-size-small;
+  opacity: $dimmed-extra;
+}
+
+.balance-details-button {
+  margin-left: $spacing-small;
+  font-size: $font-size-small;
+}
+
+@media only screen and (max-width: 1000px) {
+  h1 {
+    font-size: 24px;
+  }
+
+  .balance {
+    font-size: 28px;
+  }
+
+  .balance-secondary {
+    font-size: 20px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing;
+  }
 }

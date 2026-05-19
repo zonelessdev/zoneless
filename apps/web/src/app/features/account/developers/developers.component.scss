@@ -1,0 +1,59 @@
+@use '../../../styles/base.scss' as *;
+@use '../../../styles/buttons.scss' as *;
+@use '../../../styles/account.scss' as *;
+
+.webhook-card {
+  margin-bottom: $spacing;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.api-key-card {
+  margin-bottom: $spacing;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-extra-large;
+  background-color: $dark-background-color;
+  border-radius: $border-radius;
+  text-align: center;
+}
+
+.empty-state-icon {
+  width: 48px;
+  height: 48px;
+  opacity: $dimmed-extra;
+  margin-bottom: $spacing;
+}
+
+.empty-state-title {
+  font-size: $font-size-large;
+  font-weight: $title-weight;
+  margin-bottom: $spacing-small;
+}
+
+.empty-state-description {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+  margin-bottom: $spacing-large;
+  max-width: 400px;
+  line-height: 1.5;
+}

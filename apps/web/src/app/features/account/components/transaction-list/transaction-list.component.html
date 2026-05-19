@@ -1,0 +1,36 @@
+<app-paginated-list
+  endpoint="balance_transactions"
+  [columns]="transactionColumns"
+  [limit]="limit"
+  [paginationEnabled]="paginationEnabled"
+  [queryParams]="queryParams"
+  (rowClick)="OnTransactionClick($event)"
+></app-paginated-list>
+
+<!-- Transaction Detail Slide Panel -->
+<app-slide-panel
+  [isOpen]="transactionDetailPanelOpen()"
+  [title]="GetTransactionDetailTitle()"
+  [viewOnly]="true"
+  (closed)="OnTransactionDetailPanelClosed()"
+>
+  @if (transactionService.selectedTransaction(); as detail) { @if (detail.type
+  === 'payout' && detail.payout) {
+  <app-payout-detail
+    [payout]="detail.payout"
+    [externalWallet]="detail.externalWallet ?? null"
+  ></app-payout-detail>
+  } @else if (detail.type === 'topup' && detail.topup) {
+  <app-topup-detail [topup]="detail.topup"></app-topup-detail>
+  } @else if (detail.type === 'transfer' && detail.transfer) {
+  <app-transfer-detail
+    [transfer]="detail.transfer"
+    [isPlatform]="IsPlatform()"
+    (accountClicked)="OnTransferAccountClick($event)"
+  ></app-transfer-detail>
+  } } @else {
+  <div class="loading-state">
+    <app-loader size="medium"></app-loader>
+  </div>
+  }
+</app-slide-panel>

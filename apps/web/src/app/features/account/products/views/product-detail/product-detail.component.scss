@@ -1,0 +1,41 @@
+@use '../../../../../styles/base.scss' as *;
+@use '../../../../../styles/chips.scss' as *;
+@use '../../../../../styles/align.scss' as *;
+
+.link-highlight {
+  color: $button-color !important;
+  cursor: pointer;
+  font-weight: 500;
+  &:hover {
+    filter: brightness(0.85);
+  }
+}
+
+.link-highlight {
+  margin-bottom: $spacing-snug;
+}
+
+.product-name {
+  margin: 0;
+}
+
+.product-image-wrapper {
+  width: 55px;
+  height: 55px;
+  border-radius: $border-radius-small;
+  background-color: $dark-background-color;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+
+  .icon {
+    opacity: $dimmed-disabled;
+  }
+}
+
+.product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

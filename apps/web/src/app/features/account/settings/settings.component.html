@@ -1,0 +1,77 @@
+<div class="view-section">
+  <h1>Settings</h1>
+</div>
+
+<!-- Personal Details Card -->
+<div class="view-section">
+  <div class="settings-section-title">Personal details</div>
+  <app-settings-card
+    [title]="personService.GetFullName(personService.person())"
+    [rows]="personService.GetSettingsCardRows(personService.person())"
+    [showEditButton]="true"
+    (editClicked)="OnEditPersonClick()"
+  ></app-settings-card>
+</div>
+
+<!-- External Wallet Card -->
+@if (externalWalletService.wallet()) {
+<div class="view-section">
+  <div class="settings-section-title">Payout wallet</div>
+  <app-settings-card
+    [title]="externalWalletService.GetWalletTitle()"
+    [rows]="externalWalletService.GetSettingsCardRows()"
+    [showEditButton]="true"
+    (editClicked)="OnEditWalletClick()"
+  ></app-settings-card>
+</div>
+}
+
+<div class="view-section">
+  <button
+    type="button"
+    class="action-button action-button-dainty outline"
+    (click)="LogOut()"
+  >
+    <span>Log Out</span>
+    <img class="icon" src="assets/icons/logout.svg" alt="Log Out" />
+  </button>
+</div>
+
+<!-- Edit Person Slide Panel -->
+<app-slide-panel
+  [isOpen]="editPersonPanelOpen()"
+  title="Edit personal details"
+  [loading]="editPersonLoading()"
+  submitLabel="Save"
+  [submitDisabled]="false"
+  (closed)="OnEditPersonPanelClosed()"
+  (submitted)="OnEditPersonSubmit()"
+>
+  <app-person-form
+    #editPersonForm
+    mode="edit"
+    [person]="personService.person()"
+    [isOpen]="editPersonPanelOpen()"
+    [showErrors]="editPersonShowErrors()"
+  ></app-person-form>
+</app-slide-panel>
+
+<!-- Edit Wallet Slide Panel -->
+<app-slide-panel
+  [isOpen]="editWalletPanelOpen()"
+  title="Edit payout wallet"
+  [loading]="editWalletLoading()"
+  submitLabel="Save"
+  [submitDisabled]="false"
+  (closed)="OnEditWalletPanelClosed()"
+  (submitted)="OnEditWalletSubmit()"
+>
+  <app-external-wallet-form
+    #editWalletForm
+    mode="edit"
+    [wallet]="externalWalletService.wallet()"
+    [isOpen]="editWalletPanelOpen()"
+    [showErrors]="editWalletShowErrors()"
+    (validationChange)="OnWalletValidationChange($event)"
+  ></app-external-wallet-form>
+</app-slide-panel>
