@@ -1,0 +1,26 @@
+<p>Product Detail</p>
+@if(product){
+<a class="link-highlight" href="/account/products">Products</a>
+<div class="flex align-vert gap-snug">
+  <div class="product-image-wrapper">
+    @if (product.images[0]) {
+    <img class="product-image" [src]="product.images[0]" alt="Product image" />
+    } @else {
+    <div class="product-image-placeholder">
+      <img
+        class="icon large-icon"
+        src="assets/icons/package_outline.svg"
+        alt="Product image"
+      />
+    </div>
+    }
+  </div>
+  <div class="flex flex-column gap-extra-small">
+    <div class="flex align-vert gap-small">
+      <h1 class="product-name">{{ product.name }}</h1>
+      <span class="chip green-chip">Active</span>
+    </div>
+    <div>No prices</div>
+  </div>
+</div>
+}

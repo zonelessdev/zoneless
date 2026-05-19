@@ -1,0 +1,38 @@
+@use '../../../../../styles/base.scss' as *;
+@use '../../../../../styles/forms.scss' as *;
+@use '../../../../../styles/icons.scss' as *;
+
+select {
+  width: 100%;
+}
+
+.remove-image-button {
+  display: flex;
+  align-items: center;
+  gap: $spacing-extra-small;
+  cursor: pointer;
+  opacity: $dimmed;
+  transition: $transition;
+  &:hover {
+    opacity: 1;
+  }
+
+  span {
+    font-size: $font-size-small;
+    text-decoration: underline;
+  }
+}
+
+.product-image-preview {
+  width: 100%;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $darker-background-color;
+  img {
+    max-width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}

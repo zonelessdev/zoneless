@@ -1,0 +1,34 @@
+<div class="view-section">
+  <div class="header-wrapper">
+    <h1>Connected Accounts</h1>
+  </div>
+  <p class="section-description">Manage connected accounts on your platform.</p>
+</div>
+
+<div class="view-section">
+  <app-paginated-list
+    endpoint="accounts"
+    [columns]="connectedAccountColumns"
+    [limit]="10"
+    (rowClick)="OnConnectedAccountClick($event)"
+  ></app-paginated-list>
+</div>
+
+<!-- Connected Account Detail Slide Panel (Platform Only) -->
+<app-slide-panel
+  [isOpen]="connectedAccountPanelOpen()"
+  [title]="GetConnectedAccountPanelTitle()"
+  [viewOnly]="true"
+  (closed)="OnConnectedAccountPanelClosed()"
+>
+  @if (accountService.selectedConnectedAccount(); as account) {
+  <app-connected-account-detail
+    [account]="account"
+    [person]="account.individual ?? null"
+  ></app-connected-account-detail>
+  } @else {
+  <div class="loading-state">
+    <app-loader size="medium"></app-loader>
+  </div>
+  }
+</app-slide-panel>

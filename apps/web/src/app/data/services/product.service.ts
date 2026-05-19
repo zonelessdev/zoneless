@@ -49,4 +49,17 @@ export class ProductService {
       this.loading.set(false);
     }
   }
+
+  async GetProduct(productId: string): Promise<Product> {
+    this.loading.set(true);
+    try {
+      const product = await this.api.Call<Product>(
+        'GET',
+        `products/${productId}`
+      );
+      return product;
+    } finally {
+      this.loading.set(false);
+    }
+  }
 }

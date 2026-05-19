@@ -1,0 +1,166 @@
+<div class="view-section">
+  <div class="header-wrapper">
+    <h1>Developers</h1>
+  </div>
+  <p class="section-description">
+    Manage your API integrations, webhooks, and developer settings.
+  </p>
+</div>
+
+<!-- API Keys Section -->
+<div class="view-section">
+  <div class="section-header">
+    <div class="settings-section-title">API keys</div>
+    <button
+      type="button"
+      class="action-button action-button-dainty"
+      (click)="OnCreateApiKeyClick()"
+    >
+      <img
+        class="button-icon"
+        src="assets/icons/add_circle_outline.svg"
+        alt=""
+      />
+      <span>Create key</span>
+    </button>
+  </div>
+
+  @if (apiKeyService.loading()) {
+  <div class="loading-state">
+    <app-loader size="medium"></app-loader>
+  </div>
+  } @else if (apiKeyService.apiKeys().length === 0) {
+  <div class="empty-state">
+    <img
+      class="empty-state-icon"
+      src="assets/icons/key.svg"
+      alt="No API keys"
+    />
+    <div class="empty-state-title">No API keys</div>
+    <div class="empty-state-description">
+      API keys are used to authenticate requests to your platform's API.
+    </div>
+    <button
+      type="button"
+      class="action-button action-button-dainty outline"
+      (click)="OnCreateApiKeyClick()"
+    >
+      Create your first API key
+    </button>
+  </div>
+  } @else { @for (apiKey of apiKeyService.apiKeys(); track apiKey.id) {
+  <div class="api-key-card">
+    <app-settings-card
+      [title]="apiKeyService.GetKeyTitle(apiKey)"
+      [rows]="apiKeyService.GetSettingsCardRows(apiKey)"
+      [actions]="apiKeyActions"
+      [showEditButton]="true"
+      editLabel="Edit"
+      (actionClicked)="OnApiKeyAction($event, apiKey)"
+      (editClicked)="OnEditApiKeyClick(apiKey)"
+    ></app-settings-card>
+  </div>
+  } }
+</div>
+
+<!-- Webhooks Section -->
+<div class="view-section">
+  <div class="section-header">
+    <div class="settings-section-title">Webhook endpoints</div>
+    <button
+      type="button"
+      class="action-button action-button-dainty"
+      (click)="OnCreateWebhookClick()"
+    >
+      <img
+        class="button-icon"
+        src="assets/icons/add_circle_outline.svg"
+        alt=""
+      />
+      <span>Add endpoint</span>
+    </button>
+  </div>
+
+  @if (webhookEndpointService.loading()) {
+  <div class="loading-state">
+    <app-loader size="medium"></app-loader>
+  </div>
+  } @else if (webhookEndpointService.webhookEndpoints().length === 0) {
+  <div class="empty-state">
+    <img
+      class="empty-state-icon"
+      src="assets/icons/code.svg"
+      alt="No webhooks"
+    />
+    <div class="empty-state-title">No webhook endpoints</div>
+    <div class="empty-state-description">
+      Webhook endpoints allow you to receive real-time notifications when events
+      happen in your platform.
+    </div>
+    <button
+      type="button"
+      class="action-button action-button-dainty outline"
+      (click)="OnCreateWebhookClick()"
+    >
+      Create your first webhook
+    </button>
+  </div>
+  } @else { @for (endpoint of webhookEndpointService.webhookEndpoints(); track
+  endpoint.id) {
+  <div class="webhook-card">
+    <app-settings-card
+      [title]="webhookEndpointService.GetEndpointTitle(endpoint)"
+      [rows]="webhookEndpointService.GetSettingsCardRows(endpoint)"
+      [actions]="webhookActions"
+      [showEditButton]="true"
+      editLabel="Edit"
+      (actionClicked)="OnWebhookAction($event, endpoint)"
+      (editClicked)="OnEditWebhookClick(endpoint)"
+    ></app-settings-card>
+  </div>
+  } }
+</div>
+
+<!-- Webhook Endpoint Slide Panel -->
+<app-slide-panel
+  [isOpen]="webhookPanelOpen()"
+  [title]="GetWebhookPanelTitle()"
+  [loading]="webhookPanelLoading()"
+  [submitLabel]="webhookPanelMode() === 'create' ? 'Create' : 'Save'"
+  [submitDisabled]="false"
+  [viewOnly]="!!newlyCreatedSecret()"
+  (closed)="OnWebhookPanelClosed()"
+  (submitted)="OnWebhookSubmit()"
+>
+  <app-webhook-endpoint-form
+    #webhookEndpointForm
+    [mode]="webhookPanelMode()"
+    [endpoint]="selectedWebhookEndpoint()"
+    [isOpen]="webhookPanelOpen()"
+    [showErrors]="webhookPanelShowErrors()"
+    [createdSecret]="newlyCreatedSecret()"
+    (done)="OnWebhookFormDone()"
+  ></app-webhook-endpoint-form>
+</app-slide-panel>
+
+<!-- API Key Slide Panel -->
+<app-slide-panel
+  [isOpen]="apiKeyPanelOpen()"
+  [title]="GetApiKeyPanelTitle()"
+  [loading]="apiKeyPanelLoading()"
+  [submitLabel]="apiKeyPanelMode() === 'create' ? 'Create' : 'Save'"
+  [submitDisabled]="false"
+  [viewOnly]="!!newlyCreatedToken()"
+  (closed)="OnApiKeyPanelClosed()"
+  (submitted)="OnApiKeySubmit()"
+>
+  <app-api-key-form
+    #apiKeyForm
+    [mode]="apiKeyPanelMode()"
+    [apiKey]="selectedApiKey()"
+    [isOpen]="apiKeyPanelOpen()"
+    [showErrors]="apiKeyPanelShowErrors()"
+    [createdToken]="newlyCreatedToken()"
+    (done)="OnApiKeyFormDone()"
+  ></app-api-key-form>
+</app-slide-panel>

@@ -1,0 +1,51 @@
+<div class="view-section">
+  <div class="balance-label">Total balance</div>
+  <div class="balance-wrapper">
+    <div class="balance">${{ GetTotalBalance() | number : '1.2-2' }}</div>
+    <div class="currency-label">USDC</div>
+  </div>
+
+  <div class="balance-label">Available to pay out</div>
+  <div class="balance-wrapper">
+    <div class="balance-secondary">
+      ${{ GetAvailableBalance() | number : '1.2-2' }}
+    </div>
+    <div class="currency-label">USDC</div>
+  </div>
+</div>
+
+<div class="view-section">
+  <h2 class="section-title">Transactions</h2>
+
+  <div class="tab-bar">
+    <button
+      type="button"
+      class="tab-button"
+      [class.tab-active]="balanceTab() === 'all'"
+      (click)="SetBalanceTab('all')"
+    >
+      All
+    </button>
+    <button
+      type="button"
+      class="tab-button"
+      [class.tab-active]="balanceTab() === 'payouts'"
+      (click)="SetBalanceTab('payouts')"
+    >
+      Payouts
+    </button>
+  </div>
+
+  @if (balanceTab() === 'all') {
+  <app-transaction-list
+    [transactionColumns]="balanceTransactionColumns"
+    [limit]="10"
+  ></app-transaction-list>
+  } @if (balanceTab() === 'payouts') {
+  <app-transaction-list
+    [transactionColumns]="balanceTransactionColumns"
+    [limit]="10"
+    [queryParams]="payoutQueryParams"
+  ></app-transaction-list>
+  }
+</div>
