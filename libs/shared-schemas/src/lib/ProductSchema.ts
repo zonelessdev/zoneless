@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { MarketingFeature } from '@zoneless/shared-types';
 import { ExpandableSchema } from './ExpandableSchema';
 
 const PackageDimensionsSchema = z.object({
@@ -8,9 +9,15 @@ const PackageDimensionsSchema = z.object({
   width: z.number().min(0).max(100000),
 });
 
-const MarketingFeatureSchema = z.object({
-  name: z.string().min(1).max(80).nullable(),
-});
+const MarketingFeatureSchema = z
+  .object({
+    name: z.union([z.string().min(1).max(80), z.null()]).optional(),
+  })
+  .transform(
+    (feature): MarketingFeature => ({
+      name: feature.name ?? null,
+    })
+  );
 
 /**
  * Schema for retrieving a product.
