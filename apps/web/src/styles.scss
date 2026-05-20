@@ -127,10 +127,14 @@ ol {
 
 a,
 a:visited {
-  color: $text-color !important;
+  color: $button-color !important;
   font-size: $font-size;
   text-decoration: none;
   cursor: pointer;
+}
+
+a:hover {
+  filter: brightness(0.85);
 }
 
 i,

@@ -5,59 +5,39 @@ import {
   signal,
   ViewChild,
   inject,
+  OnInit,
+  OnDestroy,
 } from '@angular/core';
 import {
   PaginatedListComponent,
-  SlidePanelComponent,
   PaginatedListColumn,
-  ConfirmDialogComponent,
 } from '../../../../../shared';
-import { ProductFormComponent } from '../../components/product-form/product-form.component';
 import { Router, ActivatedRoute } from '@angular/router';
 import type { Product, Price } from '@zoneless/shared-types';
 
 import { ProductService } from '../../../../../data';
+import { ProductActionsService } from '../../services/product-actions.service';
+import { ProductActionsHostComponent } from '../../components/product-actions-host/product-actions-host.component';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-product-catalogue',
-  imports: [
-    PaginatedListComponent,
-    SlidePanelComponent,
-    ProductFormComponent,
-    ConfirmDialogComponent,
-  ],
+  imports: [PaginatedListComponent, ProductActionsHostComponent],
   templateUrl: './product-catalogue.component.html',
   styleUrl: './product-catalogue.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProductCatalogueComponent {
+export class ProductCatalogueComponent implements OnInit, OnDestroy {
   readonly productService = inject(ProductService);
   readonly router = inject(Router);
   readonly route = inject(ActivatedRoute);
-  @ViewChild('productForm') productForm!: ProductFormComponent;
+  readonly actions = inject(ProductActionsService);
+  private sub?: Subscription;
   @ViewChild('productsList') productsList?: PaginatedListComponent<any>;
 
   productsTab: WritableSignal<'all'> = signal('all');
   productsActiveTab: WritableSignal<'all' | 'active' | 'archived'> =
     signal('active');
-  productPanelOpen: WritableSignal<boolean> = signal(false);
-  productLoading: WritableSignal<boolean> = signal(false);
-  productShowErrors: WritableSignal<boolean> = signal(false);
-
-  productFormMode: WritableSignal<'create' | 'edit'> = signal('create');
-  productToEdit: WritableSignal<Product | null> = signal(null);
-
-  archiveDialogOpen = signal(false);
-  archiving = signal(false);
-  productToArchive = signal<Product | null>(null);
-
-  unarchiveDialogOpen = signal(false);
-  unarchiving = signal(false);
-  productToUnarchive = signal<Product | null>(null);
-
-  deleteDialogOpen = signal(false);
-  deleting = signal(false);
-  productToDelete = signal<Product | null>(null);
 
   productColumns: PaginatedListColumn[] = [
     {
@@ -89,6 +69,9 @@ export class ProductCatalogueComponent {
           if (recurringData?.interval === 'month') {
             return `$${(unitAmount / 100).toFixed(2)} / month`;
           }
+          if (recurringData?.interval === 'year') {
+            return `$${(unitAmount / 100).toFixed(2)} / year`;
+          }
         }
         return `$${(unitAmount / 100).toFixed(2)}`;
       },
@@ -119,22 +102,22 @@ export class ProductCatalogueComponent {
       actions: [
         {
           title: 'Edit product',
-          action: (item: Product) => this.OnEditProductClick(item),
+          action: (item: Product) => this.actions.OpenEdit(item),
           disabled: (item: Product) => !item.active,
         },
         {
           title: 'Archive product',
-          action: (item: Product) => this.OnArchiveProductClick(item),
+          action: (item: Product) => this.actions.OpenArchive(item),
           hidden: (item: Product) => !item.active,
         },
         {
           title: 'Unarchive product',
-          action: (item: Product) => this.OnUnarchiveProductClick(item),
+          action: (item: Product) => this.actions.OpenUnarchive(item),
           hidden: (item: Product) => item.active,
         },
         {
           title: 'Delete product',
-          action: (item: Product) => this.OnDeleteProductClick(item),
+          action: (item: Product) => this.actions.OpenDelete(item),
         },
       ],
     },
@@ -143,6 +126,17 @@ export class ProductCatalogueComponent {
     active: 'true',
   });
   productsExpand: WritableSignal<string[]> = signal(['default_price']);
+
+  ngOnInit(): void {
+    this.sub = this.actions.events$.subscribe(() => {
+      // Any successful action invalidates the list
+      this.productsList?.Reload();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.sub?.unsubscribe();
+  }
 
   OnProductListClick(product: Product): void {
     this.router.navigate(['/account/products', product.id]);
@@ -165,113 +159,5 @@ export class ProductCatalogueComponent {
         break;
     }
     this.productsActiveTab.set(tab);
-  }
-
-  OnEditProductClick(product: Product): void {
-    this.productFormMode.set('edit');
-    this.productToEdit.set(product);
-    this.productPanelOpen.set(true);
-  }
-
-  OnCreateProductClick(): void {
-    this.productFormMode.set('create');
-    this.productToEdit.set(null);
-    this.productPanelOpen.set(true);
-  }
-
-  OnProductPanelClosed(): void {
-    this.productPanelOpen.set(false);
-    this.productFormMode.set('create');
-    this.productToEdit.set(null);
-  }
-
-  async OnProductSubmit(): Promise<void> {
-    if (!this.productForm) return;
-
-    this.productShowErrors.set(true);
-
-    if (!this.productForm.ValidateAll()) {
-      return;
-    }
-
-    this.productLoading.set(true);
-
-    try {
-      if (this.productFormMode() === 'create') {
-        const data = this.productForm.CreateProductFormData();
-        await this.productService.CreateProduct(data);
-      } else if (this.productFormMode() === 'edit') {
-        const productToEdit = this.productToEdit();
-        if (productToEdit) {
-          const data = this.productForm.UpdateProductFormData();
-          await this.productService.UpdateProduct(productToEdit.id, data);
-        }
-      }
-      this.productPanelOpen.set(false);
-      this.productShowErrors.set(false);
-      await this.productsList?.Reload();
-    } catch (error) {
-      console.error('Failed to create product:', error);
-    } finally {
-      this.productLoading.set(false);
-    }
-  }
-
-  OnArchiveProductClick(product: Product): void {
-    this.productToArchive.set(product);
-    this.archiveDialogOpen.set(true);
-  }
-
-  async ConfirmArchive(): Promise<void> {
-    const product = this.productToArchive();
-    if (!product) return;
-    this.archiving.set(true);
-    try {
-      await this.productService.UpdateProduct(product.id, { active: false });
-      this.archiveDialogOpen.set(false);
-      await this.productsList?.Reload();
-    } finally {
-      this.archiving.set(false);
-    }
-  }
-
-  OnUnarchiveProductClick(product: Product): void {
-    this.productToUnarchive.set(product);
-    this.unarchiveDialogOpen.set(true);
-  }
-
-  async ConfirmUnarchive(): Promise<void> {
-    const product = this.productToUnarchive();
-    if (!product) return;
-    this.unarchiving.set(true);
-    try {
-      await this.productService.UpdateProduct(product.id, { active: true });
-      this.unarchiveDialogOpen.set(false);
-      await this.productsList?.Reload();
-    } finally {
-      this.unarchiving.set(false);
-    }
-  }
-
-  OnDeleteProductClick(product: Product): void {
-    this.productToDelete.set(product);
-    this.deleteDialogOpen.set(true);
-  }
-
-  async ConfirmDelete(): Promise<void> {
-    const product = this.productToDelete();
-    if (!product) return;
-    this.deleting.set(true);
-    try {
-      await this.productService.DeleteProduct(product.id);
-      this.deleteDialogOpen.set(false);
-      await this.productsList?.Reload();
-    } finally {
-      this.deleting.set(false);
-    }
-  }
-
-  OnProductValidationChange(isValid: boolean): void {
-    this.productShowErrors.set(isValid);
   }
 }

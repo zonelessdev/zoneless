@@ -29,6 +29,7 @@ export class ProductService {
     data: UpdateProductInput
   ): Promise<Product> {
     this.loading.set(true);
+    data.expand = ['default_price'];
     try {
       const product = await this.api.Call<Product>(
         'POST',
@@ -55,7 +56,7 @@ export class ProductService {
     try {
       const product = await this.api.Call<Product>(
         'GET',
-        `products/${productId}`
+        `products/${productId}?expand=default_price`
       );
       return product;
     } finally {

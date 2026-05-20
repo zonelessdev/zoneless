@@ -1,0 +1,9 @@
+<app-paginated-list
+  #eventsList
+  endpoint="events"
+  [columns]="eventColumns()"
+  [limit]="5"
+  [hideColumnHeadings]="true"
+  [paginationEnabled]="false"
+  [queryParams]="eventQueryParams()"
+></app-paginated-list>

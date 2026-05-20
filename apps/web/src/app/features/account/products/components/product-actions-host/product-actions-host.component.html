@@ -1,0 +1,50 @@
+<!-- Create Product Slide Panel -->
+<app-slide-panel
+  [isOpen]="actions.panelOpen()"
+  [title]="GetPanelTitle()"
+  [loading]="actions.panelLoading()"
+  submitLabel="Save"
+  [submitDisabled]="false"
+  (closed)="actions.ClosePanel()"
+  (submitted)="OnSubmit()"
+>
+  <app-product-form
+    #productForm
+    [mode]="actions.panelMode()"
+    [product]="actions.productToEdit()"
+    [isOpen]="actions.panelOpen()"
+    [showErrors]="actions.panelShowErrors()"
+    (validationChange)="OnValidationChange($event)"
+  ></app-product-form>
+</app-slide-panel>
+
+<app-confirm-dialog
+  [isOpen]="actions.archiveDialogOpen()"
+  title="Archive product"
+  description="Archiving will hide this product from new purchases. Are you sure you want to archive this product?"
+  confirmLabel="Archive product"
+  [loading]="actions.archiving()"
+  (confirmed)="actions.ConfirmArchive()"
+  (cancelled)="actions.archiveDialogOpen.set(false)"
+></app-confirm-dialog>
+
+<app-confirm-dialog
+  [isOpen]="actions.unarchiveDialogOpen()"
+  title="Unarchive product"
+  description="Unarchiving will make this product available for new purchases. Are you sure you want to unarchive this product?"
+  confirmLabel="Unarchive product"
+  [loading]="actions.unarchiving()"
+  (confirmed)="actions.ConfirmUnarchive()"
+  (cancelled)="actions.unarchiveDialogOpen.set(false)"
+></app-confirm-dialog>
+
+<app-confirm-dialog
+  [isOpen]="actions.deleteDialogOpen()"
+  title="Delete product"
+  description="Deleting this product will permanently remove it from the product catalogue. Are you sure you want to delete this product?"
+  confirmLabel="Delete product"
+  [loading]="actions.deleting()"
+  [destructive]="true"
+  (confirmed)="actions.ConfirmDelete()"
+  (cancelled)="actions.deleteDialogOpen.set(false)"
+></app-confirm-dialog>

@@ -1,14 +1,14 @@
 @use './base.scss' as *;
 
 .chip {
-  padding: 4px 4px;
+  padding: 1px 6px;
   border-radius: 4px;
   font-size: $font-size-small;
-  cursor: pointer;
   line-height: 1;
   font-weight: $text-weight;
   display: inline-flex;
   align-items: center;
+  height: 20px;
   gap: 2px;
 }
 
@@ -34,8 +34,9 @@
 }
 
 .green-chip {
-  background-color: #cbf4c9;
-  color: rgb(14, 98, 69);
+  background-color: rgb(234, 252, 221);
+  border: 1px solid rgb(168, 241, 112);
+  color: rgb(33, 112, 5);
 }
 
 .green-chip img {
@@ -44,8 +45,9 @@
 }
 
 .red-chip {
-  background-color: #fde2dd;
-  color: #a41c4e;
+  background-color: rgb(254, 244, 246);
+  border: 1px solid rgb(251, 211, 220);
+  color: rgb(192, 18, 60);
 }
 
 .red-chip img {
@@ -64,8 +66,9 @@
 }
 
 .blue-chip {
-  background-color: #96daff;
-  color: #04293d;
+  background-color: rgb(226, 251, 254);
+  border: 1px solid rgb(167, 231, 252);
+  color: rgb(4, 90, 208);
 }
 
 .blue-chip img {
@@ -84,8 +87,9 @@
 }
 
 .grey-chip {
-  background-color: #c0ccd3;
-  color: #545969;
+  background-color: rgb(244, 247, 250);
+  border: 1px solid rgb(212, 222, 233);
+  color: rgb(80, 97, 122);
 }
 
 .grey-chip img,

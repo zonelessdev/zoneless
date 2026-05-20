@@ -1,0 +1,44 @@
+<div class="menu-wrapper">
+  <img
+    class="large-icon hover-icon more-icon"
+    [class.more-icon-highlight]="highlightIcon"
+    src="assets/icons/more_horiz.svg"
+    alt="Actions"
+    role="button"
+    tabindex="0"
+    (click)="ToggleActionsMenu($event)"
+    (keydown.enter)="ToggleActionsMenu($event)"
+    (keydown.space)="ToggleActionsMenu($event)"
+  />
+  @if (menuOpen()) {
+  <div
+    class="popup-menu"
+    role="menu"
+    tabindex="-1"
+    (click)="$event.stopPropagation()"
+    (keydown.escape)="menuOpen.set(false)"
+  >
+    @for (action of actions; track action.title) { @let isDisabled =
+    action.disabled ? action.disabled(item) : false; @let isHidden =
+    action.hidden ? action.hidden(item) : false;
+    <div
+      class="popup-menu-item"
+      role="menuitem"
+      tabindex="0"
+      [class.popup-menu-item-disabled]="isDisabled"
+      [class.popup-menu-item-hidden]="isHidden"
+      (click)="OnActionClick($event, action, item, isDisabled)"
+      (keydown.enter)="OnActionClick($event, action, item, isDisabled)"
+      (keydown.space)="OnActionClick($event, action, item, isDisabled)"
+    >
+      <div class="popup-menu-item-title">{{ action.title }}</div>
+      @if (action.description) {
+      <div class="popup-menu-item-description">
+        {{ action.description }}
+      </div>
+      }
+    </div>
+    }
+  </div>
+  }
+</div>

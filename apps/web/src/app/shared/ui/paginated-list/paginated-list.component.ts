@@ -17,19 +17,10 @@ import { DatePipe, DecimalPipe, TitleCasePipe } from '@angular/common';
 import { ApiService } from '../../../core';
 import { ListResponse } from '@zoneless/shared-types';
 import { StatusChipComponent } from '../status-chip/status-chip.component';
-
-export interface PaginatedListAction {
-  /** Title of the action */
-  title: string;
-  /** Description of the action */
-  description?: string;
-  /** Action to perform when the action is clicked */
-  action: (item: any) => void;
-  /** Optional predicate to disable the action for a given item */
-  disabled?: (item: any) => boolean;
-  /** Optional predicate to hide the action for a given item */
-  hidden?: (item: any) => boolean;
-}
+import {
+  PopupMenuComponent,
+  PopupMenuAction,
+} from '../popup-menu/popup-menu.component';
 
 export interface PaginatedListColumn {
   /** Column header text */
@@ -60,7 +51,7 @@ export interface PaginatedListColumn {
   /** Fallback icon to display if the image field is not found */
   placeholderIcon?: string;
   /** Optional actions to display in the row */
-  actions?: PaginatedListAction[];
+  actions?: PopupMenuAction[];
 }
 
 interface ListItem {
@@ -74,7 +65,13 @@ interface ListItem {
   templateUrl: './paginated-list.component.html',
   styleUrls: ['./paginated-list.component.scss'],
   standalone: true,
-  imports: [DatePipe, DecimalPipe, TitleCasePipe, StatusChipComponent],
+  imports: [
+    DatePipe,
+    DecimalPipe,
+    TitleCasePipe,
+    StatusChipComponent,
+    PopupMenuComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PaginatedListComponent<T extends ListItem>
@@ -244,32 +241,6 @@ export class PaginatedListComponent<T extends ListItem>
       return;
     }
     this.rowClick.emit(item);
-  }
-
-  ToggleActionsMenu(event: Event, item: T): void {
-    event.stopPropagation();
-    this.openMenuItemId.update((current) =>
-      current === item.id ? null : item.id
-    );
-  }
-
-  OnActionClick(
-    event: Event,
-    action: PaginatedListAction,
-    item: T,
-    isDisabled: boolean
-  ): void {
-    event.stopPropagation();
-    if (isDisabled) return;
-    this.openMenuItemId.set(null);
-    action.action(item);
-  }
-
-  @HostListener('document:click')
-  CloseActionsMenu(): void {
-    if (this.openMenuItemId() !== null) {
-      this.openMenuItemId.set(null);
-    }
   }
 
   GetItemValue(item: T, field: string): unknown {

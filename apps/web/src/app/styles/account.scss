@@ -132,6 +132,29 @@ h2.section-title {
   font-size: $font-size-small;
 }
 
+.dashed-placeholder {
+  border: 1px dashed $darkest-background-color;
+  width: 100%;
+  border-radius: $border-radius-small;
+  padding: $spacing-large $spacing;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.attribute {
+  margin-bottom: $spacing;
+}
+
+.attribute-title {
+  font-weight: $title-weight;
+  margin-bottom: $spacing-extra-small;
+}
+
+.attribute-value {
+  opacity: $dimmed;
+}
+
 @media only screen and (max-width: 1000px) {
   h1 {
     font-size: 24px;
