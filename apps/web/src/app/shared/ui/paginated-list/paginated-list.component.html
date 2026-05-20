@@ -11,7 +11,7 @@
   <tbody>
     @if (!loading() && items().length > 0) { @for (item of items(); track
     item.id) {
-    <tr class="row" (click)="OnRowClick(item)">
+    <tr class="row more-icon-highlight" (click)="OnRowClick(item)">
       @for (column of columns; track column.field) {
       <td>
         <div
@@ -63,53 +63,10 @@
             GetItemNumber(item, column.field) | number : '1.0-2'
           }}</span>
           } @case ('actions') {
-          <div class="actions-cell">
-            <img
-              class="large-icon hover-icon more-icon"
-              src="assets/icons/more_horiz.svg"
-              alt="Actions"
-              role="button"
-              tabindex="0"
-              (click)="ToggleActionsMenu($event, item)"
-              (keydown.enter)="ToggleActionsMenu($event, item)"
-              (keydown.space)="ToggleActionsMenu($event, item)"
-            />
-            @if (openMenuItemId() === item.id) {
-            <div
-              class="popup-menu"
-              role="menu"
-              tabindex="-1"
-              (click)="$event.stopPropagation()"
-              (keydown.escape)="openMenuItemId.set(null)"
-            >
-              @for (action of column.actions; track action.title) { @let
-              isDisabled = action.disabled ? action.disabled(item) : false; @let
-              isHidden = action.hidden ? action.hidden(item) : false;
-              <div
-                class="popup-menu-item"
-                role="menuitem"
-                tabindex="0"
-                [class.popup-menu-item-disabled]="isDisabled"
-                [class.popup-menu-item-hidden]="isHidden"
-                (click)="OnActionClick($event, action, item, isDisabled)"
-                (keydown.enter)="
-                  OnActionClick($event, action, item, isDisabled)
-                "
-                (keydown.space)="
-                  OnActionClick($event, action, item, isDisabled)
-                "
-              >
-                <div class="popup-menu-item-title">{{ action.title }}</div>
-                @if (action.description) {
-                <div class="popup-menu-item-description">
-                  {{ action.description }}
-                </div>
-                }
-              </div>
-              }
-            </div>
-            }
-          </div>
+          <app-popup-menu
+            [actions]="column.actions || []"
+            [item]="item"
+          ></app-popup-menu>
           } @default { @if (column.capitalize) {
           <span>{{ GetItemString(item, column) | titlecase }}</span>
           } @else {

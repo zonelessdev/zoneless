@@ -12,6 +12,10 @@
   align-items: center;
 }
 
+.align-vert-start {
+  align-items: flex-start;
+}
+
 .align-horz {
   justify-content: center;
 }
@@ -42,4 +46,8 @@
 
 .gap-large {
   gap: $spacing-large;
+}
+
+.gap-extra-large {
+  gap: $spacing-extra-large;
 }

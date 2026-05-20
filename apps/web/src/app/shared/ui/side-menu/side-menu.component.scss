@@ -53,6 +53,10 @@ li:last-child {
   margin-bottom: $spacing;
 }
 
+a {
+  color: $text-color !important;
+}
+
 .side-menu-item {
   padding: $spacing-small 0;
   display: inline-flex;

@@ -37,6 +37,7 @@ const STATUS_CHIP_MAP: Record<string, ChipType> = {
   draft: 'blue',
   working: 'blue',
   in_transit: 'blue',
+  default: 'blue',
 
   // Orange - Warning states
   disputed: 'orange',

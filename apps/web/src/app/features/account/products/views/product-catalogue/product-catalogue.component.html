@@ -3,7 +3,7 @@
   <button
     type="button"
     class="action-button action-button-dainty"
-    (click)="OnCreateProductClick()"
+    (click)="actions.OpenCreate()"
   >
     <img class="button-icon" src="assets/icons/add.svg" alt="" />
     <span>Create Product</span>
@@ -69,55 +69,4 @@
 ></app-paginated-list>
 }
 
-<!-- Create Product Slide Panel -->
-<app-slide-panel
-  [isOpen]="productPanelOpen()"
-  [title]="
-    productFormMode() === 'create' ? 'Add a product' : 'Update a product'
-  "
-  [loading]="productLoading()"
-  submitLabel="Save"
-  [submitDisabled]="false"
-  (closed)="OnProductPanelClosed()"
-  (submitted)="OnProductSubmit()"
->
-  <app-product-form
-    #productForm
-    [mode]="productFormMode()"
-    [product]="productToEdit()"
-    [isOpen]="productPanelOpen()"
-    [showErrors]="productShowErrors()"
-    (validationChange)="OnProductValidationChange($event)"
-  ></app-product-form>
-</app-slide-panel>
-
-<app-confirm-dialog
-  [isOpen]="archiveDialogOpen()"
-  title="Archive product"
-  description="Archiving will hide this product from new purchases. Are you sure you want to archive this product?"
-  confirmLabel="Archive product"
-  [loading]="archiving()"
-  (confirmed)="ConfirmArchive()"
-  (cancelled)="archiveDialogOpen.set(false)"
-></app-confirm-dialog>
-
-<app-confirm-dialog
-  [isOpen]="unarchiveDialogOpen()"
-  title="Unarchive product"
-  description="Unarchiving will make this product available for new purchases. Are you sure you want to unarchive this product?"
-  confirmLabel="Unarchive product"
-  [loading]="unarchiving()"
-  (confirmed)="ConfirmUnarchive()"
-  (cancelled)="unarchiveDialogOpen.set(false)"
-></app-confirm-dialog>
-
-<app-confirm-dialog
-  [isOpen]="deleteDialogOpen()"
-  title="Delete product"
-  description="Deleting this product will permanently remove it from the product catalogue. Are you sure you want to delete this product?"
-  confirmLabel="Delete product"
-  [loading]="deleting()"
-  [destructive]="true"
-  (confirmed)="ConfirmDelete()"
-  (cancelled)="deleteDialogOpen.set(false)"
-></app-confirm-dialog>
+<app-product-actions-host></app-product-actions-host>

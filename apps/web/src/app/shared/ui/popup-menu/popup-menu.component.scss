@@ -1,0 +1,41 @@
+@use '../../../styles/base.scss' as *;
+@use '../../../styles/icons.scss' as *;
+@use '../../../styles/popup-menu.scss' as *;
+
+:host {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.menu-wrapper {
+  position: relative;
+  display: inline-flex;
+  line-height: 0;
+}
+
+.more-icon {
+  padding: 1px 4px;
+  width: 28px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  display: block;
+}
+
+:host-context(.more-icon-highlight:hover) .more-icon {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background-color: $background-color;
+  box-shadow: 0 1px 4px 0 rgba(30, 41, 59, 0.06);
+}
+
+.more-icon-highlight {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background-color: $background-color;
+  box-shadow: 0 1px 4px 0 rgba(30, 41, 59, 0.06);
+}
+
+.more-icon:hover {
+  border: 1px solid $base-color !important;
+  background-color: $background-color;
+  box-shadow: 0 1px 4px 0 rgba(30, 41, 59, 0.06);
+}

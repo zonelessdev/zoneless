@@ -63,7 +63,137 @@
   }
 </div>
 
-@if(mode === 'create'){
+<div class="field">
+  <div
+    class="collapsible-toggle"
+    tabindex="0"
+    role="button"
+    (click)="ToggleDetailsExpanded()"
+    (keydown.enter)="ToggleDetailsExpanded()"
+    (keydown.space)="ToggleDetailsExpanded(); $event.preventDefault()"
+  >
+    <span class="collapsible-text">More options</span>
+    <img
+      src="assets/icons/chevron_down.svg"
+      class="collapsible-down-icon"
+      [class.expanded]="detailsExpanded()"
+      alt="Down chevron icon"
+    />
+  </div>
+</div>
+
+@if(detailsExpanded()) {
+<div class="field">
+  <div class="field-title">Statement descriptor</div>
+  <p class="field-help">
+    Overrides default descriptors. Only used for subscription payments. Choose
+    something your customers will recognise.
+  </p>
+  <div class="field-value">
+    <input
+      [ngModel]="statementDescriptor()"
+      (ngModelChange)="OnStatementDescriptorChange($event)"
+      type="text"
+      [maxlength]="STATEMENT_DESCRIPTOR_MAX_LENGTH"
+    />
+  </div>
+</div>
+
+<div class="field">
+  <div class="field-title">Unit label</div>
+  <p class="field-help">
+    Adding a unit label describes how you sell your product. For example, if you
+    charge by the seat and use “seat” as the unit label, it will be included in
+    the line item as the price per seat. Unit labels for packaged prices should
+    be pluralised, e.g. “seats”. Unit labels appear in customers' receipts,
+    invoices, Checkout, and the customer portal.
+  </p>
+  <div class="field-value">
+    <input
+      [ngModel]="unitLabel()"
+      (ngModelChange)="OnUnitLabelChange($event)"
+      type="text"
+    />
+  </div>
+</div>
+
+<div class="field">
+  <div class="field-title">Metadata</div>
+  <p class="field-help">Store additional, structured information.</p>
+  @for (metadata of metadataArray(); track $index; let index = $index) {
+  <div class="field-value field-double">
+    <input
+      [ngModel]="metadata.key"
+      (ngModelChange)="OnMetadataKeyChange(index, $event)"
+      placeholder="Key"
+      type="text"
+    />
+    <input
+      [ngModel]="metadata.value"
+      (ngModelChange)="OnMetadataValueChange(index, $event)"
+      placeholder="Value"
+      type="text"
+    />
+    <img
+      src="assets/icons/close.svg"
+      class="icon large-icon dimmed-hover"
+      tabindex="0"
+      (click)="RemoveMetadata(index)"
+      (keydown.enter)="RemoveMetadata(index)"
+      (keydown.space)="RemoveMetadata(index)"
+      alt="Close icon"
+    />
+  </div>
+  }
+  <div
+    class="flex align-vert gap-extra-small dimmed-hover"
+    tabindex="0"
+    (click)="AddMoreMetadata()"
+    (keydown.enter)="AddMoreMetadata()"
+    (keydown.space)="AddMoreMetadata()"
+  >
+    <img src="assets/icons/add.svg" class="icon" alt="Add icon" />
+    <span class="uline">Add more</span>
+  </div>
+</div>
+
+<div class="field">
+  <div class="field-title">Marketing feature list</div>
+  <p class="field-help">
+    A list of product features that will be visible to customers. Displayed in
+    pricing tables.
+  </p>
+  @for (marketingFeature of marketingFeatures(); track $index; let index =
+  $index) {
+  <div class="field-value field-double">
+    <input
+      [ngModel]="marketingFeature.name"
+      (ngModelChange)="OnMarketingFeatureNameChange(index, $event)"
+      type="text"
+    />
+    <img
+      src="assets/icons/close.svg"
+      alt="Close icon"
+      class="icon large-icon dimmed-hover"
+      tabindex="0"
+      (click)="RemoveMarketingFeature(index)"
+      (keydown.enter)="RemoveMarketingFeature(index)"
+      (keydown.space)="RemoveMarketingFeature(index)"
+    />
+  </div>
+  }
+  <div
+    class="flex align-vert gap-extra-small dimmed-hover"
+    tabindex="0"
+    (click)="AddMoreMarketingFeature()"
+    (keydown.enter)="AddMoreMarketingFeature()"
+    (keydown.space)="AddMoreMarketingFeature()"
+  >
+    <img src="assets/icons/add.svg" class="icon" alt="Add icon" />
+    <span class="uline">Add line</span>
+  </div>
+</div>
+} @if(mode === 'create'){
 
 <div class="line"></div>
 

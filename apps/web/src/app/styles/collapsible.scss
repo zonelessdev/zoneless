@@ -28,6 +28,18 @@
     }
   }
 
+  .collapsible-down-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    transition: transform $transition;
+    filter: $base-filter;
+
+    &.expanded {
+      transform: rotate(180deg);
+    }
+  }
+
   .collapsible-text {
     font-weight: 500;
   }

@@ -1,18 +1,13 @@
 @use '../../../../../styles/base.scss' as *;
 @use '../../../../../styles/chips.scss' as *;
+@use '../../../../../styles/buttons.scss' as *;
+@use '../../../../../styles/account.scss' as *;
 @use '../../../../../styles/align.scss' as *;
+@use '../../../../../styles/forms.scss' as *;
+@use '../../../../../styles/collapsible.scss' as *;
 
 .link-highlight {
-  color: $button-color !important;
-  cursor: pointer;
   font-weight: 500;
-  &:hover {
-    filter: brightness(0.85);
-  }
-}
-
-.link-highlight {
-  margin-bottom: $spacing-snug;
 }
 
 .product-name {
@@ -38,4 +33,46 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.view-panels {
+  margin-top: $spacing-large;
+}
+
+.view-left-panel {
+  width: 75%;
+}
+
+.view-right-panel {
+  flex: 1;
+}
+
+.section-edit-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing;
+}
+
+.section-edit-top h2 {
+  margin: 0;
+}
+
+.cross-sell-input {
+  margin-top: $spacing;
+
+  span {
+    white-space: nowrap;
+    font-weight: 500;
+  }
+
+  input {
+    max-width: 360px;
+  }
+}
+
+@media only screen and (max-width: 1000px) {
+  .view-panels {
+    display: block;
+  }
 }

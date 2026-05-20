@@ -9,7 +9,7 @@ const PackageDimensionsSchema = z.object({
 });
 
 const MarketingFeatureSchema = z.object({
-  name: z.string().min(1).max(80),
+  name: z.string().min(1).max(80).nullable(),
 });
 
 /**

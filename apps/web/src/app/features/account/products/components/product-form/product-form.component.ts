@@ -12,7 +12,7 @@ import {
   inject,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Product } from '@zoneless/shared-types';
+import { Product, MarketingFeature } from '@zoneless/shared-types';
 import { ConfigService } from '../../../../../data';
 import {
   CreateProductInput,
@@ -49,16 +49,28 @@ export class ProductFormComponent implements OnInit, OnChanges {
   description: WritableSignal<string> = signal('');
   DESCRIPTION_MAX_LENGTH = 40000;
 
+  statementDescriptor: WritableSignal<string> = signal('');
+  STATEMENT_DESCRIPTOR_MAX_LENGTH = 22;
+
+  unitLabel: WritableSignal<string> = signal('');
+
+  metadata: WritableSignal<Record<string, string>> = signal({});
+  metadataArray: WritableSignal<{ key: string; value: string }[]> = signal([]);
+
   image: WritableSignal<string> = signal('');
 
   unitAmount: WritableSignal<number> = signal(0);
   unitAmountError: WritableSignal<string> = signal('');
+
+  marketingFeatures: WritableSignal<MarketingFeature[]> = signal([]);
 
   selectedPricing: WritableSignal<'one-time' | 'recurring'> =
     signal('recurring');
 
   interval: WritableSignal<'day' | 'week' | 'month' | 'year'> = signal('month');
   intervalError: WritableSignal<string> = signal('');
+
+  detailsExpanded: WritableSignal<boolean> = signal(false);
 
   ngOnInit(): void {
     this.InitializeForm();
@@ -76,6 +88,11 @@ export class ProductFormComponent implements OnInit, OnChanges {
       this.name.set(this.product.name || '');
       this.description.set(this.product.description || '');
       this.image.set(this.product.images[0] || '');
+      this.statementDescriptor.set(this.product.statement_descriptor || '');
+      this.unitLabel.set(this.product.unit_label || '');
+      this.metadata.set(this.product.metadata || {});
+      this.metadataArray.set(this.MetadataToArray(this.product.metadata));
+      this.marketingFeatures.set(this.product.marketing_features || []);
     } else {
       this.name.set('');
     }
@@ -105,6 +122,16 @@ export class ProductFormComponent implements OnInit, OnChanges {
 
   OnImageChange(value: string): void {
     this.image.set(value.trim());
+    this.EmitFormChange();
+  }
+
+  OnStatementDescriptorChange(value: string): void {
+    this.statementDescriptor.set(value.trim());
+    this.EmitFormChange();
+  }
+
+  OnUnitLabelChange(value: string): void {
+    this.unitLabel.set(value.trim());
     this.EmitFormChange();
   }
 
@@ -158,6 +185,11 @@ export class ProductFormComponent implements OnInit, OnChanges {
       name: this.name(),
       description: this.description(),
       images: this.image() ? [this.image()] : [],
+      statement_descriptor: this.statementDescriptor(),
+      unit_label: this.unitLabel(),
+      metadata: this.FormatMetadata(this.metadataArray()),
+      marketing_features:
+        this.marketingFeatures().length > 0 ? this.marketingFeatures() : [],
     };
     if (this.selectedPricing() === 'recurring') {
       data.default_price_data = {
@@ -165,6 +197,11 @@ export class ProductFormComponent implements OnInit, OnChanges {
         recurring: {
           interval: this.interval(),
         },
+        unit_amount: this.FormatUnitAmount(this.unitAmount()),
+      };
+    } else {
+      data.default_price_data = {
+        currency: 'usdc',
         unit_amount: this.FormatUnitAmount(this.unitAmount()),
       };
     }
@@ -176,6 +213,10 @@ export class ProductFormComponent implements OnInit, OnChanges {
       name: this.name(),
       description: this.description(),
       images: this.image() ? [this.image()] : [],
+      statement_descriptor: this.statementDescriptor(),
+      unit_label: this.unitLabel(),
+      metadata: this.FormatMetadata(this.metadataArray()),
+      marketing_features: this.marketingFeatures(),
     };
   }
 
@@ -194,6 +235,87 @@ export class ProductFormComponent implements OnInit, OnChanges {
 
   RemoveImage(): void {
     this.image.set('');
+    this.EmitFormChange();
+  }
+
+  ToggleDetailsExpanded(): void {
+    this.detailsExpanded.update((expanded) => !expanded);
+  }
+
+  MetadataToArray(
+    metadata: Record<string, string> | null | undefined
+  ): { key: string; value: string }[] {
+    if (!metadata || Object.keys(metadata).length === 0) {
+      return [{ key: '', value: '' }];
+    }
+    return Object.entries(metadata).map(([key, value]) => ({
+      key,
+      value: String(value),
+    }));
+  }
+
+  FormatMetadata(
+    metadataArray: { key: string; value: string }[]
+  ): Record<string, string> {
+    const metadata: Record<string, string> = {};
+    for (const entry of metadataArray) {
+      if (entry.key !== '') {
+        metadata[entry.key] = entry.value;
+      }
+    }
+    return metadata;
+  }
+
+  OnMetadataKeyChange(index: number, value: string): void {
+    this.metadataArray.update((rows) =>
+      rows.map((row, i) => (i === index ? { ...row, key: value } : row))
+    );
+    this.EmitFormChange();
+  }
+
+  OnMetadataValueChange(index: number, value: string): void {
+    this.metadataArray.update((rows) =>
+      rows.map((row, i) => (i === index ? { ...row, value } : row))
+    );
+    this.EmitFormChange();
+  }
+
+  AddMoreMetadata(): void {
+    this.metadataArray.update((metadataArray) => [
+      ...metadataArray,
+      { key: '', value: '' },
+    ]);
+    this.EmitFormChange();
+  }
+
+  RemoveMetadata(index: number): void {
+    this.metadataArray.update((metadataArray) =>
+      metadataArray.filter((_, i) => i !== index)
+    );
+    this.EmitFormChange();
+  }
+
+  OnMarketingFeatureNameChange(index: number, value: string): void {
+    this.marketingFeatures.update((marketingFeatures) =>
+      marketingFeatures.map((marketingFeature, i) =>
+        i === index ? { ...marketingFeature, name: value } : marketingFeature
+      )
+    );
+    this.EmitFormChange();
+  }
+
+  RemoveMarketingFeature(index: number): void {
+    this.marketingFeatures.update((marketingFeatures) =>
+      marketingFeatures.filter((_, i) => i !== index)
+    );
+    this.EmitFormChange();
+  }
+
+  AddMoreMarketingFeature(): void {
+    this.marketingFeatures.update((marketingFeatures) => [
+      ...marketingFeatures,
+      { name: '' },
+    ]);
     this.EmitFormChange();
   }
 }
