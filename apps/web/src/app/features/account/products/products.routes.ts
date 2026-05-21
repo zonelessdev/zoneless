@@ -1,10 +1,11 @@
 import { Routes } from '@angular/router';
 import { ProductActionsService } from './services/product-actions.service';
+import { PriceActionsService } from './services/price-actions.service';
 
 export const productRoutes: Routes = [
   {
     path: '',
-    providers: [ProductActionsService],
+    providers: [ProductActionsService, PriceActionsService],
     children: [
       {
         path: '',

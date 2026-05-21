@@ -193,10 +193,11 @@
     <span class="uline">Add line</span>
   </div>
 </div>
-} @if(mode === 'create'){
+}
 
 <div class="line"></div>
 
+@if(mode === 'create'){
 <div class="field">
   <div class="field-title">Pricing</div>
   <div class="field-value">
@@ -250,11 +251,42 @@
   <div class="field-title">Billing Period</div>
   <div class="field-value">
     <select [ngModel]="interval()" (ngModelChange)="OnIntervalChange($event)">
-      <option value="day">Day</option>
-      <option value="week">Week</option>
-      <option value="month">Month</option>
-      <option value="year">Year</option>
+      <option value="day">Daily</option>
+      <option value="week">Weekly</option>
+      <option value="month">Monthly</option>
+      <option value="year">Yearly</option>
     </select>
   </div>
 </div>
-} }
+} } @if(mode === 'edit'){
+<div class="field">
+  <div class="field-title">Pricing</div>
+  <div class="field-value">
+    <app-paginated-list
+      #pricesList
+      endpoint="prices"
+      [columns]="priceColumns()"
+      [limit]="10"
+      [queryParams]="priceQueryParams()"
+      [paginationEnabled]="false"
+      [hideColumnHeadings]="true"
+    ></app-paginated-list>
+  </div>
+</div>
+
+<button
+  type="button"
+  class="action-button action-button-dainty action-button-wide outline"
+  (click)="AddPrice()"
+  (keydown.enter)="AddPrice()"
+  (keydown.space)="AddPrice()"
+  tabindex="0"
+>
+  <img src="assets/icons/add.svg" class="icon" alt="Add icon" />
+  <span>Add another price</span>
+</button>
+
+<div class="line"></div>
+}
+
+<app-price-actions-host></app-price-actions-host>

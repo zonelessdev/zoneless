@@ -1,5 +1,5 @@
 import { inject, Injectable, signal, WritableSignal } from '@angular/core';
-import type { Product } from '@zoneless/shared-types';
+import type { Product, Price } from '@zoneless/shared-types';
 import { Subject } from 'rxjs';
 import { Router } from '@angular/router';
 import { ProductService } from '../../../../data';
@@ -156,5 +156,12 @@ export class ProductActionsService {
     } finally {
       this.deleting.set(false);
     }
+  }
+
+  async SetDefaultPrice(price: Price): Promise<void> {
+    const product = await this.productService.UpdateProduct(price.product, {
+      default_price: price.id,
+    });
+    this.CreateEvent({ type: 'updated', product: product });
   }
 }

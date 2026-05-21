@@ -1,0 +1,120 @@
+<div class="field">
+  <div class="field-value">
+    <div class="field-pill">
+      <div
+        class="field-pill-option"
+        role="button"
+        tabindex="0"
+        [class.field-pill-option-selected]="selectedPricing() === 'recurring'"
+        (click)="ChangePricing('recurring')"
+        (keydown.enter)="ChangePricing('recurring')"
+        (keydown.space)="ChangePricing('recurring')"
+        [class.dimmed-disabled]="mode === 'edit'"
+      >
+        <span>Recurring</span>
+      </div>
+      <div
+        class="field-pill-option"
+        role="button"
+        tabindex="0"
+        [class.field-pill-option-selected]="selectedPricing() === 'one-time'"
+        (click)="ChangePricing('one-time')"
+        (keydown.enter)="ChangePricing('one-time')"
+        (keydown.space)="ChangePricing('one-time')"
+        [class.dimmed-disabled]="mode === 'edit'"
+      >
+        <span>One-time</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="field pricing-model-selector">
+  <div class="field-title">Choose your pricing model</div>
+  <div class="field-value">
+    <select
+      [disabled]="mode === 'edit'"
+      [class.dimmed-disabled]="mode === 'edit'"
+    >
+      <option value="">Flat rate</option>
+    </select>
+  </div>
+  <div class="field-help">A single, fixed price.</div>
+</div>
+
+<h3>Price</h3>
+
+<div class="field">
+  <div class="field-title">Amount (required)</div>
+  <div class="field-value">
+    <div class="dollar-input">
+      <span [class.dimmed-disabled]="mode === 'edit'">USDC$</span>
+      <input
+        [ngModel]="unitAmount()"
+        (ngModelChange)="OnUnitAmountChange($event)"
+        type="number"
+        [class.field-error]="showErrors && unitAmountError()"
+        [disabled]="mode === 'edit'"
+        [class.dimmed-disabled]="mode === 'edit'"
+      />
+    </div>
+  </div>
+  @if (showErrors && unitAmountError()) {
+  <div class="error">{{ unitAmountError() }}</div>
+  }
+</div>
+
+<div class="line"></div>
+
+@if(selectedPricing() === 'recurring') {
+<h3>Billing period</h3>
+<div class="field">
+  <div class="field-value">
+    <select
+      [ngModel]="interval()"
+      (ngModelChange)="OnIntervalChange($event)"
+      [disabled]="mode === 'edit'"
+      [class.dimmed-disabled]="mode === 'edit'"
+    >
+      <option value="day">Daily</option>
+      <option value="week">Weekly</option>
+      <option value="month">Monthly</option>
+      <option value="year">Yearly</option>
+    </select>
+  </div>
+</div>
+<div class="line"></div>
+}
+
+<h3>Advanced</h3>
+
+<div class="field">
+  <div class="field-title">Price description</div>
+  <p class="field-help">Use to organise your prices. Not shown to customers.</p>
+  <div class="field-value">
+    <input
+      [ngModel]="nickname()"
+      (ngModelChange)="OnNicknameChange($event)"
+      type="text"
+      [maxlength]="NICKNAME_MAX_LENGTH"
+    />
+  </div>
+</div>
+
+<div class="field">
+  <div class="field-title">Lookup key</div>
+  <p class="field-help">
+    Lookup keys make it easier to manage and make future pricing changes by
+    using a unique key (e.g. standard_monthly) for each price, enabling easy
+    querying and retrieval of specific prices. Lookup keys should be unique
+    across all prices in your account.
+  </p>
+  <div class="field-value">
+    <input
+      [ngModel]="lookupKey()"
+      (ngModelChange)="OnLookupKeyChange($event)"
+      type="text"
+      [maxlength]="LOOKUP_KEY_MAX_LENGTH"
+    />
+  </div>
+</div>
