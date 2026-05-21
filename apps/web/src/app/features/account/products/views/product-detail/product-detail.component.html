@@ -70,7 +70,19 @@
 <div class="flex gap-extra-large view-panels">
   <div class="view-left-panel">
     <div class="view-section">
-      <h2 class="section-title">Pricing</h2>
+      <div class="flex align-vert space-between">
+        <h2 class="section-title">Pricing</h2>
+        <button
+          type="button"
+          class="action-button action-button-small outline"
+          (click)="OnAddPrice()"
+          (keydown.enter)="OnAddPrice()"
+          (keydown.space)="OnAddPrice()"
+          tabindex="0"
+        >
+          <img src="assets/icons/add.svg" class="icon" alt="Add icon" />
+        </button>
+      </div>
       <app-paginated-list
         #pricesList
         endpoint="prices"
@@ -236,3 +248,4 @@
 }
 
 <app-product-actions-host></app-product-actions-host>
+<app-price-actions-host></app-price-actions-host>

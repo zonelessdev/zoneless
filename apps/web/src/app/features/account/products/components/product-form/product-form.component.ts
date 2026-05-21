@@ -10,27 +10,37 @@ import {
   WritableSignal,
   ChangeDetectionStrategy,
   inject,
+  ViewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Product, MarketingFeature } from '@zoneless/shared-types';
+import { Product, Price, MarketingFeature } from '@zoneless/shared-types';
 import { ConfigService } from '../../../../../data';
 import {
   CreateProductInput,
   UpdateProductInput,
 } from '@zoneless/shared-schemas';
-
+import {
+  PaginatedListComponent,
+  PaginatedListColumn,
+} from '../../../../../shared';
+import { PriceActionsHostComponent } from '../price-actions-host/price-actions-host.component';
+import { PriceActionsService } from '../../services/price-actions.service';
+import { Subscription } from 'rxjs';
 export type ProductFormMode = 'create' | 'edit';
 
 @Component({
   selector: 'app-product-form',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, PaginatedListComponent, PriceActionsHostComponent],
   templateUrl: './product-form.component.html',
   styleUrls: ['./product-form.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProductFormComponent implements OnInit, OnChanges {
   readonly configService = inject(ConfigService);
+  readonly priceActions = inject(PriceActionsService);
+  private sub?: Subscription;
+  @ViewChild('pricesList') pricesList?: PaginatedListComponent<any>;
 
   @Input() product: Product | null = null;
   @Input() mode: ProductFormMode = 'create';
@@ -72,8 +82,15 @@ export class ProductFormComponent implements OnInit, OnChanges {
 
   detailsExpanded: WritableSignal<boolean> = signal(false);
 
+  priceColumns: WritableSignal<PaginatedListColumn[]> = signal([]);
+  priceQueryParams: WritableSignal<Record<string, string>> = signal({});
+
   ngOnInit(): void {
     this.InitializeForm();
+    this.sub = this.priceActions.events$.subscribe(() => {
+      // Any successful action invalidates the list
+      this.pricesList?.Reload();
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -95,6 +112,10 @@ export class ProductFormComponent implements OnInit, OnChanges {
       this.marketingFeatures.set(this.product.marketing_features || []);
     } else {
       this.name.set('');
+    }
+
+    if (this.mode === 'edit') {
+      this.InitPriceList(this.product?.id || '');
     }
 
     this.EmitFormChange();
@@ -317,5 +338,97 @@ export class ProductFormComponent implements OnInit, OnChanges {
       { name: '' },
     ]);
     this.EmitFormChange();
+  }
+
+  InitPriceList(productId: string): void {
+    this.priceColumns.set([
+      {
+        header: 'Price',
+        field: 'unit_amount',
+        type: 'text',
+        bolded: true,
+        formatter: (item: unknown) => {
+          const price = item as Price;
+          if (price === null) {
+            return 'No prices';
+          }
+          const unitAmount = price.unit_amount ?? 0;
+          if (price.recurring) {
+            const recurringData = price.recurring;
+            if (recurringData?.interval === 'day') {
+              return `$${(unitAmount / 100).toFixed(2)} / day`;
+            }
+            if (recurringData?.interval === 'week') {
+              return `$${(unitAmount / 100).toFixed(2)} / week`;
+            }
+            if (recurringData?.interval === 'month') {
+              return `$${(unitAmount / 100).toFixed(2)} / month`;
+            }
+            if (recurringData?.interval === 'year') {
+              return `$${(unitAmount / 100).toFixed(2)} / year`;
+            }
+          }
+          return `$${(unitAmount / 100).toFixed(2)}`;
+        },
+      },
+      {
+        header: '',
+        field: 'active',
+        type: 'status',
+        formatter: (item: unknown) => {
+          const price = item as Price;
+          if (!price.active) {
+            return 'archived';
+          }
+          if ((this.product?.default_price as Price)?.id === price.id) {
+            return 'default';
+          }
+          return '';
+        },
+      },
+      {
+        header: 'Created',
+        field: 'created',
+        type: 'date',
+      },
+      {
+        header: '',
+        field: '',
+        type: 'actions',
+        actions: [
+          {
+            title: 'Copy price ID',
+            action: (item: Price) => this.priceActions.CopyPriceId(item),
+          },
+          {
+            title: 'Edit price',
+            action: (item: Price) => this.priceActions.OpenEdit(item),
+            disabled: (item: Price) => !item.active,
+          },
+          {
+            title: 'Archive price',
+            action: (item: Price) => this.priceActions.OpenArchive(item),
+            hidden: (item: Price) => !item.active,
+            disabled: (item: Price) =>
+              item.id === (this.product?.default_price as Price)?.id,
+          },
+          {
+            title: 'Unarchive price',
+            action: (item: Price) => this.priceActions.OpenUnarchive(item),
+            hidden: (item: Price) => item.active,
+          },
+        ],
+      },
+    ]);
+
+    this.priceQueryParams.set({
+      product: productId,
+    });
+  }
+
+  AddPrice(): void {
+    const productId = this.product?.id;
+    if (!productId) return;
+    this.priceActions.OpenCreate(productId);
   }
 }

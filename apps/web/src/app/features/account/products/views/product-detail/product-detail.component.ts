@@ -6,6 +6,7 @@ import {
   WritableSignal,
   OnInit,
   OnDestroy,
+  ViewChild,
 } from '@angular/core';
 import { DecimalPipe, DatePipe } from '@angular/common';
 import type { Product, Price } from '@zoneless/shared-types';
@@ -20,6 +21,8 @@ import {
   PaginatedListColumn,
 } from '../../../../../shared';
 import { EventsListComponent } from '../../../components';
+import { PriceActionsService } from '../../services/price-actions.service';
+import { PriceActionsHostComponent } from '../../components/price-actions-host/price-actions-host.component';
 
 import { Subscription } from 'rxjs';
 
@@ -32,6 +35,7 @@ import { Subscription } from 'rxjs';
     DatePipe,
     PaginatedListComponent,
     EventsListComponent,
+    PriceActionsHostComponent,
   ],
   templateUrl: './product-detail.component.html',
   styleUrl: './product-detail.component.scss',
@@ -42,6 +46,9 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly productService = inject(ProductService);
   readonly actions = inject(ProductActionsService);
+  readonly priceActions = inject(PriceActionsService);
+
+  @ViewChild('pricesList') pricesList?: PaginatedListComponent<any>;
 
   product: WritableSignal<Product | null> = signal(null);
   loading: WritableSignal<boolean> = signal(false);
@@ -51,6 +58,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   priceQueryParams: WritableSignal<Record<string, string>> = signal({});
 
   private sub?: Subscription;
+  private priceSub?: Subscription;
 
   productActions: PopupMenuAction[] = [
     {
@@ -90,10 +98,16 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
         this.product.set(event.product);
       }
     });
+
+    this.priceSub = this.priceActions.events$.subscribe(() => {
+      this.pricesList?.Reload();
+      this.LoadProduct(id);
+    });
   }
 
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
+    this.priceSub?.unsubscribe();
   }
 
   private async LoadProduct(id: string): Promise<void> {
@@ -184,7 +198,10 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
         type: 'status',
         formatter: (item: unknown) => {
           const price = item as Price;
-          if (price.product === productId) {
+          if (!price.active) {
+            return 'archived';
+          }
+          if ((this.product()?.default_price as Price)?.id === price.id) {
             return 'default';
           }
           return '';
@@ -221,23 +238,31 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
         type: 'actions',
         actions: [
           {
-            title: 'Edit product',
-            action: (item: Product) => this.actions.OpenEdit(item),
-            disabled: (item: Product) => !item.active,
+            title: 'Copy price ID',
+            action: (item: Price) => this.priceActions.CopyPriceId(item),
           },
           {
-            title: 'Archive product',
-            action: (item: Product) => this.actions.OpenArchive(item),
-            hidden: (item: Product) => !item.active,
+            title: 'Set as default price',
+            action: (item: Price) => this.actions.SetDefaultPrice(item),
+            disabled: (item: Price) =>
+              item.id === (this.product()?.default_price as Price)?.id,
           },
           {
-            title: 'Unarchive product',
-            action: (item: Product) => this.actions.OpenUnarchive(item),
-            hidden: (item: Product) => item.active,
+            title: 'Edit price',
+            action: (item: Price) => this.priceActions.OpenEdit(item),
+            disabled: (item: Price) => !item.active,
           },
           {
-            title: 'Delete product',
-            action: (item: Product) => this.actions.OpenDelete(item),
+            title: 'Archive price',
+            action: (item: Price) => this.priceActions.OpenArchive(item),
+            hidden: (item: Price) => !item.active,
+            disabled: (item: Price) =>
+              item.id === (this.product()?.default_price as Price)?.id,
+          },
+          {
+            title: 'Unarchive price',
+            action: (item: Price) => this.priceActions.OpenUnarchive(item),
+            hidden: (item: Price) => item.active,
           },
         ],
       },
@@ -245,5 +270,10 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     this.priceQueryParams = signal({
       product: productId,
     });
+  }
+
+  OnAddPrice(): void {
+    const p = this.product();
+    if (p) this.priceActions.OpenCreate(p.id);
   }
 }
