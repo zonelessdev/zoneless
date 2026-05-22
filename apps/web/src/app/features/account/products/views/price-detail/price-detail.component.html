@@ -1,0 +1,219 @@
+@if(price(); as price){ @if(!price.active && archivedBannedOpen()){
+<div class="archived-banner flex align-vert gap">
+  <div>
+    <h4>This price has been archived</h4>
+    <div class="dimmed">
+      This price can't be added to new invoices, subscriptions, or payment
+      links. Any existing subscriptions remain active until cancelled and any
+      existing payment links are deactivated.
+    </div>
+  </div>
+  <button
+    type="button"
+    class="action-button action-button-dainty outline"
+    (click)="priceActions.OpenUnarchive(price)"
+    (keydown.enter)="priceActions.OpenUnarchive(price)"
+    (keydown.space)="priceActions.OpenUnarchive(price)"
+    tabindex="0"
+  >
+    <img src="assets/icons/undo.svg" class="icon" alt="Undo icon" />
+    <span>Unarchive</span>
+  </button>
+  <img
+    src="assets/icons/close.svg"
+    class="icon hover-icon"
+    alt="Close icon"
+    (click)="CloseArchivedBanned()"
+    (keydown.enter)="CloseArchivedBanned()"
+    (keydown.space)="CloseArchivedBanned()"
+    tabindex="0"
+  />
+</div>
+}
+
+<div class="flex align-vert space-between mb-snug">
+  <div class="flex gap-extra-small align-vert dimmed-extra">
+    <img src="assets/icons/sell_outline.svg" class="icon" alt="Sale tag icon" />
+    <div>PRICE</div>
+  </div>
+  <div
+    class="flex gap-extra-small align-vert dimmed-extra dimmed-hover"
+    (click)="priceActions.CopyPriceId(price)"
+    (keydown.enter)="priceActions.CopyPriceId(price)"
+    (keydown.space)="priceActions.CopyPriceId(price)"
+    tabindex="0"
+  >
+    <div>{{ price.id }}</div>
+    <img src="assets/icons/content_copy.svg" class="icon" alt="Copy icon" />
+  </div>
+</div>
+
+<div class="flex align-vert space-between mb-snug">
+  @if(price.nickname){
+  <h1 class="mb-zero">{{ price.nickname }}</h1>
+  } @else {
+  <h1 class="mb-zero">Price for {{ price.product }}</h1>
+  }
+  <div class="flex gap-extra-small align-vert">
+    <button
+      type="button"
+      class="action-button action-button-dainty outline"
+      (click)="priceActions.OpenEdit(price)"
+      (keydown.enter)="priceActions.OpenEdit(price)"
+      (keydown.space)="priceActions.OpenEdit(price)"
+      tabindex="0"
+    >
+      <img src="assets/icons/edit_square.svg" class="icon" alt="Edit icon" />
+      <span>Edit</span>
+    </button>
+    <app-popup-menu
+      [actions]="popupMenuActions"
+      [item]="price"
+      [highlightIcon]="true"
+    >
+    </app-popup-menu>
+  </div>
+</div>
+
+<div class="line"></div>
+
+<div class="flex align-vert gap-medium mb-extra-large">
+  <div>
+    <div class="dimmed-extra mb-extra-small">Product</div>
+    <a
+      class="bolded"
+      (click)="GoToProduct()"
+      (keydown.enter)="GoToProduct()"
+      (keydown.space)="GoToProduct()"
+      tabindex="0"
+      >{{ price.product }}</a
+    >
+  </div>
+  <div class="vertical-line"></div>
+  <div>
+    <div class="dimmed-extra mb-extra-small">Unit Price</div>
+    <div class="flex align-vert gap-extra-small">
+      <span>${{ (price.unit_amount ?? 0) / 100 | number : '1.2-2' }}</span>
+      @if (price.recurring) {
+      <span>/</span>
+      } @switch (price.recurring?.interval) { @case ('day') {
+      <span>day</span>
+      } @case ('week') {
+      <span>week</span>
+      } @case ('month') {
+      <span>month</span>
+      } @case ('year') {
+      <span>year</span>
+      } @default {
+      <span>—</span>
+      } }
+    </div>
+  </div>
+  <div class="vertical-line"></div>
+  <div>
+    <div class="flex align-vert gap-extra-small mb-extra-small">
+      <div class="dimmed-extra">Trial Period Days</div>
+      <span class="chip grey-chip">Legacy</span>
+    </div>
+    <div>—</div>
+  </div>
+  <div class="vertical-line"></div>
+  <div>
+    <div class="dimmed-extra mb-extra-small">Subscriptions</div>
+    <div>—</div>
+  </div>
+  <div class="vertical-line"></div>
+  <div>
+    <div class="dimmed-extra mb-extra-small">MRR</div>
+    <div>—</div>
+  </div>
+</div>
+
+<div class="flex align-vert space-between">
+  <h2 class="mb-zero">Metadata</h2>
+  <div class="flex gap-extra-small align-vert">
+    <button
+      type="button"
+      class="action-button action-button-dainty outline"
+      (click)="priceActions.OpenEdit(price)"
+      (keydown.enter)="priceActions.OpenEdit(price)"
+      (keydown.space)="priceActions.OpenEdit(price)"
+      tabindex="0"
+    >
+      <img src="assets/icons/edit_square.svg" class="icon" alt="Edit icon" />
+      <span>Edit metadata</span>
+    </button>
+  </div>
+</div>
+<div class="dimmed">
+  Use metadata to store custom additional information.
+  <a href="https://zoneless.com/docs/prices/object#metadata" target="_blank"
+    >View docs</a
+  >
+</div>
+<div class="line"></div>
+<div class="dimmed-disabled">No metadata</div>
+<div class="mb-extra-large"></div>
+
+<h2 class="mb-zero">Pricing</h2>
+<div class="line"></div>
+<table>
+  <tbody>
+    <tr>
+      <td class="dimmed-extra">Type</td>
+      <td>Flat rate</td>
+    </tr>
+    <tr>
+      <td class="dimmed-extra">Currency</td>
+      <td>{{ price.currency | uppercase }}</td>
+    </tr>
+    <tr>
+      <td class="dimmed-extra">Interval</td>
+      @if(price.recurring){ @switch (price.recurring.interval) { @case ('day') {
+      <td>Daily</td>
+      } @case ('week') {
+      <td>Weekly</td>
+      } @case ('month') {
+      <td>Monthly</td>
+      } @case ('year') {
+      <td>Yearly</td>
+      } @default {
+      <td>—</td>
+      } } } @else {
+      <td>One-time</td>
+      }
+    </tr>
+    <tr>
+      <td class="dimmed-extra">Price per unit</td>
+      <td>USDC${{ (price.unit_amount ?? 0) / 100 | number : '1.2-2' }}</td>
+    </tr>
+    <tr>
+      <td class="dimmed-extra">Default price</td>
+      <td>-</td>
+    </tr>
+  </tbody>
+</table>
+<div class="mb-extra-large"></div>
+
+<h2 class="mb-zero">Currencies</h2>
+<div class="line"></div>
+<div class="dimmed-disabled">No other currency options</div>
+<div class="mb-extra-large"></div>
+
+<div class="flex align-vert gap-small">
+  <h2 class="mb-zero">Upsells</h2>
+  <div class="chip grey-chip">Boosts revenue</div>
+</div>
+<div class="line"></div>
+<div class="flex align-vert gap-extra-large cross-sell-input">
+  <span class="dimmed-extra">Upsells to</span>
+  <input type="text" placeholder="Find a price..." />
+</div>
+<div class="mb-extra-large"></div>
+
+<h2 class="mb-zero">Events</h2>
+<div class="line"></div>
+<app-events-list [itemId]="price.id"></app-events-list>
+}
+
+<app-price-actions-host></app-price-actions-host>

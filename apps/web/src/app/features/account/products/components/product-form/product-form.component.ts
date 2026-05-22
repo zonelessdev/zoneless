@@ -431,4 +431,8 @@ export class ProductFormComponent implements OnInit, OnChanges {
     if (!productId) return;
     this.priceActions.OpenCreate(productId);
   }
+
+  OnPriceListClick(price: Price): void {
+    this.priceActions.OpenEdit(price);
+  }
 }

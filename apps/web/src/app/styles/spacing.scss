@@ -1,0 +1,41 @@
+@use './base.scss' as *;
+
+.mb-zero {
+  margin-bottom: 0;
+}
+
+.mb-extra-small {
+  margin-bottom: $spacing-extra-small;
+}
+
+.mb-small {
+  margin-bottom: $spacing-small;
+}
+
+.mb-snug {
+  margin-bottom: $spacing-snug;
+}
+
+.mb {
+  margin-bottom: $spacing;
+}
+
+.mb-plus {
+  margin-bottom: $spacing-plus;
+}
+
+.mb-medium {
+  margin-bottom: $spacing-medium;
+}
+
+.mb-large {
+  margin-bottom: $spacing-large;
+}
+
+.mb-extra-large {
+  margin-bottom: $spacing-extra-large;
+}
+
+.mb-extra-extra-large {
+  margin-bottom: $spacing-extra-extra-large;
+}
