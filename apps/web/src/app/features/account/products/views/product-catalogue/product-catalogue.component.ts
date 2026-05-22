@@ -46,7 +46,7 @@ export class ProductCatalogueComponent implements OnInit, OnDestroy {
       type: 'text',
       bolded: true,
       imageField: 'images[0]',
-      placeholderIcon: 'package_outline.svg',
+      placeholderIcon: 'package.svg',
     },
     {
       header: 'Pricing',
