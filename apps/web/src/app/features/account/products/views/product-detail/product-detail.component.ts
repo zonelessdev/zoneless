@@ -19,6 +19,7 @@ import {
   PopupMenuComponent,
   PaginatedListComponent,
   PaginatedListColumn,
+  CopyTextComponent,
 } from '../../../../../shared';
 import { EventsListComponent } from '../../../components';
 import { PriceActionsService } from '../../services/price-actions.service';
@@ -36,6 +37,7 @@ import { Subscription } from 'rxjs';
     PaginatedListComponent,
     EventsListComponent,
     PriceActionsHostComponent,
+    CopyTextComponent,
   ],
   templateUrl: './product-detail.component.html',
   styleUrl: './product-detail.component.scss',

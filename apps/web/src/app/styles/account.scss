@@ -142,19 +142,6 @@ h2.section-title {
   justify-content: center;
 }
 
-.attribute {
-  margin-bottom: $spacing;
-}
-
-.attribute-title {
-  font-weight: $title-weight;
-  margin-bottom: $spacing-extra-small;
-}
-
-.attribute-value {
-  opacity: $dimmed;
-}
-
 @media only screen and (max-width: 1000px) {
   h1 {
     font-size: 24px;
