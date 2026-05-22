@@ -113,7 +113,14 @@
   <div>
     <div class="flex align-vert gap-extra-small mb-extra-small">
       <div class="dimmed-extra">Trial Period Days</div>
-      <span class="chip grey-chip">Legacy</span>
+      <app-more-info-hover
+        text="Settings a default trial period per price is no longer recommended and is incompatible with Checkout and quotes. Free trials can be set per subscription or quote instead."
+      >
+        <div class="chip grey-chip">
+          <span>Legacy</span>
+          <img src="assets/icons/info.svg" class="icon" alt="Info icon" />
+        </div>
+      </app-more-info-hover>
     </div>
     <div>—</div>
   </div>
@@ -161,7 +168,13 @@
   <tbody>
     <tr>
       <td class="dimmed-extra">Type</td>
-      <td>Flat rate</td>
+      <td class="flex align-vert gap-small">
+        <span>Flat rate</span>
+        <app-more-info-hover
+          text="Customers subscribed to this plan are billed for the same set quantity every period."
+        >
+        </app-more-info-hover>
+      </td>
     </tr>
     <tr>
       <td class="dimmed-extra">Currency</td>
@@ -202,12 +215,24 @@
 
 <div class="flex align-vert gap-small">
   <h2 class="mb-zero">Upsells</h2>
-  <div class="chip grey-chip">Boosts revenue</div>
+  <app-more-info-hover
+    text="Increase your average order value by allowing customers to upgrade or add more items to their order."
+    linkUrl="https://zoneless.com/docs"
+  >
+    <div class="chip grey-chip">
+      <span>Boosts revenue</span>
+      <img src="assets/icons/info.svg" class="icon" alt="Info icon" />
+    </div>
+  </app-more-info-hover>
 </div>
 <div class="line"></div>
 <div class="flex align-vert gap-extra-large cross-sell-input">
   <span class="dimmed-extra">Upsells to</span>
   <input type="text" placeholder="Find a price..." />
+  <app-more-info-hover
+    text="Upsells are currently available for prices with the same currency, longer billing periods, and an annualised price that is less than or equal to the annualised base price."
+  >
+  </app-more-info-hover>
 </div>
 <div class="mb-extra-large"></div>
 

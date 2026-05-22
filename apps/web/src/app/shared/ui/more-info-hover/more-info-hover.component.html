@@ -1,0 +1,24 @@
+<span class="more-info-wrapper" tabindex="0" [attr.aria-label]="ariaLabel">
+  <ng-content>
+    <img
+      src="assets/icons/info.svg"
+      class="icon dimmed-extra more-info-default-icon"
+      [alt]="ariaLabel"
+    />
+  </ng-content>
+
+  <span
+    class="more-info-bubble light-shadow"
+    [class.more-info-bubble-top]="position === 'top'"
+    [class.more-info-bubble-bottom]="position === 'bottom'"
+    role="tooltip"
+  >
+    <ng-content select="[bubble]">
+      @if (text) {
+      <span>{{ text }}</span>
+      } @if (linkUrl) {
+      <a [href]="linkUrl" target="_blank" rel="noopener">{{ linkText }}</a>
+      }
+    </ng-content>
+  </span>
+</span>
