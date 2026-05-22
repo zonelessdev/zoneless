@@ -10,12 +10,18 @@ import {
   ConfirmDialogComponent,
 } from '../../../../../shared';
 import { PriceFormComponent } from '../price-form/price-form.component';
+import { MetadataEditModalComponent } from '../../../components';
 
 import { PriceActionsService } from '../../services/price-actions.service';
 
 @Component({
   selector: 'app-price-actions-host',
-  imports: [SlidePanelComponent, PriceFormComponent, ConfirmDialogComponent],
+  imports: [
+    SlidePanelComponent,
+    PriceFormComponent,
+    ConfirmDialogComponent,
+    MetadataEditModalComponent,
+  ],
   templateUrl: './price-actions-host.component.html',
   styleUrl: './price-actions-host.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

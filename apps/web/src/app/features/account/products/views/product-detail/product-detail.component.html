@@ -135,7 +135,7 @@
       </div>
       <div class="mb">
         <div class="bolded mb-small">Product ID</div>
-        <div class="dimmed"><app-copy-text [text]="p.id"></app-copy-text></div>
+        <div><app-copy-text [text]="p.id"></app-copy-text></div>
       </div>
       <div class="mb">
         <div class="bolded mb-small">Marketing feature list</div>
@@ -219,13 +219,13 @@
         <button
           type="button"
           class="action-button action-button-small outline"
-          (click)="OnEdit()"
+          (click)="OnEditMetadata()"
         >
           <img src="assets/icons/edit.svg" class="icon" alt="Edit icon" />
         </button>
       </div>
-      @if (MetadataEntries(p.metadata).length > 0) { @for (entry of
-      MetadataEntries(p.metadata); track entry.key) {
+      @if (MetadataToArray(p.metadata).length > 0) { @for (entry of
+      MetadataToArray(p.metadata); track entry.key) {
       <div class="mb">
         <div class="bolded mb-small">{{ entry.key }}</div>
         <div class="dimmed">{{ entry.value }}</div>

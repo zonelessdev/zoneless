@@ -1,0 +1,35 @@
+@for (metadata of metadataArray(); track $index; let index = $index) {
+<div class="field-value field-double">
+  <input
+    [ngModel]="metadata.key"
+    (ngModelChange)="OnMetadataKeyChange(index, $event)"
+    placeholder="Key"
+    type="text"
+  />
+  <input
+    [ngModel]="metadata.value"
+    (ngModelChange)="OnMetadataValueChange(index, $event)"
+    placeholder="Value"
+    type="text"
+  />
+  <img
+    src="assets/icons/close.svg"
+    class="icon large-icon dimmed-hover"
+    tabindex="0"
+    (click)="RemoveMetadata(index)"
+    (keydown.enter)="RemoveMetadata(index)"
+    (keydown.space)="RemoveMetadata(index)"
+    alt="Close icon"
+  />
+</div>
+}
+<div
+  class="flex align-vert gap-extra-small dimmed-hover"
+  tabindex="0"
+  (click)="AddMoreMetadata()"
+  (keydown.enter)="AddMoreMetadata()"
+  (keydown.space)="AddMoreMetadata()"
+>
+  <img src="assets/icons/add.svg" class="icon" alt="Add icon" />
+  <span class="uline">Add more</span>
+</div>

@@ -13,6 +13,7 @@ import { PriceActionsHostComponent } from '../../components/price-actions-host/p
 import { ActivatedRoute, Router } from '@angular/router';
 import { PopupMenuAction, PopupMenuComponent } from '../../../../../shared';
 import { EventsListComponent } from '../../../components';
+import { MetadataToArray } from '../../../util/metadata';
 import {
   MoreInfoHoverComponent,
   CopyTextComponent,
@@ -40,6 +41,7 @@ export class PriceDetailComponent {
   private readonly router = inject(Router);
   private readonly priceService = inject(PriceService);
   readonly priceActions = inject(PriceActionsService);
+  readonly MetadataToArray = MetadataToArray;
 
   loading: WritableSignal<boolean> = signal(false);
   archivedBannedOpen: WritableSignal<boolean> = signal(true);
@@ -94,5 +96,10 @@ export class PriceDetailComponent {
 
   GoToProduct(): void {
     this.router.navigate(['/account/products', this.price()?.product]);
+  }
+
+  OnEditMetadata(): void {
+    const p = this.price();
+    if (p) this.priceActions.OpenEditMetadata(p);
   }
 }

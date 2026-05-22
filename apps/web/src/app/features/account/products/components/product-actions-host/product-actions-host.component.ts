@@ -10,12 +10,18 @@ import {
   ConfirmDialogComponent,
 } from '../../../../../shared';
 import { ProductFormComponent } from '../product-form/product-form.component';
+import { MetadataEditModalComponent } from '../../../components';
 
 import { ProductActionsService } from '../../services/product-actions.service';
 
 @Component({
   selector: 'app-product-actions-host',
-  imports: [SlidePanelComponent, ProductFormComponent, ConfirmDialogComponent],
+  imports: [
+    SlidePanelComponent,
+    ProductFormComponent,
+    ConfirmDialogComponent,
+    MetadataEditModalComponent,
+  ],
   templateUrl: './product-actions-host.component.html',
   styleUrl: './product-actions-host.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

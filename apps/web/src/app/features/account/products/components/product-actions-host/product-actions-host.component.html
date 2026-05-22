@@ -48,3 +48,13 @@
   (confirmed)="actions.ConfirmDelete()"
   (cancelled)="actions.deleteDialogOpen.set(false)"
 ></app-confirm-dialog>
+
+<app-metadata-edit-modal
+  [isOpen]="actions.metadataDialogOpen()"
+  [loading]="actions.metadataSaving()"
+  title="Edit metadata"
+  [metadata]="actions.metadataDraft()"
+  (formChange)="actions.OnMetadataChange($event)"
+  (confirmed)="actions.ConfirmEditMetadata()"
+  (cancelled)="actions.metadataDialogOpen.set(false)"
+></app-metadata-edit-modal>

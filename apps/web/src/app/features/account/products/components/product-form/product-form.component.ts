@@ -25,13 +25,19 @@ import {
 } from '../../../../../shared';
 import { PriceActionsHostComponent } from '../price-actions-host/price-actions-host.component';
 import { PriceActionsService } from '../../services/price-actions.service';
+import { MetadataEditorComponent } from '../../../components';
 import { Subscription } from 'rxjs';
 export type ProductFormMode = 'create' | 'edit';
 
 @Component({
   selector: 'app-product-form',
   standalone: true,
-  imports: [FormsModule, PaginatedListComponent, PriceActionsHostComponent],
+  imports: [
+    FormsModule,
+    PaginatedListComponent,
+    PriceActionsHostComponent,
+    MetadataEditorComponent,
+  ],
   templateUrl: './product-form.component.html',
   styleUrls: ['./product-form.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -108,7 +114,6 @@ export class ProductFormComponent implements OnInit, OnChanges {
       this.statementDescriptor.set(this.product.statement_descriptor || '');
       this.unitLabel.set(this.product.unit_label || '');
       this.metadata.set(this.product.metadata || {});
-      this.metadataArray.set(this.MetadataToArray(this.product.metadata));
       this.marketingFeatures.set(this.product.marketing_features || []);
     } else {
       this.name.set('');
@@ -191,6 +196,20 @@ export class ProductFormComponent implements OnInit, OnChanges {
     this.EmitFormChange();
   }
 
+  OnMarketingFeatureNameChange(index: number, value: string): void {
+    this.marketingFeatures.update((marketingFeatures) =>
+      marketingFeatures.map((marketingFeature, i) =>
+        i === index ? { ...marketingFeature, name: value } : marketingFeature
+      )
+    );
+    this.EmitFormChange();
+  }
+
+  OnMetadataChange(metadata: Record<string, string>): void {
+    this.metadata.set(metadata);
+    this.EmitFormChange();
+  }
+
   ValidateAll(): boolean {
     this.ValidateName();
     this.ValidateUnitAmount();
@@ -208,7 +227,7 @@ export class ProductFormComponent implements OnInit, OnChanges {
       images: this.image() ? [this.image()] : [],
       statement_descriptor: this.statementDescriptor(),
       unit_label: this.unitLabel(),
-      metadata: this.FormatMetadata(this.metadataArray()),
+      metadata: this.metadata(),
       marketing_features:
         this.marketingFeatures().length > 0 ? this.marketingFeatures() : [],
     };
@@ -236,7 +255,7 @@ export class ProductFormComponent implements OnInit, OnChanges {
       images: this.image() ? [this.image()] : [],
       statement_descriptor: this.statementDescriptor(),
       unit_label: this.unitLabel(),
-      metadata: this.FormatMetadata(this.metadataArray()),
+      metadata: this.metadata(),
       marketing_features: this.marketingFeatures(),
     };
   }
@@ -261,68 +280,6 @@ export class ProductFormComponent implements OnInit, OnChanges {
 
   ToggleDetailsExpanded(): void {
     this.detailsExpanded.update((expanded) => !expanded);
-  }
-
-  MetadataToArray(
-    metadata: Record<string, string> | null | undefined
-  ): { key: string; value: string }[] {
-    if (!metadata || Object.keys(metadata).length === 0) {
-      return [{ key: '', value: '' }];
-    }
-    return Object.entries(metadata).map(([key, value]) => ({
-      key,
-      value: String(value),
-    }));
-  }
-
-  FormatMetadata(
-    metadataArray: { key: string; value: string }[]
-  ): Record<string, string> {
-    const metadata: Record<string, string> = {};
-    for (const entry of metadataArray) {
-      if (entry.key !== '') {
-        metadata[entry.key] = entry.value;
-      }
-    }
-    return metadata;
-  }
-
-  OnMetadataKeyChange(index: number, value: string): void {
-    this.metadataArray.update((rows) =>
-      rows.map((row, i) => (i === index ? { ...row, key: value } : row))
-    );
-    this.EmitFormChange();
-  }
-
-  OnMetadataValueChange(index: number, value: string): void {
-    this.metadataArray.update((rows) =>
-      rows.map((row, i) => (i === index ? { ...row, value } : row))
-    );
-    this.EmitFormChange();
-  }
-
-  AddMoreMetadata(): void {
-    this.metadataArray.update((metadataArray) => [
-      ...metadataArray,
-      { key: '', value: '' },
-    ]);
-    this.EmitFormChange();
-  }
-
-  RemoveMetadata(index: number): void {
-    this.metadataArray.update((metadataArray) =>
-      metadataArray.filter((_, i) => i !== index)
-    );
-    this.EmitFormChange();
-  }
-
-  OnMarketingFeatureNameChange(index: number, value: string): void {
-    this.marketingFeatures.update((marketingFeatures) =>
-      marketingFeatures.map((marketingFeature, i) =>
-        i === index ? { ...marketingFeature, name: value } : marketingFeature
-      )
-    );
-    this.EmitFormChange();
   }
 
   RemoveMarketingFeature(index: number): void {

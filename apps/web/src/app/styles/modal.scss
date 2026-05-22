@@ -5,7 +5,7 @@
 // owns the open/close state. The component is responsible for rendering the
 // backdrop + surface, attaching keyboard handlers, and emitting events.
 
-.dialog-backdrop {
+.modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
@@ -21,11 +21,11 @@
   transition: opacity $transition ease;
 }
 
-.dialog-backdrop-open {
+.modal-backdrop-open {
   opacity: 1;
 }
 
-.dialog-surface {
+.modal-surface {
   background-color: $background-color;
   border-radius: $border-radius;
   width: 100%;
@@ -39,12 +39,12 @@
   transition: transform $transition ease, opacity $transition ease;
 }
 
-.dialog-surface-open {
+.modal-surface-open {
   transform: translateY(0) scale(1);
   opacity: 1;
 }
 
-.dialog-header {
+.modal-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -52,7 +52,7 @@
   gap: $spacing;
 }
 
-.dialog-title {
+.modal-title {
   margin: 0;
   font-family: $title-font;
   font-weight: $title-weight;
@@ -61,7 +61,7 @@
   line-height: 1.3;
 }
 
-.dialog-close {
+.modal-close {
   background: none;
   border: none;
   cursor: pointer;
@@ -88,25 +88,18 @@
   }
 }
 
-.dialog-body {
+.modal-body {
   padding: $spacing $spacing-large;
 }
 
-.dialog-description {
-  font-size: $font-size;
-  color: $text-color;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.dialog-actions {
+.modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: $spacing-small;
   padding: $spacing $spacing-large $spacing-large $spacing-large;
 }
 
-.dialog-confirm-destructive {
+.modal-confirm-destructive {
   background-color: #dc2626;
   background-image: none;
 
@@ -116,19 +109,19 @@
 }
 
 @media only screen and (max-width: 600px) {
-  .dialog-surface {
+  .modal-surface {
     max-width: 100%;
   }
 
-  .dialog-header {
+  .modal-header {
     padding: $spacing $spacing 0 $spacing;
   }
 
-  .dialog-body {
+  .modal-body {
     padding: $spacing-small $spacing;
   }
 
-  .dialog-actions {
+  .modal-actions {
     padding: $spacing $spacing $spacing $spacing;
   }
 }

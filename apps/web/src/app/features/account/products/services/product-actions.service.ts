@@ -42,6 +42,12 @@ export class ProductActionsService {
   deleting = signal(false);
   productToDelete = signal<Product | null>(null);
 
+  // Metadata dialog state
+  metadataDialogOpen: WritableSignal<boolean> = signal(false);
+  metadataSaving: WritableSignal<boolean> = signal(false);
+  metadataTarget: WritableSignal<Product | null> = signal(null);
+  metadataDraft: WritableSignal<Record<string, string>> = signal({});
+
   /** Listen to this in catalogue (to reload list) or detail (to refetch / navigate away). */
   readonly events$ = new Subject<ProductActionEvent>();
 
@@ -163,5 +169,30 @@ export class ProductActionsService {
       default_price: price.id,
     });
     this.CreateEvent({ type: 'updated', product: product });
+  }
+
+  OpenEditMetadata(product: Product): void {
+    this.metadataTarget.set(product);
+    this.metadataDraft.set({ ...(product.metadata ?? {}) });
+    this.metadataDialogOpen.set(true);
+  }
+
+  OnMetadataChange(metadata: Record<string, string>): void {
+    this.metadataDraft.set(metadata);
+  }
+
+  async ConfirmEditMetadata(): Promise<void> {
+    const product = this.metadataTarget();
+    if (!product) return;
+    this.metadataSaving.set(true);
+    try {
+      const updated = await this.productService.UpdateProduct(product.id, {
+        metadata: this.metadataDraft(),
+      });
+      this.CreateEvent({ type: 'updated', product: updated });
+      this.metadataDialogOpen.set(false);
+    } finally {
+      this.metadataSaving.set(false);
+    }
   }
 }

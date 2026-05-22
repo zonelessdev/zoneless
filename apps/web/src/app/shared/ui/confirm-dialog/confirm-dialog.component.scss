@@ -1,3 +1,8 @@
 @use '../../../styles/base.scss' as *;
-@use '../../../styles/buttons.scss' as *;
-@use '../../../styles/dialog.scss' as *;
+
+.dialogue-description {
+  font-size: $font-size;
+  color: $text-color;
+  line-height: 1.5;
+  margin: 0;
+}
