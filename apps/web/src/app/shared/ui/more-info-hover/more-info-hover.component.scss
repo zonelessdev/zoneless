@@ -1,0 +1,130 @@
+@use '../../../styles/base.scss' as *;
+
+$bubble-gap: $spacing-small;
+$bubble-tail-size: 7px;
+$bubble-tail-width: 10px;
+
+:host {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.more-info-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+  outline: none;
+}
+
+.more-info-default-icon {
+  transition: opacity $transition;
+}
+
+.more-info-wrapper:hover .more-info-default-icon,
+.more-info-wrapper:focus-visible .more-info-default-icon {
+  opacity: 1;
+}
+
+.more-info-bubble {
+  position: absolute;
+  left: 50%;
+  z-index: 30;
+  min-width: 280px;
+  max-width: 360px;
+  padding: $spacing-snug $spacing;
+  background-color: $background-color;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  font-size: $font-size;
+  line-height: 1.45;
+  color: $text-color;
+  text-align: left;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity $transition-fast ease-out,
+    transform $transition-fast ease-out, visibility 0s linear $transition-fast;
+
+  a {
+    display: inline-block;
+    margin-top: $spacing-extra-small;
+    font-size: $font-size;
+  }
+
+  span + a {
+    margin-left: $spacing-extra-small;
+  }
+
+  // Transparent bridge across the visual gap so the cursor stays inside the
+  // wrapper while moving from the trigger to the bubble (and back).
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: $bubble-gap;
+  }
+
+  // The tail/pointer. A CSS triangle drawn with borders; drop-shadow paints
+  // the matching outline so it lines up with the bubble border.
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    width: 0;
+    height: 0;
+    margin-left: -#{$bubble-tail-width};
+    border-left: $bubble-tail-width solid transparent;
+    border-right: $bubble-tail-width solid transparent;
+  }
+}
+
+.more-info-bubble-bottom {
+  top: 100%;
+  transform: translateX(-50%) translateY(calc(#{$bubble-gap} + 4px));
+
+  &::before {
+    top: -$bubble-gap;
+  }
+
+  &::after {
+    top: -$bubble-tail-size;
+    border-bottom: $bubble-tail-size solid $background-color;
+    filter: drop-shadow(0 -1px 0 $darkest-background-color);
+  }
+}
+
+.more-info-bubble-top {
+  bottom: 100%;
+  transform: translateX(-50%) translateY(calc(-1 * (#{$bubble-gap} + 4px)));
+
+  &::before {
+    bottom: -$bubble-gap;
+  }
+
+  &::after {
+    bottom: -$bubble-tail-size;
+    border-top: $bubble-tail-size solid $background-color;
+    filter: drop-shadow(0 1px 0 $darkest-background-color);
+  }
+}
+
+.more-info-wrapper:hover .more-info-bubble,
+.more-info-wrapper:focus-within .more-info-bubble {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity $transition-fast ease-out,
+    transform $transition-fast ease-out, visibility 0s linear 0s;
+}
+
+.more-info-wrapper:hover .more-info-bubble-bottom,
+.more-info-wrapper:focus-within .more-info-bubble-bottom {
+  transform: translateX(-50%) translateY($bubble-gap);
+}
+
+.more-info-wrapper:hover .more-info-bubble-top,
+.more-info-wrapper:focus-within .more-info-bubble-top {
+  transform: translateX(-50%) translateY(calc(-1 * #{$bubble-gap}));
+}

@@ -9,3 +9,4 @@ export * from './status-chip/status-chip.component';
 export * from './test-mode-banner/test-mode-banner.component';
 export * from './confirm-dialog/confirm-dialog.component';
 export * from './popup-menu/popup-menu.component';
+export * from './more-info-hover/more-info-hover.component';
