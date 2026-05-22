@@ -1,0 +1,55 @@
+@use '../../../../../styles/base.scss' as *;
+@use '../../../../../styles/chips.scss' as *;
+@use '../../../../../styles/buttons.scss' as *;
+@use '../../../../../styles/account.scss' as *;
+@use '../../../../../styles/align.scss' as *;
+@use '../../../../../styles/spacing.scss' as *;
+@use '../../../../../styles/forms.scss' as *;
+
+.archived-banner {
+  padding: $spacing;
+  background-color: $darker-background-color;
+  border-radius: $border-radius-small;
+  margin-bottom: $spacing-large;
+}
+
+.archived-banner .action-button {
+  background-color: $background-color;
+}
+
+.archived-banner h4 {
+  margin-bottom: $spacing-small;
+}
+
+.vertical-line {
+  width: 1px;
+  align-self: stretch;
+  flex-shrink: 0;
+  background-color: $darkest-background-color;
+}
+
+table {
+  width: 100%;
+  max-width: 400px;
+  border-collapse: collapse;
+}
+
+table td {
+  padding: $spacing-extra-small 0px;
+}
+
+.cross-sell-input {
+  span {
+    white-space: nowrap;
+  }
+
+  input {
+    max-width: 360px;
+  }
+}
+
+@media only screen and (max-width: 1000px) {
+  table {
+    max-width: 100%;
+  }
+}

@@ -270,6 +270,7 @@
       [queryParams]="priceQueryParams()"
       [paginationEnabled]="false"
       [hideColumnHeadings]="true"
+      (rowClick)="OnPriceListClick($event)"
     ></app-paginated-list>
   </div>
 </div>

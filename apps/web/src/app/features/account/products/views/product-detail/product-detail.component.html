@@ -90,6 +90,7 @@
         [limit]="10"
         [queryParams]="priceQueryParams()"
         [paginationEnabled]="false"
+        (rowClick)="OnPriceListClick($event)"
       ></app-paginated-list>
     </div>
     <div class="view-section">

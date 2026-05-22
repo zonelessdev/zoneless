@@ -38,4 +38,9 @@ export const accountRoutes: Routes = [
     loadChildren: () =>
       import('./products/products.routes').then((m) => m.productRoutes),
   },
+  {
+    path: 'prices',
+    loadChildren: () =>
+      import('./products/prices.routes').then((m) => m.priceRoutes),
+  },
 ];

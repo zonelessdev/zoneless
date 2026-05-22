@@ -24,10 +24,6 @@
   src: url(/assets/fonts/InstrumentSans-Medium.ttf) format('truetype');
 }
 
-.grecaptcha-badge {
-  visibility: hidden;
-}
-
 * {
   box-sizing: border-box;
 }
@@ -153,64 +149,6 @@ em {
   margin: auto;
 }
 
-.site-wrapper-narrow {
-  max-width: 1000px;
-}
-
-.prompts-wrapper {
-  padding-left: $spacing-extra-extra-large;
-  padding-top: $spacing-extra-large;
-  padding-bottom: $spacing-extra-large;
-  max-width: 2000px;
-  margin: auto;
-}
-
-.browse-section {
-  text-align: center;
-}
-
-.two-col {
-  display: flex;
-  justify-content: center;
-  text-align: left;
-}
-
-.left-col {
-  padding-right: $spacing-large;
-  width: 50%;
-  text-align: left;
-}
-
-.right-col {
-  width: 50%;
-}
-
-@media only screen and (max-width: 1000px) {
-  .site-wrapper {
-    padding: 16px;
-    padding-top: 32px;
-  }
-
-  .prompts-wrapper {
-    padding-left: 16px;
-  }
-
-  .two-col {
-    display: block;
-  }
-
-  .left-col,
-  .right-col {
-    width: 100%;
-    padding: 0px;
-    text-align: center;
-  }
-
-  .left-col {
-    padding-bottom: $spacing-large;
-  }
-}
-
 .icon {
   width: 16px;
   height: 16px;
@@ -229,41 +167,6 @@ em {
 
 .hover-icon:hover {
   opacity: 1;
-}
-
-.info-icon-container {
-  position: relative;
-  cursor: pointer;
-}
-
-.info-text {
-  opacity: 0;
-  visibility: hidden;
-  position: absolute;
-  top: 110%;
-  left: 50%;
-  transform: translateX(-50%) translateY(-90%);
-  background-color: $darker-background-color;
-  border: 1px solid $background-color;
-  padding: $spacing $spacing-small;
-  width: 200px;
-  text-align: center;
-  font-size: $font-size;
-  color: white;
-  border-radius: $border-radius-small;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
-  font-weight: 400;
-  transition: opacity $transition ease, visibility $transition ease,
-    transform $transition ease, box-shadow $transition ease;
-  z-index: 10;
-}
-
-.info-icon-container:hover .info-text {
-  opacity: 1;
-  visibility: visible;
-  top: 100%;
-  transform: translateX(-50%) translateY(-100%);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
 .line {
@@ -288,69 +191,6 @@ em {
 
 .uline {
   text-decoration: underline !important;
-}
-
-.hovertext {
-  position: relative;
-}
-
-.hovertext:before {
-  content: attr(data-hover);
-  visibility: hidden;
-  opacity: 0;
-  background-color: $dark-background-color;
-  color: $text-color;
-  text-align: center;
-  border-radius: $border-radius-small;
-  border: 1px solid $mid-background-color;
-  padding: $spacing-extra-small $spacing-small;
-  transition: opacity 100ms ease-in-out;
-  position: absolute;
-  z-index: 1;
-  left: 0;
-  top: 110%;
-  font-size: $font-size-small;
-  min-width: 100px;
-  box-shadow: 2px 3px 9px 0px rgba(0, 0, 0, 0.25);
-  -webkit-box-shadow: 2px 3px 9px 0px rgba(0, 0, 0, 0.25);
-  -moz-box-shadow: 2px 3px 9px 0px rgba(0, 0, 0, 0.25);
-}
-
-.hovertext:hover:before {
-  opacity: 1;
-  visibility: visible;
-}
-
-.skeleton-text {
-  background: linear-gradient(
-    270deg,
-    $dark-background-color,
-    $darker-background-color
-  );
-  background-size: 400% 400%;
-  border-radius: 2px;
-}
-
-.skeleton-background {
-  background: linear-gradient(
-    270deg,
-    $dark-background-color,
-    $darker-background-color
-  );
-  background-size: 400% 400%;
-}
-
-/*Search suggestions bolded from pipe*/
-.highlight-text {
-  font-weight: bold;
-}
-
-@media only screen and (max-width: 1000px) {
-  /*innerHTML requires global styling (in tutorial-app-editor.html)*/
-  .tutorial-text,
-  .tutorial-text * {
-    font-size: $font-size-small;
-  }
 }
 
 .dimmed {
@@ -381,26 +221,13 @@ em {
   cursor: not-allowed !important;
 }
 
-.show-mobile {
-  display: none;
+.bolded {
+  font-weight: 500;
 }
 
 @media only screen and (max-width: 1000px) {
-  .show-desktop {
-    display: none;
+  .site-wrapper {
+    padding: 16px;
+    padding-top: 32px;
   }
-
-  .show-mobile {
-    display: block;
-  }
-}
-
-.more-menu-item-description a {
-  font-size: $font-size-small;
-}
-
-.more-menu-item-description img {
-  max-width: 100%;
-  border-radius: $border-radius-small;
-  margin-bottom: $spacing-small;
 }
