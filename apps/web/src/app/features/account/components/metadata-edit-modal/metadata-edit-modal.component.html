@@ -1,0 +1,13 @@
+<app-modal
+  [isOpen]="isOpen"
+  [title]="title"
+  [loading]="loading"
+  (closed)="cancelled.emit()"
+  (submitted)="confirmed.emit()"
+>
+  <app-metadata-editor
+    [metadata]="metadata"
+    (formChange)="formChange.emit($event)"
+  >
+  </app-metadata-editor>
+</app-modal>

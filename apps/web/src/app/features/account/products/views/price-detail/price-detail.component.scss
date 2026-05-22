@@ -52,4 +52,15 @@ table td {
   table {
     max-width: 100%;
   }
+
+  .top-attributes {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-small;
+  }
+
+  .vertical-line {
+    width: 100%;
+    height: 1px;
+  }
 }

@@ -24,7 +24,7 @@ import {
 import { EventsListComponent } from '../../../components';
 import { PriceActionsService } from '../../services/price-actions.service';
 import { PriceActionsHostComponent } from '../../components/price-actions-host/price-actions-host.component';
-
+import { MetadataToArray } from '../../../util/metadata';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -49,6 +49,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   private readonly productService = inject(ProductService);
   readonly actions = inject(ProductActionsService);
   readonly priceActions = inject(PriceActionsService);
+  readonly MetadataToArray = MetadataToArray;
 
   @ViewChild('pricesList') pricesList?: PaginatedListComponent<any>;
 
@@ -141,6 +142,11 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     if (p) this.actions.OpenDelete(p);
   }
 
+  OnEditMetadata(): void {
+    const p = this.product();
+    if (p) this.actions.OpenEditMetadata(p);
+  }
+
   ToggleDetailsExpanded(): void {
     this.detailsExpanded.update((expanded) => !expanded);
   }
@@ -149,18 +155,6 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     return typeof defaultPrice === 'object' && defaultPrice !== null
       ? defaultPrice
       : null;
-  }
-
-  MetadataEntries(
-    metadata: Record<string, string> | null | undefined
-  ): { key: string; value: string }[] {
-    if (!metadata || Object.keys(metadata).length === 0) {
-      return [];
-    }
-    return Object.entries(metadata).map(([key, value]) => ({
-      key,
-      value: String(value),
-    }));
   }
 
   InitPriceList(productId: string): void {

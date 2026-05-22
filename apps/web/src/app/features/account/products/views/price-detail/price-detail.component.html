@@ -72,7 +72,7 @@
 
 <div class="line"></div>
 
-<div class="flex align-vert gap-medium mb-extra-large">
+<div class="flex align-vert gap-medium mb-extra-large top-attributes">
   <div>
     <div class="dimmed-extra mb-extra-small">Product</div>
     <a
@@ -137,9 +137,9 @@
     <button
       type="button"
       class="action-button action-button-dainty outline"
-      (click)="priceActions.OpenEdit(price)"
-      (keydown.enter)="priceActions.OpenEdit(price)"
-      (keydown.space)="priceActions.OpenEdit(price)"
+      (click)="OnEditMetadata()"
+      (keydown.enter)="OnEditMetadata()"
+      (keydown.space)="OnEditMetadata()"
       tabindex="0"
     >
       <img src="assets/icons/edit_square.svg" class="icon" alt="Edit icon" />
@@ -154,7 +154,24 @@
   >
 </div>
 <div class="line"></div>
+@if (MetadataToArray(price.metadata).length > 0) {
+<table>
+  <tbody>
+    @for (entry of MetadataToArray(price.metadata); track entry.key) {
+    <tr>
+      <td class="dimmed-extra">{{ entry.key }}</td>
+      <td>{{ entry.value }}</td>
+    </tr>
+    }
+  </tbody>
+
+  <tbody></tbody>
+</table>
+
+} @else {
 <div class="dimmed-disabled">No metadata</div>
+}
+
 <div class="mb-extra-large"></div>
 
 <h2 class="mb-zero">Pricing</h2>

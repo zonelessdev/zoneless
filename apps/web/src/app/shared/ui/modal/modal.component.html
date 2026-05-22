@@ -1,0 +1,61 @@
+@if (isVisible()) {
+<div
+  class="modal-backdrop"
+  [class.modal-backdrop-open]="isAnimating()"
+  role="presentation"
+  tabindex="-1"
+  (click)="OnBackdropClick()"
+  (keydown.escape)="OnBackdropClick()"
+>
+  <div
+    class="modal-surface"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="'confirm-modal-title'"
+    [class.modal-surface-open]="isAnimating()"
+    (click)="OnSurfaceClick($event)"
+    (keydown)="OnSurfaceClick($event)"
+  >
+    <div class="modal-header">
+      <h2 id="confirm-modal-title" class="modal-title">{{ title }}</h2>
+      <button
+        type="button"
+        class="modal-close"
+        (click)="OnClose()"
+        [disabled]="loading"
+      >
+        <img src="assets/icons/close.svg" alt="Close" />
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <ng-content></ng-content>
+    </div>
+
+    <div class="modal-actions">
+      <button
+        type="button"
+        class="action-button action-button-dainty outline"
+        (click)="OnClose()"
+        [disabled]="loading"
+      >
+        {{ closeLabel }}
+      </button>
+      <button
+        type="button"
+        class="action-button action-button-dainty"
+        [class.modal-confirm-destructive]="destructive"
+        [class.loader-button]="loading"
+        [disabled]="loading"
+        (click)="OnSubmit()"
+      >
+        @if (loading) {
+        <app-loader size="small" color="light"></app-loader>
+        } @else {
+        {{ submitLabel }}
+        }
+      </button>
+    </div>
+  </div>
+</div>
+}

@@ -4,23 +4,19 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
-  OnChanges,
-  SimpleChanges,
-  signal,
-  WritableSignal,
 } from '@angular/core';
 
-import { LoaderComponent } from '../loader/loader.component';
+import { ModalComponent } from '../modal/modal.component';
 
 @Component({
   selector: 'app-confirm-dialog',
   standalone: true,
-  imports: [LoaderComponent],
+  imports: [ModalComponent],
   templateUrl: './confirm-dialog.component.html',
   styleUrls: ['./confirm-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ConfirmDialogComponent implements OnChanges {
+export class ConfirmDialogComponent {
   /** Whether the dialog is open */
   @Input() isOpen = false;
   /** Dialog title */
@@ -38,50 +34,4 @@ export class ConfirmDialogComponent implements OnChanges {
 
   @Output() confirmed = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
-
-  isVisible: WritableSignal<boolean> = signal(false);
-  isAnimating: WritableSignal<boolean> = signal(false);
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['isOpen']) {
-      if (this.isOpen) {
-        this.Open();
-      } else {
-        this.Close();
-      }
-    }
-  }
-
-  Open(): void {
-    this.isVisible.set(true);
-    setTimeout(() => {
-      this.isAnimating.set(true);
-    }, 10);
-  }
-
-  Close(): void {
-    this.isAnimating.set(false);
-    setTimeout(() => {
-      this.isVisible.set(false);
-    }, 200);
-  }
-
-  OnBackdropClick(): void {
-    if (this.loading) return;
-    this.cancelled.emit();
-  }
-
-  OnSurfaceClick(event: Event): void {
-    event.stopPropagation();
-  }
-
-  OnCancel(): void {
-    if (this.loading) return;
-    this.cancelled.emit();
-  }
-
-  OnConfirm(): void {
-    if (this.loading) return;
-    this.confirmed.emit();
-  }
 }

@@ -39,6 +39,12 @@ export class PriceActionsService {
   deleting = signal(false);
   priceToDelete = signal<Price | null>(null);
 
+  // Metadata dialog state
+  metadataDialogOpen: WritableSignal<boolean> = signal(false);
+  metadataSaving: WritableSignal<boolean> = signal(false);
+  metadataTarget: WritableSignal<Price | null> = signal(null);
+  metadataDraft: WritableSignal<Record<string, string>> = signal({});
+
   productId: WritableSignal<string | null> = signal(null);
 
   /** Listen to this in catalogue (to reload list) or detail (to refetch / navigate away). */
@@ -161,5 +167,30 @@ export class PriceActionsService {
 
   CopyPriceId(price: Price): void {
     navigator.clipboard.writeText(price.id);
+  }
+
+  OpenEditMetadata(price: Price): void {
+    this.metadataTarget.set(price);
+    this.metadataDraft.set({ ...(price.metadata ?? {}) });
+    this.metadataDialogOpen.set(true);
+  }
+
+  OnMetadataChange(metadata: Record<string, string>): void {
+    this.metadataDraft.set(metadata);
+  }
+
+  async ConfirmEditMetadata(): Promise<void> {
+    const price = this.metadataTarget();
+    if (!price) return;
+    this.metadataSaving.set(true);
+    try {
+      const updated = await this.priceService.UpdatePrice(price.id, {
+        metadata: this.metadataDraft(),
+      });
+      this.CreateEvent({ type: 'updated', price: updated });
+      this.metadataDialogOpen.set(false);
+    } finally {
+      this.metadataSaving.set(false);
+    }
   }
 }
