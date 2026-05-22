@@ -17,12 +17,21 @@ import {
   ParseCreatedFilter,
   ParseOptionalQueryBoolean,
 } from '../utils/ListHelper';
+import { ApplyExpand, RegisterExpansions } from '../utils/Expand';
 
 const router = express.Router();
 
 const eventService = new EventService(db);
 const productModule = new ProductModule(db, eventService); //Pass into price module to enable creating products.
 const priceModule = new PriceModule(db, eventService, productModule);
+
+RegisterExpansions('price', {
+  product: {
+    sourcePath: 'product',
+    targetObject: 'product',
+    BatchLoad: (ids, ctx) => productModule.BatchGet(ids, ctx.platformAccount),
+  },
+});
 
 /**
  * POST /v1/prices
@@ -46,7 +55,7 @@ router.post(
       priceId: price.id,
     });
 
-    res.status(201).json(price);
+    res.status(201).json(await ApplyExpand(req, price));
   })
 );
 export default router;
@@ -95,7 +104,7 @@ router.post(
       priceId: updatedPrice.id,
     });
 
-    res.json(updatedPrice);
+    res.json(await ApplyExpand(req, updatedPrice));
   })
 );
 
@@ -129,7 +138,7 @@ router.get(
       );
     }
 
-    res.json(price);
+    res.json(await ApplyExpand(req, price));
   })
 );
 
@@ -189,6 +198,6 @@ router.get(
       hasMore: result.has_more,
     });
 
-    res.json(result);
+    res.json(await ApplyExpand(req, result));
   })
 );

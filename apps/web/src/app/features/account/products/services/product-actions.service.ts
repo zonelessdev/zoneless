@@ -165,7 +165,8 @@ export class ProductActionsService {
   }
 
   async SetDefaultPrice(price: Price): Promise<void> {
-    const product = await this.productService.UpdateProduct(price.product, {
+    const productId = price.product as string;
+    const product = await this.productService.UpdateProduct(productId, {
       default_price: price.id,
     });
     this.CreateEvent({ type: 'updated', product: product });

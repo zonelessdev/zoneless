@@ -23,6 +23,7 @@ export class PriceService {
 
   async UpdatePrice(priceId: string, data: UpdatePriceInput): Promise<Price> {
     this.loading.set(true);
+    data.expand = ['default_price'];
     try {
       const price = await this.api.Call<Price>(
         'POST',
@@ -47,7 +48,10 @@ export class PriceService {
   async GetPrice(priceId: string): Promise<Price> {
     this.loading.set(true);
     try {
-      const price = await this.api.Call<Price>('GET', `prices/${priceId}`);
+      const price = await this.api.Call<Price>(
+        'GET',
+        `prices/${priceId}?expand=product`
+      );
       return price;
     } finally {
       this.loading.set(false);

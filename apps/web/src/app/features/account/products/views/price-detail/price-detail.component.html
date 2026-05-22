@@ -44,7 +44,7 @@
     @if(price.nickname){
     <h1 class="mb-zero">{{ price.nickname }}</h1>
     } @else {
-    <h1 class="mb-zero">Price for {{ price.product }}</h1>
+    <h1 class="mb-zero">Price for {{ productName() }}</h1>
     } @if(!price.active){
     <span class="chip grey-chip">Archived</span>
     }
@@ -81,7 +81,7 @@
       (keydown.enter)="GoToProduct()"
       (keydown.space)="GoToProduct()"
       tabindex="0"
-      >{{ price.product }}</a
+      >{{ productName() }}</a
     >
   </div>
   <div class="vertical-line"></div>
@@ -214,7 +214,13 @@
     </tr>
     <tr>
       <td class="dimmed-extra">Default price</td>
-      <td>-</td>
+      <td>
+        @if(isDefaultPrice()){
+        <span>Yes</span>
+        } @else {
+        <span>No</span>
+        }
+      </td>
     </tr>
   </tbody>
 </table>
