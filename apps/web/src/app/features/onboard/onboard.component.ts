@@ -65,13 +65,6 @@ export class OnboardComponent implements OnInit {
   @ViewChild('editPersonForm') editPersonForm!: PersonFormComponent;
   @ViewChild('editWalletForm') editWalletForm!: ExternalWalletFormComponent;
 
-  seo = {
-    title: 'Onboard | Zoneless',
-    description: 'Onboard your account for Zoneless',
-    image: '',
-    url: '/onboard',
-  };
-
   readonly STEPS = OnboardStep;
 
   step: WritableSignal<number> = signal(OnboardStep.PERSON);
@@ -102,7 +95,7 @@ export class OnboardComponent implements OnInit {
   private readonly MAX_INIT_RETRIES = 3;
 
   async ngOnInit(): Promise<void> {
-    this.meta.SetMeta(this.seo);
+    this.meta.SetMetaTitle('Onboard');
     try {
       // Extract token from URL first
       this.CheckUrlParams();

@@ -35,13 +35,6 @@ export class SetupComponent implements OnInit {
   private readonly storage = inject(StorageService);
   readonly setupService = inject(SetupService);
 
-  seo = {
-    title: 'Setup | Zoneless',
-    description: 'Set up your Zoneless platform',
-    image: '',
-    url: '/setup',
-  };
-
   readonly STEPS = SetupStep;
 
   step: WritableSignal<SetupStep> = signal(SetupStep.WELCOME);
@@ -72,7 +65,7 @@ export class SetupComponent implements OnInit {
   copiedField: WritableSignal<string> = signal('');
 
   async ngOnInit(): Promise<void> {
-    this.meta.SetMeta(this.seo);
+    this.meta.SetMetaTitle('Setup');
 
     try {
       const needsSetup = await this.setupService.CheckSetupStatus();

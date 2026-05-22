@@ -1,4 +1,9 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  inject,
+  ChangeDetectionStrategy,
+  OnInit,
+} from '@angular/core';
 import { MetaService } from '../../core';
 
 @Component({
@@ -9,18 +14,10 @@ import { MetaService } from '../../core';
   imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class NotFoundComponent {
+export class NotFoundComponent implements OnInit {
   private readonly meta = inject(MetaService);
 
-  seo = {
-    title: 'Page Not Found | Zoneless',
-    description: 'Page not found',
-    image: '',
-    url: '/not-found',
-    noIndex: true,
-  };
-
-  constructor() {
-    this.meta.SetMeta(this.seo);
+  ngOnInit(): void {
+    this.meta.SetMetaTitle('Page Not Found');
   }
 }

@@ -19,6 +19,7 @@ import { ProductService } from '../../../../../data';
 import { ProductActionsService } from '../../services/product-actions.service';
 import { ProductActionsHostComponent } from '../../components/product-actions-host/product-actions-host.component';
 import { Subscription } from 'rxjs';
+import { MetaService } from '../../../../../core';
 
 @Component({
   selector: 'app-product-catalogue',
@@ -33,6 +34,7 @@ export class ProductCatalogueComponent implements OnInit, OnDestroy {
   readonly route = inject(ActivatedRoute);
   readonly actions = inject(ProductActionsService);
   private sub?: Subscription;
+  private readonly metaService = inject(MetaService);
   @ViewChild('productsList') productsList?: PaginatedListComponent<any>;
 
   productsTab: WritableSignal<'all'> = signal('all');
@@ -128,6 +130,7 @@ export class ProductCatalogueComponent implements OnInit, OnDestroy {
   productsExpand: WritableSignal<string[]> = signal(['default_price']);
 
   ngOnInit(): void {
+    this.metaService.SetMetaTitle('Product Catalogue');
     this.sub = this.actions.events$.subscribe(() => {
       // Any successful action invalidates the list
       this.productsList?.Reload();
