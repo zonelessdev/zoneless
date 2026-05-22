@@ -128,6 +128,30 @@ export class ProductModule {
   }
 
   /**
+   * Batch-load products by id, scoped to a single platform account.
+   * Used by the expansion engine.
+   */
+  async BatchGet(
+    ids: string[],
+    platformAccount: string
+  ): Promise<Map<string, ProductType>> {
+    if (ids.length === 0) return new Map();
+    const products = await this.db.Query<ProductType>({
+      collection: 'Products',
+      method: 'READ',
+      parameters: [
+        { key: 'id', operator: QueryOperators['in'], value: ids },
+        {
+          key: 'platform_account',
+          operator: QueryOperators['=='],
+          value: platformAccount,
+        },
+      ],
+    });
+    return new Map(products.map((product) => [product.id, product]));
+  }
+
+  /**
    * Update a product.
    * Emits an 'product.updated' event if EventService is configured.
    *

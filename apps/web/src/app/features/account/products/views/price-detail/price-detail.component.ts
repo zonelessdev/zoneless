@@ -6,7 +6,7 @@ import {
   WritableSignal,
 } from '@angular/core';
 import { DecimalPipe, UpperCasePipe } from '@angular/common';
-import type { Price } from '@zoneless/shared-types';
+import type { Price, Product } from '@zoneless/shared-types';
 import { PriceService } from '../../../../../data';
 import { PriceActionsService } from '../../services/price-actions.service';
 import { PriceActionsHostComponent } from '../../components/price-actions-host/price-actions-host.component';
@@ -49,6 +49,10 @@ export class PriceDetailComponent {
   archivedBannedOpen: WritableSignal<boolean> = signal(true);
 
   price: WritableSignal<Price | null> = signal(null);
+  relatedProduct: WritableSignal<Product | null> = signal(null);
+  productName: WritableSignal<string | null> = signal(null);
+  isDefaultPrice: WritableSignal<boolean> = signal(false);
+
   private sub?: Subscription;
 
   popupMenuActions: PopupMenuAction[] = [
@@ -68,6 +72,7 @@ export class PriceDetailComponent {
     const id = this.route.snapshot.paramMap.get('priceId');
     if (!id) return;
     await this.LoadPrice(id);
+    this.ConfigureProductDetails(this.price() as Price);
     this.metaService.SetMetaTitle(
       this.price()?.nickname || this.price()?.id || 'Price'
     );
@@ -85,6 +90,23 @@ export class PriceDetailComponent {
     });
   }
 
+  ConfigureProductDetails(price: Price): void {
+    if (
+      price.product &&
+      typeof price.product === 'object' &&
+      'name' in price.product
+    ) {
+      const product = price.product as Product;
+      this.relatedProduct.set(product);
+      this.productName.set(product.name);
+      this.isDefaultPrice.set(product.default_price === price.id);
+    } else if (typeof price.product === 'string') {
+      this.productName.set(price.product);
+    } else {
+      this.productName.set(null);
+    }
+  }
+
   private async LoadPrice(id: string): Promise<void> {
     this.loading.set(true);
     try {
@@ -100,7 +122,7 @@ export class PriceDetailComponent {
   }
 
   GoToProduct(): void {
-    this.router.navigate(['/account/products', this.price()?.product]);
+    this.router.navigate(['/account/products', this.relatedProduct()?.id]);
   }
 
   OnEditMetadata(): void {

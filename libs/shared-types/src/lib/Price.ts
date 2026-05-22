@@ -1,3 +1,5 @@
+import { Product } from './Product';
+
 /**
  * Stripe-compatible Price object for Zoneless.
  * Represents the price of a product.
@@ -16,7 +18,7 @@ export interface Price {
   /** A brief description of the price, hidden from customers. */
   nickname: string | null;
   /** The ID of the product this price is associated with. */
-  product: string;
+  product: string | Product | null;
   /** The recurring components of a price such as interval and usage_type. */
   recurring: {
     /** The frequency at which a subscription is billed. One of day, week, month or year. */
