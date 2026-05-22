@@ -65,7 +65,7 @@ export class AccountComponent implements OnInit {
       [
         {
           title: 'Home',
-          icon: 'home_outline.svg',
+          icon: 'home.svg',
           id: 'home',
         },
         {
@@ -80,12 +80,12 @@ export class AccountComponent implements OnInit {
     if (this.authService.isPlatform()) {
       baseMenu[0].push({
         title: 'Connected',
-        icon: 'groups_outline.svg',
+        icon: 'groups.svg',
         id: 'connected-accounts',
       });
       baseMenu[0].push({
         title: 'Products',
-        icon: 'package_outline.svg',
+        icon: 'package.svg',
         id: 'products',
       });
       baseMenu[0].push({
@@ -98,7 +98,7 @@ export class AccountComponent implements OnInit {
     // Add Settings at the bottom
     baseMenu[0].push({
       title: 'Settings',
-      icon: 'person_outline.svg',
+      icon: 'person.svg',
       id: 'settings',
       bottom: true,
     });
