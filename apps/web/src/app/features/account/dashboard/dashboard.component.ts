@@ -4,6 +4,7 @@ import {
   signal,
   WritableSignal,
   inject,
+  OnInit,
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { SlidePanelComponent } from '../../../shared';
@@ -20,7 +21,7 @@ import {
   AccountService,
   PersonService,
 } from '../../../data';
-import { AuthService } from '../../../core';
+import { AuthService, MetaService } from '../../../core';
 
 import type { TopUp } from '@zoneless/shared-types';
 
@@ -37,13 +38,13 @@ import type { TopUp } from '@zoneless/shared-types';
   styleUrl: './dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly topupService = inject(TopupService);
   private readonly balanceService = inject(BalanceService);
   private readonly accountService = inject(AccountService);
   readonly personService = inject(PersonService);
-
+  private readonly metaService = inject(MetaService);
   // Add Funds panel state (platform only)
   addFundsPanelOpen: WritableSignal<boolean> = signal(false);
 
@@ -77,6 +78,10 @@ export class DashboardComponent {
       bolded: true,
     },
   ];
+
+  ngOnInit(): void {
+    this.metaService.SetMetaTitle('Home');
+  }
 
   // Balance Detail Panel Methods (Platform Only)
   OnBalanceDetailClick(): void {

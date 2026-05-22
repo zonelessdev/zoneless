@@ -25,20 +25,12 @@ export class PlatformLoginComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
 
-  seo = {
-    title: 'Platform Login | Zoneless',
-    description: 'Sign in to your Zoneless platform dashboard',
-    image: '',
-    url: '/platform-login',
-    noIndex: true,
-  };
-
   submitting: WritableSignal<boolean> = signal(false);
   apiKey: WritableSignal<string> = signal('');
   error: WritableSignal<string> = signal('');
 
   ngOnInit(): void {
-    this.meta.SetMeta(this.seo);
+    this.meta.SetMetaTitle('Platform Login');
   }
 
   async LoginWithApiKey(): Promise<void> {

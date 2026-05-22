@@ -47,13 +47,6 @@ export class AccountComponent implements OnInit {
   readonly webhookEndpointService = inject(WebhookEndpointService);
   readonly apiKeyService = inject(ApiKeyService);
 
-  seo = {
-    title: 'Account | Zoneless',
-    description: 'Your account dashboard for Zoneless',
-    image: '',
-    url: '/',
-  };
-
   loading: WritableSignal<boolean> = signal(true);
 
   // Transaction detail panel state
@@ -107,7 +100,7 @@ export class AccountComponent implements OnInit {
   });
 
   async ngOnInit(): Promise<void> {
-    this.meta.SetMeta(this.seo);
+    this.meta.SetMetaTitle('Home');
     try {
       await this.LoadAccountData();
       this.loading.set(false);

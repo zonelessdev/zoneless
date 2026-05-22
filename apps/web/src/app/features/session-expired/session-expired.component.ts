@@ -26,18 +26,10 @@ type ExpiredReason =
 export class SessionExpiredComponent implements OnInit {
   private readonly meta = inject(MetaService);
 
-  seo = {
-    title: 'Session Expired | Zoneless',
-    description: 'Your session has expired',
-    image: '',
-    url: '/session-expired',
-    noIndex: true,
-  };
-
   reason: WritableSignal<ExpiredReason> = signal('unknown');
 
   ngOnInit(): void {
-    this.meta.SetMeta(this.seo);
+    this.meta.SetMetaTitle('Session Expired');
     this.ParseReason();
   }
 

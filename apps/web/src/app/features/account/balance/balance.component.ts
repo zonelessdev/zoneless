@@ -4,12 +4,14 @@ import {
   inject,
   signal,
   WritableSignal,
+  OnInit,
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 
 import type { PaginatedListColumn } from '../../../shared';
 import { BalanceService } from '../../../data';
 import { TransactionListComponent } from '../components';
+import { MetaService } from '../../../core';
 
 @Component({
   selector: 'app-balance',
@@ -18,9 +20,9 @@ import { TransactionListComponent } from '../components';
   styleUrl: './balance.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BalanceComponent {
+export class BalanceComponent implements OnInit {
   readonly balanceService = inject(BalanceService);
-
+  private readonly metaService = inject(MetaService);
   // Balance view tab state
   balanceTab: WritableSignal<'all' | 'payouts'> = signal('all');
 
@@ -64,6 +66,10 @@ export class BalanceComponent {
 
   // Payout-only query params
   payoutQueryParams = { type: 'payout' };
+
+  ngOnInit(): void {
+    this.metaService.SetMetaTitle('Balance');
+  }
 
   GetTotalBalance(): number {
     const available = this.balanceService.GetAvailableBalance('usdc') / 100;

@@ -5,11 +5,12 @@ import {
   signal,
   ViewChild,
   WritableSignal,
+  OnInit,
 } from '@angular/core';
 
 import { Router } from '@angular/router';
 
-import { AuthService } from '../../../core';
+import { AuthService, MetaService } from '../../../core';
 import {
   AccountService,
   ApiKeyService,
@@ -39,7 +40,7 @@ import { SlidePanelComponent } from '../../../shared';
   styleUrl: './settings.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SettingsComponent {
+export class SettingsComponent implements OnInit {
   @ViewChild('editPersonForm') editPersonForm!: PersonFormComponent;
   @ViewChild('editWalletForm') editWalletForm!: ExternalWalletFormComponent;
 
@@ -53,6 +54,7 @@ export class SettingsComponent {
   readonly apiKeyService = inject(ApiKeyService);
   readonly topupService = inject(TopupService);
   readonly router = inject(Router);
+  private readonly metaService = inject(MetaService);
 
   // Edit person panel state
   editPersonPanelOpen: WritableSignal<boolean> = signal(false);
@@ -64,6 +66,10 @@ export class SettingsComponent {
   editWalletLoading: WritableSignal<boolean> = signal(false);
   editWalletShowErrors: WritableSignal<boolean> = signal(false);
   walletFormValid: WritableSignal<boolean> = signal(false);
+
+  ngOnInit(): void {
+    this.metaService.SetMetaTitle('Settings');
+  }
 
   // Edit Person Panel
   OnEditPersonClick(): void {

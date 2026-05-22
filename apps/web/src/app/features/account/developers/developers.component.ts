@@ -5,6 +5,7 @@ import {
   WritableSignal,
   inject,
   signal,
+  OnInit,
 } from '@angular/core';
 
 import {
@@ -19,6 +20,7 @@ import {
 } from './components/index';
 import { ApiKey, WebhookEndpoint } from '@zoneless/shared-types';
 import { ApiKeyService, WebhookEndpointService } from '../../../data';
+import { MetaService } from '../../../core';
 
 @Component({
   selector: 'app-developers',
@@ -33,10 +35,10 @@ import { ApiKeyService, WebhookEndpointService } from '../../../data';
   styleUrl: './developers.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DevelopersComponent {
+export class DevelopersComponent implements OnInit {
   readonly webhookEndpointService = inject(WebhookEndpointService);
   readonly apiKeyService = inject(ApiKeyService);
-
+  private readonly metaService = inject(MetaService);
   @ViewChild('webhookEndpointForm')
   webhookEndpointForm!: WebhookEndpointFormComponent;
   @ViewChild('apiKeyForm') apiKeyForm!: ApiKeyFormComponent;
@@ -77,6 +79,10 @@ export class DevelopersComponent {
       variant: 'danger',
     },
   ];
+
+  ngOnInit(): void {
+    this.metaService.SetMetaTitle('Developers');
+  }
 
   OnCreateWebhookClick(): void {
     this.webhookPanelMode.set('create');

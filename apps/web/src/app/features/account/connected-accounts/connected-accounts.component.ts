@@ -4,10 +4,11 @@ import {
   inject,
   signal,
   WritableSignal,
+  OnInit,
 } from '@angular/core';
 
 import type { PaginatedListColumn } from '../../../shared';
-
+import { MetaService } from '../../../core';
 import {
   PaginatedListComponent,
   SlidePanelComponent,
@@ -32,8 +33,9 @@ import type { Account } from '@zoneless/shared-types';
   styleUrl: './connected-accounts.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ConnectedAccountsComponent {
+export class ConnectedAccountsComponent implements OnInit {
   readonly accountService = inject(AccountService);
+  private readonly metaService = inject(MetaService);
 
   // Connected Account detail panel state (platform only)
   connectedAccountPanelOpen: WritableSignal<boolean> = signal(false);
@@ -75,6 +77,10 @@ export class ConnectedAccountsComponent {
       type: 'date',
     },
   ];
+
+  ngOnInit(): void {
+    this.metaService.SetMetaTitle('Connected Accounts');
+  }
 
   // Connected Accounts Methods (Platform Only)
   async OnConnectedAccountClick(item: unknown): Promise<void> {

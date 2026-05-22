@@ -25,6 +25,7 @@ import { EventsListComponent } from '../../../components';
 import { PriceActionsService } from '../../services/price-actions.service';
 import { PriceActionsHostComponent } from '../../components/price-actions-host/price-actions-host.component';
 import { MetadataToArray } from '../../../util/metadata';
+import { MetaService } from '../../../../../core';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -47,6 +48,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly productService = inject(ProductService);
+  private readonly metaService = inject(MetaService);
   readonly actions = inject(ProductActionsService);
   readonly priceActions = inject(PriceActionsService);
   readonly MetadataToArray = MetadataToArray;
@@ -88,6 +90,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     const id = this.route.snapshot.paramMap.get('productId');
     if (!id) return;
     await this.LoadProduct(id);
+    this.metaService.SetMetaTitle(this.product()?.name ?? 'Product');
     this.InitPriceList(id);
     this.sub = this.actions.events$.subscribe((event) => {
       if (event.type === 'deleted' && event.productId === id) {

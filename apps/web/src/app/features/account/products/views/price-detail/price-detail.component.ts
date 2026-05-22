@@ -18,6 +18,7 @@ import {
   MoreInfoHoverComponent,
   CopyTextComponent,
 } from '../../../../../shared';
+import { MetaService } from '../../../../../core';
 
 import { Subscription } from 'rxjs';
 
@@ -42,6 +43,7 @@ export class PriceDetailComponent {
   private readonly priceService = inject(PriceService);
   readonly priceActions = inject(PriceActionsService);
   readonly MetadataToArray = MetadataToArray;
+  private readonly metaService = inject(MetaService);
 
   loading: WritableSignal<boolean> = signal(false);
   archivedBannedOpen: WritableSignal<boolean> = signal(true);
@@ -66,6 +68,9 @@ export class PriceDetailComponent {
     const id = this.route.snapshot.paramMap.get('priceId');
     if (!id) return;
     await this.LoadPrice(id);
+    this.metaService.SetMetaTitle(
+      this.price()?.nickname || this.price()?.id || 'Price'
+    );
     this.sub = this.priceActions.events$.subscribe((event) => {
       if (event.type === 'deleted' && event.priceId === id) {
         this.router.navigate(['/account/products']);

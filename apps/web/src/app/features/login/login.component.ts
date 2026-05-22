@@ -22,16 +22,8 @@ export class LoginComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
 
-  seo = {
-    title: 'Sign In | Zoneless',
-    description: 'Sign in to your Zoneless account',
-    image: '',
-    url: '/login',
-    noIndex: true,
-  };
-
   async ngOnInit(): Promise<void> {
-    this.meta.SetMeta(this.seo);
+    this.meta.SetMetaTitle('Sign in');
 
     const token = this.GetTokenFromUrl();
 
