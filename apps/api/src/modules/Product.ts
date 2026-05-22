@@ -146,7 +146,9 @@ export class ProductModule {
       ? await this.GetProduct(id)
       : null;
 
-    await this.db.Update<ProductType>('Products', id, validatedUpdate);
+    const updatePayload = { ...validatedUpdate, updated: Now() };
+
+    await this.db.Update<ProductType>('Products', id, updatePayload);
 
     const product = await this.GetProduct(id);
     if (!product) {
@@ -157,7 +159,7 @@ export class ProductModule {
     if (this.eventService && previousProduct) {
       const previousAttributes = ExtractChangedFields(
         previousProduct as unknown as Record<string, unknown>,
-        validatedUpdate as Record<string, unknown>
+        updatePayload as Record<string, unknown>
       );
 
       await this.eventService.Emit(
