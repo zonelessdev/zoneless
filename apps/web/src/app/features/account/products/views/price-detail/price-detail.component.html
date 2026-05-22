@@ -36,24 +36,19 @@
     <img src="assets/icons/sell.svg" class="icon" alt="Sale tag icon" />
     <div>PRICE</div>
   </div>
-  <div
-    class="flex gap-extra-small align-vert dimmed-extra dimmed-hover"
-    (click)="priceActions.CopyPriceId(price)"
-    (keydown.enter)="priceActions.CopyPriceId(price)"
-    (keydown.space)="priceActions.CopyPriceId(price)"
-    tabindex="0"
-  >
-    <div>{{ price.id }}</div>
-    <img src="assets/icons/content_copy.svg" class="icon" alt="Copy icon" />
-  </div>
+  <app-copy-text [text]="price.id" [opacity]="0.5"></app-copy-text>
 </div>
 
 <div class="flex align-vert space-between mb-snug">
-  @if(price.nickname){
-  <h1 class="mb-zero">{{ price.nickname }}</h1>
-  } @else {
-  <h1 class="mb-zero">Price for {{ price.product }}</h1>
-  }
+  <div class="flex align-vert gap-small">
+    @if(price.nickname){
+    <h1 class="mb-zero">{{ price.nickname }}</h1>
+    } @else {
+    <h1 class="mb-zero">Price for {{ price.product }}</h1>
+    } @if(!price.active){
+    <span class="chip grey-chip">Archived</span>
+    }
+  </div>
   <div class="flex gap-extra-small align-vert">
     <button
       type="button"

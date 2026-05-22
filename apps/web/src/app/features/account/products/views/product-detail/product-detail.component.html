@@ -133,14 +133,14 @@
           <img src="assets/icons/edit.svg" class="icon" alt="Edit icon" />
         </button>
       </div>
-      <div class="attribute">
-        <div class="attribute-title">Product ID</div>
-        <div class="attribute-value">{{ p.id }}</div>
+      <div class="mb">
+        <div class="bolded mb-small">Product ID</div>
+        <div class="dimmed"><app-copy-text [text]="p.id"></app-copy-text></div>
       </div>
-      <div class="attribute">
-        <div class="attribute-title">Marketing feature list</div>
+      <div class="mb">
+        <div class="bolded mb-small">Marketing feature list</div>
         @if(p.marketing_features.length > 0){
-        <div class="attribute-value">
+        <div class="dimmed">
           @for(feature of p.marketing_features; track feature.name){
           <span>{{ feature.name }}</span>
           @if(feature !== p.marketing_features[p.marketing_features.length -
@@ -149,44 +149,44 @@
           } }
         </div>
         } @else {
-        <div class="attribute-value">—</div>
+        <div class="dimmed">—</div>
         }
       </div>
-      <div class="attribute">
-        <div class="attribute-title">Description</div>
-        <div class="attribute-value">
+      <div class="mb">
+        <div class="bolded mb-small">Description</div>
+        <div class="dimmed">
           {{ p.description ? p.description : '—' }}
         </div>
       </div>
-      <div class="attribute">
-        <div class="attribute-title">Attributes</div>
-        <div class="attribute-value">—</div>
+      <div class="mb">
+        <div class="bolded mb-small">Attributes</div>
+        <div class="dimmed">—</div>
       </div>
       @if (detailsExpanded()) {
-      <div class="attribute">
-        <div class="attribute-title">Statement descriptor</div>
-        <div class="attribute-value">
+      <div class="mb">
+        <div class="bolded mb-small">Statement descriptor</div>
+        <div class="dimmed">
           {{ p.statement_descriptor ? p.statement_descriptor : '—' }}
         </div>
       </div>
-      <div class="attribute">
-        <div class="attribute-title">Custom unit label</div>
-        <div class="attribute-value">
+      <div class="mb">
+        <div class="bolded mb-small">Custom unit label</div>
+        <div class="dimmed">
           {{ p.unit_label ? p.unit_label : '—' }}
         </div>
       </div>
-      <div class="attribute">
-        <div class="attribute-title">Created</div>
-        <div class="attribute-value flex align-vert gap-extra-small">
+      <div class="mb">
+        <div class="bolded mb-small">Created</div>
+        <div class="dimmed flex align-vert gap-extra-small">
           <img src="assets/icons/clock.svg" class="icon" alt="Clock icon" />
           <span>{{
             p.created ? (p.created * 1000 | date : 'd MMM y') : '—'
           }}</span>
         </div>
       </div>
-      <div class="attribute">
-        <div class="attribute-title">Updated</div>
-        <div class="attribute-value flex align-vert gap-extra-small">
+      <div class="mb">
+        <div class="bolded mb-small">Updated</div>
+        <div class="dimmed flex align-vert gap-extra-small">
           <img src="assets/icons/clock.svg" class="icon" alt="Clock icon" />
           <span>{{
             p.updated ? (p.updated * 1000 | date : 'd MMM y') : '—'
@@ -226,9 +226,9 @@
       </div>
       @if (MetadataEntries(p.metadata).length > 0) { @for (entry of
       MetadataEntries(p.metadata); track entry.key) {
-      <div class="attribute">
-        <div class="attribute-title">{{ entry.key }}</div>
-        <div class="attribute-value">{{ entry.value }}</div>
+      <div class="mb">
+        <div class="bolded mb-small">{{ entry.key }}</div>
+        <div class="dimmed">{{ entry.value }}</div>
       </div>
       } } @else {
       <div class="dashed-placeholder">

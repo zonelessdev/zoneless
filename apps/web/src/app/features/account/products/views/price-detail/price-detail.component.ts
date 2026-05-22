@@ -13,7 +13,10 @@ import { PriceActionsHostComponent } from '../../components/price-actions-host/p
 import { ActivatedRoute, Router } from '@angular/router';
 import { PopupMenuAction, PopupMenuComponent } from '../../../../../shared';
 import { EventsListComponent } from '../../../components';
-import { MoreInfoHoverComponent } from '../../../../../shared';
+import {
+  MoreInfoHoverComponent,
+  CopyTextComponent,
+} from '../../../../../shared';
 
 import { Subscription } from 'rxjs';
 
@@ -26,6 +29,7 @@ import { Subscription } from 'rxjs';
     UpperCasePipe,
     EventsListComponent,
     MoreInfoHoverComponent,
+    CopyTextComponent,
   ],
   templateUrl: './price-detail.component.html',
   styleUrl: './price-detail.component.scss',

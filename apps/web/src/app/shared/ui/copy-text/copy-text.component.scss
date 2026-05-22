@@ -1,0 +1,109 @@
+@use '../../../styles/base.scss' as *;
+
+:host {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.copy-text {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-small;
+  padding: $spacing-extra-small $spacing-extra-small;
+  margin: 0;
+  background-color: transparent;
+  border: none;
+  border-radius: $border-radius-small;
+  font-family: inherit;
+  font-size: $font-size;
+  color: $text-color;
+  cursor: pointer;
+  transition: background-color $transition-fast ease-out;
+
+  &:hover,
+  &:focus-visible {
+    background-color: $darker-background-color;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $base-color;
+    outline-offset: 2px;
+  }
+}
+
+.copy-text-label {
+  font-family: inherit;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.copy-icon {
+  flex-shrink: 0;
+  opacity: $dimmed;
+}
+
+.copy-tooltip {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-small;
+  padding: $spacing-extra-small $spacing-small;
+  font-size: $font-size;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-50%) translateY(4px);
+  transition: opacity $transition-fast ease-out,
+    transform $transition-fast ease-out, visibility 0s linear $transition-fast;
+}
+
+.copy-tooltip-hover {
+  margin-top: $spacing-small;
+  background-color: #1f2a44;
+  color: $background-color;
+  border-radius: $border-radius-small;
+}
+
+.copy-tooltip-copied {
+  margin-top: $spacing-extra-small;
+  background-color: $background-color;
+  color: $text-color;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+
+  img {
+    filter: brightness(0) saturate(100%) invert(43%) sepia(76%) saturate(385%)
+      hue-rotate(116deg) brightness(94%) contrast(91%);
+  }
+}
+
+.copy-text:hover .copy-tooltip-hover,
+.copy-text:focus-visible .copy-tooltip-hover {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+  transition: opacity $transition-fast ease-out,
+    transform $transition-fast ease-out, visibility 0s linear 0s;
+}
+
+.copy-text-copied .copy-tooltip-hover {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.copy-text-copied .copy-tooltip-copied {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+  transition: opacity $transition-fast ease-out,
+    transform $transition-fast ease-out, visibility 0s linear 0s;
+}

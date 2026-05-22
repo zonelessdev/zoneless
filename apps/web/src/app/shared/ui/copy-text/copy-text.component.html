@@ -1,0 +1,25 @@
+<button
+  type="button"
+  class="copy-text"
+  [class.copy-text-copied]="copied()"
+  [attr.aria-label]="tooltipText"
+  (click)="Copy()"
+>
+  <span class="copy-text-label" [style.opacity]="opacity">{{
+    displayText || text
+  }}</span>
+  <img
+    src="assets/icons/content_copy.svg"
+    class="icon copy-icon"
+    [style.opacity]="opacity"
+    alt="Copy icon"
+  />
+
+  <span class="copy-tooltip copy-tooltip-hover" role="tooltip">
+    {{ tooltipText }}
+  </span>
+  <span class="copy-tooltip copy-tooltip-copied light-shadow" role="status">
+    <img src="assets/icons/check.svg" class="icon" alt="" />
+    <span>{{ copiedText }}</span>
+  </span>
+</button>
