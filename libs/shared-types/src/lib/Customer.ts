@@ -319,7 +319,11 @@ export interface CustomerSource {
 /** Tax details for the customer. */
 export interface CustomerTax {
   /** Surfaces if automatic tax computation is possible given the current customer location information. */
-  automatic_tax: 'failed' | 'not_collecting' | 'supported' | 'unrecognized_location';
+  automatic_tax:
+    | 'failed'
+    | 'not_collecting'
+    | 'supported'
+    | 'unrecognized_location';
   /** A recent IP address of the customer used for tax reporting and tax location inference. */
   ip_address: string | null;
   /** The identified tax location of the customer. */
