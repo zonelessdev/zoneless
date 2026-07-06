@@ -3,6 +3,7 @@ import { AccountLinkRecord } from './AccountLink';
 import { ApiKey } from './ApiKey';
 import { Balance } from './Balance';
 import { BalanceTransaction } from './BalanceTransaction';
+import { Customer } from './Customer';
 import { ExternalWallet } from './ExternalWallet';
 import { IdempotencyKey } from './IdempotencyKey';
 import { Payout } from './Payout';
@@ -36,6 +37,11 @@ export const EVENT_TYPES = [
 
   // Balance transaction events
   'balance_transaction.created',
+
+  // Customer events
+  'customer.created',
+  'customer.updated',
+  'customer.deleted',
 
   // External account (wallet) events
   'external_account.created',
@@ -89,6 +95,7 @@ export type EventDataObject =
   | ApiKey
   | Balance
   | BalanceTransaction
+  | Customer
   | ExternalWallet
   | IdempotencyKey
   | Payout
