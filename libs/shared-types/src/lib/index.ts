@@ -2,6 +2,7 @@
 export * from './Account';
 export * from './AccountLink';
 export * from './Config';
+export * from './Customer';
 export * from './LoginLink';
 export * from './ApiKey';
 export * from './ApiResponse';

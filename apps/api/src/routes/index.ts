@@ -21,6 +21,7 @@ import setupRouter from './setup.routes';
 import subscriptionsRouter from './subscriptions.routes';
 import productsRouter from './products.routes';
 import pricesRouter from './prices.routes';
+import customersRouter from './customers.routes';
 
 const router = express.Router();
 
@@ -55,4 +56,5 @@ router.use('/events', eventsRouter);
 router.use('/subscriptions', subscriptionsRouter);
 router.use('/products', productsRouter);
 router.use('/prices', pricesRouter);
+router.use('/customers', customersRouter);
 export default router;
