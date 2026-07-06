@@ -13,12 +13,17 @@ import {
   CustomerAddress,
 } from '@zoneless/shared-types';
 import { ValidateUpdate } from './Util';
+import { ExtractChangedFields } from './Event';
 import {
   CreateCustomerSchema,
   CreateCustomerInput,
+  UpdateCustomerSchema,
+  UpdateCustomerInput,
 } from '@zoneless/shared-schemas';
 import { Now } from '../utils/Timestamp';
 import { GetAppConfig } from './AppConfig';
+import { AppError } from '../utils/AppError';
+import { ERRORS } from '../utils/Errors';
 
 type AddressInput = NonNullable<CreateCustomerInput['address']>;
 
@@ -184,5 +189,151 @@ export class CustomerModule {
    */
   async GetCustomer(id: string): Promise<CustomerType | null> {
     return this.db.Get<CustomerType>('Customers', id);
+  }
+
+  /**
+   * Update a customer.
+   * Emits an 'customer.updated' event if EventService is configured.
+   *
+   * @param id - The Customer ID
+   * @param input - The fields to update
+   * @returns The updated Customer
+   */
+  async UpdateCustomer(
+    id: string,
+    input: UpdateCustomerInput
+  ): Promise<CustomerType> {
+    const validatedUpdate = ValidateUpdate(UpdateCustomerSchema, input);
+
+    // Nested fields (address, cash_balance, etc.) need the previous customer
+    // to merge against, so we fetch it upfront rather than only for the event.
+    const previousCustomer = await this.GetCustomer(id);
+    if (!previousCustomer) {
+      throw new AppError(
+        ERRORS.CUSTOMER_NOT_FOUND.message,
+        ERRORS.CUSTOMER_NOT_FOUND.status,
+        ERRORS.CUSTOMER_NOT_FOUND.type
+      );
+    }
+
+    const updatePayload = this.BuildUpdatePayload(
+      previousCustomer,
+      validatedUpdate
+    );
+
+    await this.db.Update<CustomerType>('Customers', id, updatePayload);
+
+    const customer = await this.GetCustomer(id);
+    if (!customer) {
+      throw new AppError(
+        ERRORS.CUSTOMER_NOT_FOUND.message,
+        ERRORS.CUSTOMER_NOT_FOUND.status,
+        ERRORS.CUSTOMER_NOT_FOUND.type
+      );
+    }
+
+    // Emit customer.updated event
+    if (this.eventService) {
+      const previousAttributes = ExtractChangedFields(
+        previousCustomer as unknown as Record<string, unknown>,
+        updatePayload as Record<string, unknown>
+      );
+
+      await this.eventService.Emit(
+        'customer.updated',
+        customer.platform_account,
+        customer,
+        {
+          previousAttributes,
+        }
+      );
+    }
+
+    return customer;
+  }
+
+  /**
+   * Builds the partial document to persist for an update, translating the
+   * update schema's nested shapes (address, cash_balance, invoice_settings,
+   * shipping, tax) into the fuller shapes stored on the Customer object.
+   * Fields not provided in the input are left untouched by merging against
+   * the previous customer.
+   */
+  private BuildUpdatePayload(
+    previousCustomer: CustomerType,
+    input: UpdateCustomerInput
+  ): Partial<CustomerType> {
+    const {
+      address,
+      cash_balance,
+      invoice_settings,
+      shipping,
+      source,
+      tax,
+      ...rest
+    } = input;
+
+    const payload: Partial<CustomerType> = { ...rest };
+
+    if (address !== undefined) {
+      payload.address = ToCustomerAddress(address);
+    }
+
+    if (shipping !== undefined) {
+      payload.shipping = {
+        address: ToCustomerAddress(shipping.address),
+        name: shipping.name,
+        phone: shipping.phone ?? null,
+      };
+    }
+
+    if (source !== undefined) {
+      payload.default_source = source;
+    }
+
+    const requestedReconciliationMode =
+      cash_balance?.settings?.reconciliation_mode;
+    if (requestedReconciliationMode !== undefined) {
+      const usingMerchantDefault =
+        requestedReconciliationMode === 'merchant_default';
+      payload.cash_balance = {
+        ...previousCustomer.cash_balance,
+        settings: {
+          reconciliation_mode: usingMerchantDefault
+            ? 'automatic'
+            : requestedReconciliationMode,
+          using_merchant_default: usingMerchantDefault,
+        },
+      };
+    }
+
+    if (invoice_settings !== undefined) {
+      payload.invoice_settings = {
+        custom_fields:
+          invoice_settings.custom_fields ??
+          previousCustomer.invoice_settings.custom_fields,
+        default_payment_method:
+          invoice_settings.default_payment_method ??
+          previousCustomer.invoice_settings.default_payment_method,
+        footer:
+          invoice_settings.footer ?? previousCustomer.invoice_settings.footer,
+        rendering_options: invoice_settings.rendering_options
+          ? {
+              amount_tax_display:
+                invoice_settings.rendering_options.amount_tax_display ?? null,
+              template: invoice_settings.rendering_options.template ?? null,
+            }
+          : previousCustomer.invoice_settings.rendering_options,
+      };
+    }
+
+    if (tax !== undefined) {
+      payload.tax = {
+        ...previousCustomer.tax,
+        ip_address: tax.ip_address ?? previousCustomer.tax.ip_address,
+      };
+    }
+
+    return payload;
   }
 }
