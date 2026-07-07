@@ -251,6 +251,262 @@ describe('CustomerModule', () => {
     });
   });
 
+  describe('UpdateCustomer', () => {
+    function BuildExistingCustomer(): Customer {
+      return {
+        id: 'cus_z_1',
+        object: 'customer',
+        address: null,
+        balance: 0,
+        business_name: null,
+        cash_balance: {
+          object: 'cash_balance',
+          available: { usdc: 500 },
+          customer: 'cus_z_1',
+          customer_account: null,
+          livemode: false,
+          settings: {
+            reconciliation_mode: 'automatic',
+            using_merchant_default: true,
+          },
+        },
+        created: 1700000000,
+        currency: null,
+        customer_account: null,
+        default_source: null,
+        delinquent: false,
+        description: null,
+        discount: null,
+        email: 'existing@example.com',
+        individual_name: null,
+        invoice_credit_balance: {},
+        invoice_prefix: null,
+        invoice_settings: {
+          custom_fields: [{ name: 'PO Number', value: '99999' }],
+          default_payment_method: 'pm_z_old',
+          footer: 'Old footer',
+          rendering_options: null,
+        },
+        livemode: false,
+        metadata: {},
+        name: 'Existing Customer',
+        next_invoice_sequence: null,
+        phone: null,
+        preferred_locales: null,
+        shipping: null,
+        sources: {
+          object: 'list',
+          data: [],
+          has_more: false,
+          url: '/v1/customers/cus_z_1/sources',
+        },
+        subscriptions: {
+          object: 'list',
+          data: [],
+          has_more: false,
+          url: '/v1/customers/cus_z_1/subscriptions',
+        },
+        tax: {
+          automatic_tax: 'supported',
+          ip_address: '1.1.1.1',
+          location: { country: 'US', source: 'billing_address', state: 'CA' },
+          provider: 'zoneless',
+        },
+        tax_exempt: 'none',
+        tax_ids: {
+          object: 'list',
+          data: [],
+          has_more: false,
+          url: '/v1/customers/cus_z_1/tax_ids',
+        },
+        test_clock: null,
+        platform_account: 'acct_z_1',
+      };
+    }
+
+    it('should update customer metadata', async () => {
+      const existingCustomer = BuildExistingCustomer();
+      const updatedCustomer = {
+        ...existingCustomer,
+        metadata: { tracking_number: '12345' },
+      };
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValueOnce(existingCustomer)
+        .mockResolvedValueOnce(updatedCustomer);
+
+      const result = await module.UpdateCustomer('cus_z_1', {
+        metadata: { tracking_number: '12345' },
+      });
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'Customers',
+        'cus_z_1',
+        expect.objectContaining({ metadata: { tracking_number: '12345' } })
+      );
+      expect(result).toEqual(updatedCustomer);
+    });
+
+    it('should throw when customer not found', async () => {
+      mockDb.Get = jest.fn().mockResolvedValue(null);
+
+      await expect(
+        module.UpdateCustomer('nonexistent', { metadata: {} })
+      ).rejects.toThrow('Customer not found');
+      expect(mockDb.Update).not.toHaveBeenCalled();
+    });
+
+    it('should fill missing address fields with null when updating the address', async () => {
+      const existingCustomer = BuildExistingCustomer();
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValueOnce(existingCustomer)
+        .mockResolvedValueOnce(existingCustomer);
+
+      await module.UpdateCustomer('cus_z_1', {
+        address: { city: 'Los Angeles', country: 'US' },
+      });
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'Customers',
+        'cus_z_1',
+        expect.objectContaining({
+          address: {
+            city: 'Los Angeles',
+            country: 'US',
+            line1: null,
+            line2: null,
+            postal_code: null,
+            state: null,
+          },
+        })
+      );
+    });
+
+    it('should replace shipping wholesale, filling missing address fields', async () => {
+      const existingCustomer = BuildExistingCustomer();
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValueOnce(existingCustomer)
+        .mockResolvedValueOnce(existingCustomer);
+
+      await module.UpdateCustomer('cus_z_1', {
+        shipping: {
+          address: { city: 'Chicago', country: 'US' },
+          name: 'New Shipping Name',
+        },
+      });
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'Customers',
+        'cus_z_1',
+        expect.objectContaining({
+          shipping: {
+            address: {
+              city: 'Chicago',
+              country: 'US',
+              line1: null,
+              line2: null,
+              postal_code: null,
+              state: null,
+            },
+            name: 'New Shipping Name',
+            phone: null,
+          },
+        })
+      );
+    });
+
+    it('should preserve existing cash_balance fields while updating reconciliation_mode', async () => {
+      const existingCustomer = BuildExistingCustomer();
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValueOnce(existingCustomer)
+        .mockResolvedValueOnce(existingCustomer);
+
+      await module.UpdateCustomer('cus_z_1', {
+        cash_balance: { settings: { reconciliation_mode: 'manual' } },
+      });
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'Customers',
+        'cus_z_1',
+        expect.objectContaining({
+          cash_balance: {
+            ...existingCustomer.cash_balance,
+            settings: {
+              reconciliation_mode: 'manual',
+              using_merchant_default: false,
+            },
+          },
+        })
+      );
+    });
+
+    it('should merge invoice_settings, keeping fields not provided', async () => {
+      const existingCustomer = BuildExistingCustomer();
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValueOnce(existingCustomer)
+        .mockResolvedValueOnce(existingCustomer);
+
+      await module.UpdateCustomer('cus_z_1', {
+        invoice_settings: { footer: 'New footer' },
+      });
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'Customers',
+        'cus_z_1',
+        expect.objectContaining({
+          invoice_settings: {
+            custom_fields: existingCustomer.invoice_settings.custom_fields,
+            default_payment_method:
+              existingCustomer.invoice_settings.default_payment_method,
+            footer: 'New footer',
+            rendering_options:
+              existingCustomer.invoice_settings.rendering_options,
+          },
+        })
+      );
+    });
+
+    it('should merge tax.ip_address, preserving other tax fields', async () => {
+      const existingCustomer = BuildExistingCustomer();
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValueOnce(existingCustomer)
+        .mockResolvedValueOnce(existingCustomer);
+
+      await module.UpdateCustomer('cus_z_1', {
+        tax: { ip_address: '8.8.8.8' },
+      });
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'Customers',
+        'cus_z_1',
+        expect.objectContaining({
+          tax: { ...existingCustomer.tax, ip_address: '8.8.8.8' },
+        })
+      );
+    });
+
+    it('should set default_source when source is provided', async () => {
+      const existingCustomer = BuildExistingCustomer();
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValueOnce(existingCustomer)
+        .mockResolvedValueOnce(existingCustomer);
+
+      await module.UpdateCustomer('cus_z_1', { source: 'src_z_9' });
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'Customers',
+        'cus_z_1',
+        expect.objectContaining({ default_source: 'src_z_9' })
+      );
+    });
+  });
+
   describe('GetCustomer', () => {
     it('should return the customer when found', async () => {
       const mockCustomer = { id: 'cus_z_1', object: 'customer' } as Customer;

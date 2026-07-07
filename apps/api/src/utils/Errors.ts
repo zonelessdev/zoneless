@@ -129,6 +129,11 @@ export const ERRORS = {
     status: 404,
     type: 'resource_missing',
   },
+  CUSTOMER_NOT_FOUND: {
+    message: 'Customer not found',
+    status: 404,
+    type: 'resource_missing',
+  },
 
   // Validation errors
   VALIDATION_ERROR: {
