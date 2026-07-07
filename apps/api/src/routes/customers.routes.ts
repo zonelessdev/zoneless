@@ -3,6 +3,7 @@ import { AsyncHandler } from '../utils/AsyncHandler';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
 import { Logger } from '../utils/Logger';
+import { ParseCreatedFilter } from '../utils/ListHelper';
 
 import { db } from '../modules/Database';
 import { EventService } from '../modules/EventService';
@@ -170,6 +171,49 @@ router.delete(
     Logger.info('Customer deleted successfully', { customerId: id });
 
     res.json(result);
+  })
+);
+
+/**
+ * GET /v1/customers
+ * Returns a list of customers
+ */
+router.get(
+  '/',
+  RequirePlatform(),
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const platformAccountId = req.user.account;
+
+    Logger.info('Listing customers', { platformAccountId });
+
+    //Parse query parameters
+    const limit = req.query.limit
+      ? parseInt(req.query.limit as string, 10)
+      : 10;
+    const startingAfter = req.query.starting_after as string | undefined;
+    const endingBefore = req.query.ending_before as string | undefined;
+    const created = ParseCreatedFilter(req.query as Record<string, unknown>);
+
+    const email = req.query.email as string | undefined;
+    const testClock = req.query.test_clock as string | undefined;
+
+    const result = await customerModule.ListCustomers({
+      account: platformAccountId,
+      limit,
+      startingAfter,
+      endingBefore,
+      created,
+      email,
+      test_clock: testClock,
+    });
+
+    Logger.info('Customers listed successfully', {
+      platformAccountId,
+      count: result.data.length,
+      hasMore: result.has_more,
+    });
+
+    res.json(await ApplyExpand(req, result));
   })
 );
 
