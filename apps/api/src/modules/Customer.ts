@@ -11,6 +11,7 @@ import { GenerateId } from '../utils/IdGenerator';
 import {
   Customer as CustomerType,
   CustomerAddress,
+  CustomerDeleted,
 } from '@zoneless/shared-types';
 import { ValidateUpdate } from './Util';
 import { ExtractChangedFields } from './Event';
@@ -335,5 +336,42 @@ export class CustomerModule {
     }
 
     return payload;
+  }
+
+  /**
+   * Delete a customer.
+   * Emits an 'customer.deleted' event if EventService is configured.
+   *
+   * @param id - The customer ID
+   * @returns Deletion confirmation object
+   */
+  async DeleteCustomer(id: string): Promise<CustomerDeleted> {
+    // Get the customer before deletion for the event
+    const customer = await this.GetCustomer(id);
+
+    if (!customer) {
+      throw new AppError(
+        ERRORS.CUSTOMER_NOT_FOUND.message,
+        ERRORS.CUSTOMER_NOT_FOUND.status,
+        ERRORS.CUSTOMER_NOT_FOUND.type
+      );
+    }
+
+    await this.db.Delete('Customers', id);
+
+    // Emit customer.deleted event
+    if (this.eventService && customer) {
+      await this.eventService.Emit(
+        'customer.deleted',
+        customer.platform_account,
+        customer
+      );
+    }
+
+    return {
+      id,
+      object: 'customer',
+      deleted: true,
+    };
   }
 }
