@@ -12,8 +12,33 @@
     </div>
     }
 
+    <!-- Operator-managed instance notice -->
+    @if(operatorMode()) {
+    <div class="setup-content welcome-content">
+      <img
+        class="welcome-logo"
+        src="assets/images/logos/logo-blue-200h.png"
+        alt="Zoneless"
+      />
+      <h1>This instance is operator-managed</h1>
+      <p class="welcome-subtitle">
+        Platform accounts on this Zoneless instance are provisioned by the
+        hosting operator. Sign up through your hosting provider to create a
+        platform, or sign in below if you already have one.
+      </p>
+
+      <a class="action-button operator-login-link" href="/platform-login">
+        Platform Login
+      </a>
+
+      <p class="setup-note">
+        Received a login link? Open it to access your dashboard directly.
+      </p>
+    </div>
+    }
+
     <!-- Step 1: Welcome -->
-    @if(step() === STEPS.WELCOME) {
+    @if(step() === STEPS.WELCOME && !operatorMode()) {
     <div class="setup-content welcome-content">
       <img
         class="welcome-logo"

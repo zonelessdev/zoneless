@@ -61,6 +61,27 @@ export class AuthService {
     return response;
   }
 
+  /**
+   * Log in with a pre-issued platform session token (JWT).
+   * Used by operator-managed instances where the managed hosting site
+   * mints login links via the operator API.
+   */
+  async LoginWithToken(token: string): Promise<void> {
+    this.storage.StoreItemString('auth_token', token);
+
+    try {
+      // Validate the token by fetching the account it belongs to
+      await this.api.Call('GET', 'accounts/me');
+    } catch (err) {
+      this.storage.RemoveItem('auth_token');
+      throw err;
+    }
+
+    this.storage.StoreItemString('is_platform', 'true');
+    this.isAuthenticated.set(true);
+    this.isPlatform.set(true);
+  }
+
   async LoginWithApiKey(apiKey: string): Promise<ApiKeyLoginResponse> {
     const response = await this.api.Call<ApiKeyLoginResponse>(
       'POST',

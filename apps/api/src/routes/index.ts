@@ -1,6 +1,7 @@
 import * as express from 'express';
 import { ValidateApiKey } from '../middleware/AuthMiddleware';
 import { IdempotencyMiddleware } from '../middleware/IdempotencyMiddleware';
+import { UsageMiddleware } from '../middleware/UsageMiddleware';
 
 import accountsRouter from './accounts.routes';
 import personsRouter from './persons.routes';
@@ -18,6 +19,7 @@ import eventsRouter from './events.routes';
 import authExchangeRouter from './exchange.routes';
 import configRouter from './config.routes';
 import setupRouter from './setup.routes';
+import operatorRouter from './operator.routes';
 import subscriptionsRouter from './subscriptions.routes';
 import productsRouter from './products.routes';
 import pricesRouter from './prices.routes';
@@ -30,9 +32,16 @@ router.use('/auth', authExchangeRouter);
 router.use('/config', configRouter);
 router.use('/setup', setupRouter);
 
+// --- Operator Routes ---
+// Guarded by the operator API key (managed hosting only)
+router.use('/operator', operatorRouter);
+
 // --- Authenticated Routes ---
 // All routes below this line require an API Key
 router.use(ValidateApiKey);
+
+// Record per-platform API usage (operator mode only)
+router.use(UsageMiddleware);
 
 // Apply Idempotency to all authenticated routes
 router.use(IdempotencyMiddleware);

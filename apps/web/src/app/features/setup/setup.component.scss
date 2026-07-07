@@ -234,6 +234,12 @@ img.feature-icon {
   margin-bottom: $spacing;
 }
 
+// Anchor variant of .action-button (operator-managed notice)
+.operator-login-link {
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
 .action-button {
   width: 100%;
   padding: 14px 24px;

@@ -119,6 +119,23 @@ export interface Account {
    * @zoneless_extension
    */
   platform_account: string;
+
+  /**
+   * Managed-hosting metadata, set by the instance operator (operator mode only).
+   * When `disabled` is true, all API access for the platform and its
+   * connected accounts is rejected.
+   * @zoneless_extension
+   */
+  managed?: AccountManaged | null;
+}
+
+/**
+ * Managed-hosting metadata set via the operator API.
+ * @zoneless_extension
+ */
+export interface AccountManaged {
+  /** True if the instance operator has disabled this platform */
+  disabled: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

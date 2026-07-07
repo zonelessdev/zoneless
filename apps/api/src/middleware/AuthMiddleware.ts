@@ -3,7 +3,7 @@ import { db } from '../modules/Database';
 import { ApiKeyModule } from '../modules/ApiKey';
 import { AccountModule } from '../modules/Account';
 import { IsPlatformAccount } from '../modules/PlatformAccess';
-import { GetJwtSecret } from '../modules/AppConfig';
+import { GetJwtSecret, IsOperatorMode } from '../modules/AppConfig';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
 import { AsyncHandler } from '../utils/AsyncHandler';
@@ -44,7 +44,7 @@ function IsValidJwtPayload(payload: unknown): payload is JwtPayload {
  */
 async function GetAuthenticatedUser(
   accountId: string
-): Promise<{ account: string; platform?: string }> {
+): Promise<{ account: string; platform?: string; platform_account: string }> {
   const account = await accountModule.GetAccount(accountId);
 
   if (!account) {
@@ -58,9 +58,27 @@ async function GetAuthenticatedUser(
   // Check if this account is a platform (has no parent platform_account)
   const isPlatform = IsPlatformAccount(account);
 
+  // In operator mode (managed hosting), reject access when the platform
+  // has been disabled by the operator. This blocks both the platform's
+  // own credentials and all of its connected accounts' sessions.
+  if (IsOperatorMode()) {
+    const platformAccount = isPlatform
+      ? account
+      : await accountModule.GetAccount(account.platform_account);
+
+    if (platformAccount?.managed?.disabled === true) {
+      throw new AppError(
+        'This account has been disabled by the instance operator',
+        ERRORS.PERMISSION_DENIED.status,
+        'account_disabled'
+      );
+    }
+  }
+
   return {
     account: accountId,
     ...(isPlatform && { platform: accountId }),
+    platform_account: account.platform_account,
   };
 }
 
@@ -92,7 +110,10 @@ export const ValidateApiKey = AsyncHandler(
           );
         }
 
-        req.user = await GetAuthenticatedUser(decoded.account_id);
+        req.user = {
+          ...(await GetAuthenticatedUser(decoded.account_id)),
+          auth_type: 'session',
+        };
         return next();
       } catch (error) {
         // If it's already our AppError, rethrow it
@@ -126,7 +147,10 @@ export const ValidateApiKey = AsyncHandler(
         );
       }
 
-      req.user = await GetAuthenticatedUser(apiKey.account);
+      req.user = {
+        ...(await GetAuthenticatedUser(apiKey.account)),
+        auth_type: 'api_key',
+      };
 
       // Update last_used timestamp asynchronously (fire and forget)
       apiKeyModule.UpdateLastUsed(apiKey.id).catch((err) => {
