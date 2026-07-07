@@ -116,6 +116,18 @@ export interface Customer {
   platform_account: string;
 }
 
+/**
+ * Deleted customer response object.
+ */
+export interface CustomerDeleted {
+  /** Unique identifier for the object */
+  id: string;
+  /** String representing the object's type */
+  object: 'customer';
+  /** Always true for a deleted object */
+  deleted: true;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Address & Shipping
 // ─────────────────────────────────────────────────────────────────────────────

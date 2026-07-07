@@ -133,4 +133,44 @@ router.get(
   })
 );
 
+/**
+ * DELETE /v1/customers/:id
+ * Delete a customer.
+ */
+router.delete(
+  '/:id',
+  RequirePlatform(),
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const platformAccountId = req.user.account;
+    const id = req.params.id;
+
+    // Verify the API key exists and belongs to this platform
+    const existingCustomer = await customerModule.GetCustomer(id);
+
+    if (!existingCustomer) {
+      throw new AppError(
+        ERRORS.CUSTOMER_NOT_FOUND.message,
+        ERRORS.CUSTOMER_NOT_FOUND.status,
+        ERRORS.CUSTOMER_NOT_FOUND.type
+      );
+    }
+
+    if (existingCustomer.platform_account !== platformAccountId) {
+      throw new AppError(
+        ERRORS.CUSTOMER_NOT_FOUND.message,
+        ERRORS.CUSTOMER_NOT_FOUND.status,
+        ERRORS.CUSTOMER_NOT_FOUND.type
+      );
+    }
+
+    Logger.info('Deleting Customer', { customerId: id });
+
+    const result = await customerModule.DeleteCustomer(id);
+
+    Logger.info('Customer deleted successfully', { customerId: id });
+
+    res.json(result);
+  })
+);
+
 export default router;

@@ -521,4 +521,27 @@ describe('CustomerModule', () => {
       expect(result).toBeNull();
     });
   });
+
+  describe('DeleteCustomer', () => {
+    it('should delete the customer and return confirmation', async () => {
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValue({ id: 'cus_z_1', object: 'customer' });
+
+      const result = await module.DeleteCustomer('cus_z_1');
+
+      expect(mockDb.Delete).toHaveBeenCalledWith('Customers', 'cus_z_1');
+      expect(result).toEqual({
+        id: 'cus_z_1',
+        object: 'customer',
+        deleted: true,
+      });
+    });
+
+    it('should throw when customer not found', async () => {
+      await expect(module.DeleteCustomer('nonexistent')).rejects.toThrow(
+        'Customer not found'
+      );
+    });
+  });
 });
