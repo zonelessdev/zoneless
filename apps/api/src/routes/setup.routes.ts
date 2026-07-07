@@ -9,12 +9,11 @@ import * as express from 'express';
 import { SetupRequest, SetupResponse } from '@zoneless/shared-types';
 import { AsyncHandler } from '../utils/AsyncHandler';
 import { AppError } from '../utils/AppError';
-import { ERRORS } from '../utils/Errors';
 import { Logger } from '../utils/Logger';
 import { db } from '../modules/Database';
-import { SetupModule } from '../modules/Setup';
+import { SetupModule, ValidateSetupRequest } from '../modules/Setup';
 import { AccountModule } from '../modules/Account';
-import { IsSingleTenantMode } from '../modules/AppConfig';
+import { IsSingleTenantMode, IsOperatorMode } from '../modules/AppConfig';
 
 const router = express.Router();
 const setupModule = new SetupModule(db);
@@ -36,6 +35,18 @@ const accountModule = new AccountModule(db);
 router.get(
   '/status',
   AsyncHandler(async (req: express.Request, res: express.Response) => {
+    // In operator mode, public setup is disabled - platforms are provisioned
+    // by the instance operator via the /v1/operator routes.
+    if (IsOperatorMode()) {
+      res.json({
+        object: 'setup_status',
+        needs_setup: false,
+        has_wallet: false,
+        operator_mode: true,
+      });
+      return;
+    }
+
     const singleTenant = IsSingleTenantMode();
 
     // In single-tenant mode, check if a platform already exists
@@ -149,6 +160,16 @@ router.get(
 router.post(
   '/',
   AsyncHandler(async (req: express.Request, res: express.Response) => {
+    // In operator mode, public setup is disabled - platforms are provisioned
+    // by the instance operator via POST /v1/operator/platforms.
+    if (IsOperatorMode()) {
+      throw new AppError(
+        'This instance is operator-managed. Platform accounts are provisioned by the operator.',
+        403,
+        'operator_managed'
+      );
+    }
+
     // In single-tenant mode, check if a platform already exists
     if (IsSingleTenantMode()) {
       const platformAccounts = await accountModule.GetPlatformAccounts();
@@ -163,30 +184,7 @@ router.post(
 
     // Validate request body
     const body = req.body as SetupRequest;
-
-    if (!body.platform_name || body.platform_name.trim().length === 0) {
-      throw new AppError(
-        'platform_name is required',
-        ERRORS.VALIDATION_ERROR.status,
-        ERRORS.VALIDATION_ERROR.type
-      );
-    }
-
-    // Validate wallet public key format (base58 Solana address)
-    const walletKey = body.solana_public_key?.trim();
-    const solanaBase58Regex = /^[1-9A-HJ-NP-Za-km-z]+$/;
-    if (
-      !walletKey ||
-      walletKey.length < 32 ||
-      walletKey.length > 44 ||
-      !solanaBase58Regex.test(walletKey)
-    ) {
-      throw new AppError(
-        'solana_public_key must be a valid Solana address (32-44 base58 characters)',
-        ERRORS.VALIDATION_ERROR.status,
-        ERRORS.VALIDATION_ERROR.type
-      );
-    }
+    ValidateSetupRequest(body);
 
     Logger.info('Creating new platform account', {
       platformName: body.platform_name,

@@ -89,6 +89,25 @@ export class Database {
   }
 
   /**
+   * Atomically increment a numeric field on a document, creating the
+   * document if it doesn't exist (upsert).
+   */
+  async Increment(
+    collection: string,
+    documentId: string,
+    field: string,
+    amount = 1,
+    setOnInsert?: Record<string, unknown>
+  ): Promise<void> {
+    const model = this.GetModel(collection);
+    const update: Record<string, unknown> = { $inc: { [field]: amount } };
+    if (setOnInsert) {
+      update.$setOnInsert = setOnInsert;
+    }
+    await model.updateOne({ id: documentId }, update, { upsert: true }).exec();
+  }
+
+  /**
    * Find documents where a field equals a value
    */
   async Find<T>(
@@ -409,6 +428,7 @@ export class Database {
       'Persons',
       'TopUps',
       'Transfers',
+      'UsageCounters',
       'WebhookEndpoints',
     ];
 

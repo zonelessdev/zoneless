@@ -20,6 +20,39 @@ import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
 
 /**
+ * Validates a setup request body.
+ * Throws an AppError if platform_name is missing or the wallet
+ * public key is not a valid Solana address.
+ *
+ * @param request - The setup request to validate
+ */
+export function ValidateSetupRequest(request: SetupRequest): void {
+  if (!request.platform_name || request.platform_name.trim().length === 0) {
+    throw new AppError(
+      'platform_name is required',
+      ERRORS.VALIDATION_ERROR.status,
+      ERRORS.VALIDATION_ERROR.type
+    );
+  }
+
+  // Validate wallet public key format (base58 Solana address)
+  const walletKey = request.solana_public_key?.trim();
+  const solanaBase58Regex = /^[1-9A-HJ-NP-Za-km-z]+$/;
+  if (
+    !walletKey ||
+    walletKey.length < 32 ||
+    walletKey.length > 44 ||
+    !solanaBase58Regex.test(walletKey)
+  ) {
+    throw new AppError(
+      'solana_public_key must be a valid Solana address (32-44 base58 characters)',
+      ERRORS.VALIDATION_ERROR.status,
+      ERRORS.VALIDATION_ERROR.type
+    );
+  }
+}
+
+/**
  * Handles platform setup and account creation.
  */
 export class SetupModule {

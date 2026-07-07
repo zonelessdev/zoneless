@@ -64,6 +64,8 @@ export interface SetupStatus {
   has_wallet: boolean;
   /** Whether the authenticated user is a connected account (should redirect away from setup) */
   is_connected_account?: boolean;
+  /** True when the instance is operator-managed (public setup is disabled) */
+  operator_mode?: boolean;
 }
 
 /**

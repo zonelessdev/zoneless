@@ -74,9 +74,30 @@ function BuildConfigFromEnv(): AppConfig {
  * Check if the instance is in single-tenant mode.
  * When SINGLE_TENANT=true, only one platform can be created.
  * This is useful for self-hosted deployments.
+ * Operator mode implies multi-tenant operation.
  */
 export function IsSingleTenantMode(): boolean {
+  if (IsOperatorMode()) {
+    return false;
+  }
   return process.env.SINGLE_TENANT !== 'false';
+}
+
+/**
+ * Check if the instance is in operator mode (managed hosting).
+ * When OPERATOR_API_KEY is set, public setup is disabled and platform
+ * provisioning happens exclusively via the /v1/operator routes.
+ */
+export function IsOperatorMode(): boolean {
+  return !!process.env.OPERATOR_API_KEY;
+}
+
+/**
+ * Get the operator API key from the environment.
+ * Only meaningful when IsOperatorMode() is true.
+ */
+export function GetOperatorApiKey(): string {
+  return process.env.OPERATOR_API_KEY || '';
 }
 
 /**
