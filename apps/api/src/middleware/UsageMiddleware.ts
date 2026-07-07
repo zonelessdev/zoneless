@@ -3,9 +3,8 @@
  *
  * Records one usage counter increment per API-key-authenticated request,
  * attributed to the request's platform account. Dashboard sessions (JWT)
- * are not metered - only server-to-server API traffic counts, matching
- * how Stripe reports API usage. Only active in operator mode (managed
- * hosting) - self-hosted instances skip metering entirely.
+ * are not metered - only server-to-server API traffic counts Only active
+ * in operator mode - self-hosted instances skip metering entirely.
  *
  * Must be mounted after ValidateApiKey so req.user is populated.
  *
