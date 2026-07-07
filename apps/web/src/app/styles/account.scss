@@ -132,6 +132,18 @@ h2.section-title {
   font-size: $font-size-small;
 }
 
+.view-panels {
+  margin-top: $spacing-large;
+}
+
+.view-left-panel {
+  width: 75%;
+}
+
+.view-right-panel {
+  flex: 1;
+}
+
 .dashed-placeholder {
   border: 1px dashed $darkest-background-color;
   width: 100%;
@@ -159,5 +171,9 @@ h2.section-title {
     flex-direction: column;
     align-items: flex-start;
     gap: $spacing;
+  }
+
+  .view-panels {
+    display: block;
   }
 }

@@ -1,0 +1,40 @@
+<!-- Create Price Slide Panel -->
+<app-slide-panel
+  [isOpen]="actions.panelOpen()"
+  [title]="GetPanelTitle()"
+  [loading]="actions.panelLoading()"
+  submitLabel="Save"
+  [submitDisabled]="false"
+  (closed)="actions.ClosePanel()"
+  (submitted)="OnSubmit()"
+>
+  <app-customer-form
+    #customerForm
+    [mode]="actions.panelMode()"
+    [customer]="actions.customerToEdit()"
+    [isOpen]="actions.panelOpen()"
+    [showErrors]="actions.panelShowErrors()"
+    (validationChange)="OnValidationChange($event)"
+  ></app-customer-form>
+</app-slide-panel>
+
+<app-confirm-dialog
+  [isOpen]="actions.deleteDialogOpen()"
+  title="Delete customer"
+  description="This will permanently remove the customer's billing information and immediately cancel any current subscriptions. Past payments or invoices associated with the customer will still remain."
+  confirmLabel="Delete customer"
+  [loading]="actions.deleting()"
+  [destructive]="true"
+  (confirmed)="actions.ConfirmDelete()"
+  (cancelled)="actions.deleteDialogOpen.set(false)"
+></app-confirm-dialog>
+
+<app-metadata-edit-modal
+  [isOpen]="actions.metadataDialogOpen()"
+  [loading]="actions.metadataSaving()"
+  title="Edit metadata"
+  [metadata]="actions.metadataDraft()"
+  (formChange)="actions.OnMetadataChange($event)"
+  (confirmed)="actions.ConfirmEditMetadata()"
+  (cancelled)="actions.metadataDialogOpen.set(false)"
+></app-metadata-edit-modal>

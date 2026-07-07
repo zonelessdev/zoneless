@@ -77,6 +77,11 @@ export class AccountComponent implements OnInit {
         id: 'connected-accounts',
       });
       baseMenu[0].push({
+        title: 'Customers',
+        icon: 'person.svg',
+        id: 'customers',
+      });
+      baseMenu[0].push({
         title: 'Products',
         icon: 'package.svg',
         id: 'products',

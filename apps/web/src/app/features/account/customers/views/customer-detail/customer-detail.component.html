@@ -1,0 +1,214 @@
+@if(customer(); as c){
+<div class="flex align-vert-start space-between">
+  <div class="flex flex-column gap-small">
+    <a class="link-highlight" href="/account/customers">Customers</a>
+    <h1>@if(c.name){{{c.name}}}@else{{{c.id}}}</h1>
+    @if(c.email){
+    <div><app-copy-text [text]="c.email" [opacity]="0.5"></app-copy-text></div>
+    }
+  </div>
+  <div class="flex gap-extra-small">
+    <button
+      type="button"
+      class="action-button action-button-dainty outline dimmed-disabled"
+    >
+      <span>Create Payment</span>
+    </button>
+    <button
+      type="button"
+      class="action-button action-button-dainty outline dimmed-disabled"
+    >
+      <span>Create Invoice</span>
+    </button>
+    <app-popup-menu
+      [actions]="customerActions"
+      [item]="c"
+      [highlightIcon]="true"
+    >
+    </app-popup-menu>
+  </div>
+</div>
+
+<div class="flex gap-extra-large view-panels">
+  <div class="view-left-panel">
+    <div class="view-section">
+      <h2 class="section-title">Subscriptions</h2>
+      <div class="dashed-placeholder">
+        <span>No subscriptions</span>
+      </div>
+    </div>
+    <div class="view-section">
+      <h2 class="section-title">Payments</h2>
+      <div class="dashed-placeholder">
+        <span>No payments</span>
+      </div>
+    </div>
+    <div class="view-section">
+      <h2 class="section-title">Payment methods</h2>
+      <div class="dashed-placeholder">
+        <span>No payment methods</span>
+      </div>
+    </div>
+    <div class="view-section">
+      <h2 class="section-title">Finanacial Connections</h2>
+      <div class="dashed-placeholder">
+        <span>No accounts</span>
+      </div>
+    </div>
+    <div class="view-section">
+      <h2 class="section-title">Entitlements</h2>
+      <div class="dashed-placeholder">
+        <span>No active entitlements</span>
+      </div>
+    </div>
+    <div class="view-section">
+      <h2 class="section-title">Invoices</h2>
+      <div class="dashed-placeholder">
+        <span>No invoicess</span>
+      </div>
+    </div>
+    <div class="view-section">
+      <h2 class="section-title">Pending invoice items</h2>
+      <div class="dashed-placeholder">
+        <span>No pending invoice items</span>
+      </div>
+    </div>
+    <div class="view-section">
+      <h2 class="section-title">Quotes</h2>
+      <div class="dashed-placeholder">
+        <span>No quotes</span>
+      </div>
+    </div>
+    <div class="view-section">
+      <h2 class="section-title">Credit grants</h2>
+      <div class="dashed-placeholder">
+        <span>No credit grants</span>
+      </div>
+    </div>
+    <div class="view-section">
+      <h2 class="section-title">Customer invoice balance</h2>
+      <div class="dashed-placeholder">
+        <span>No customer invoice balance</span>
+      </div>
+    </div>
+    <div class="view-section">
+      <h2 class="section-title">Identity verifications</h2>
+      <div class="dashed-placeholder">
+        <span>No identity verifications</span>
+      </div>
+    </div>
+    <div class="view-section">
+      <h2 class="section-title">Events</h2>
+      <app-events-list [itemId]="c.id"></app-events-list>
+    </div>
+  </div>
+  <div class="view-right-panel">
+    <div class="view-section">
+      <div class="flex align-vert-start space-between">
+        <h2 class="section-title">Details</h2>
+        <button
+          type="button"
+          class="action-button action-button-small outline"
+          (click)="OnEdit()"
+        >
+          <img src="assets/icons/edit.svg" class="icon" alt="Edit icon" />
+        </button>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Customer ID</div>
+        <div><app-copy-text [text]="c.id"></app-copy-text></div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Customer since</div>
+        <div class="dimmed">{{ c.created | date : 'medium' }}</div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Billing emails</div>
+        @if(c.email){
+        <div><app-copy-text [text]="c.email"></app-copy-text></div>
+        } @else {
+        <div class="dimmed">—</div>
+        }
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Business name</div>
+        <div class="dimmed">
+          {{ c.business_name ? c.business_name : '—' }}
+        </div>
+      </div>
+      @if (detailsExpanded()) {
+      <div class="mb">
+        <div class="bolded mb-small">Individual name</div>
+        <div class="dimmed">
+          {{ c.individual_name ? c.individual_name : '—' }}
+        </div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Billing details</div>
+        <div class="dimmed">—</div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Language</div>
+        <div class="dimmed">—</div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Next invoice number</div>
+        <div class="dimmed">—</div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Tax location status</div>
+        <div class="dimmed">—</div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Tax status and IDs</div>
+        <div class="dimmed">—</div>
+      </div>
+      }
+      <div
+        class="collapsible-toggle"
+        tabindex="0"
+        role="button"
+        (click)="ToggleDetailsExpanded()"
+        (keydown.enter)="ToggleDetailsExpanded()"
+        (keydown.space)="ToggleDetailsExpanded(); $event.preventDefault()"
+      >
+        <span class="collapsible-text">{{
+          detailsExpanded() ? 'View less' : 'View more'
+        }}</span>
+        <img
+          src="assets/icons/chevron_down.svg"
+          class="collapsible-down-icon"
+          [class.expanded]="detailsExpanded()"
+          alt="Down chevron icon"
+        />
+      </div>
+    </div>
+    <div class="view-section">
+      <div class="flex align-vert-start space-between">
+        <h2 class="section-title">Metadata</h2>
+        <button
+          type="button"
+          class="action-button action-button-small outline"
+          (click)="OnEditMetadata()"
+        >
+          <img src="assets/icons/edit.svg" class="icon" alt="Edit icon" />
+        </button>
+      </div>
+      @if (MetadataToArray(c.metadata).length > 0) { @for (entry of
+      MetadataToArray(c.metadata); track entry.key) {
+      <div class="mb">
+        <div class="bolded mb-small">{{ entry.key }}</div>
+        <div class="dimmed">{{ entry.value }}</div>
+      </div>
+      } } @else {
+      <div class="dashed-placeholder">
+        <span>No metadata</span>
+      </div>
+      }
+    </div>
+  </div>
+</div>
+
+}
+
+<app-customer-actions-host></app-customer-actions-host>
