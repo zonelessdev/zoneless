@@ -99,4 +99,38 @@ router.post(
   })
 );
 
+/**
+ * GET /v1/customers/:id
+ * Retrieve a customer.
+ */
+router.get(
+  '/:id',
+  RequirePlatform(),
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const platformAccountId = req.user.account;
+    const id = req.params.id;
+
+    const customer = await customerModule.GetCustomer(id);
+
+    if (!customer) {
+      throw new AppError(
+        ERRORS.CUSTOMER_NOT_FOUND.message,
+        ERRORS.CUSTOMER_NOT_FOUND.status,
+        ERRORS.CUSTOMER_NOT_FOUND.type
+      );
+    }
+
+    // Verify the API key belongs to this platform
+    if (customer.platform_account !== platformAccountId) {
+      throw new AppError(
+        ERRORS.CUSTOMER_NOT_FOUND.message,
+        ERRORS.CUSTOMER_NOT_FOUND.status,
+        ERRORS.CUSTOMER_NOT_FOUND.type
+      );
+    }
+
+    res.json(await ApplyExpand(req, customer));
+  })
+);
+
 export default router;
