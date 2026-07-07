@@ -1,6 +1,7 @@
 import { CustomerModule } from '../modules/Customer';
 import { Database } from '../modules/Database';
 import { Customer } from '@zoneless/shared-types';
+import { ListHelper } from '../utils/ListHelper';
 import {
   CreateMockDatabase,
   DeterministicId,
@@ -542,6 +543,54 @@ describe('CustomerModule', () => {
       await expect(module.DeleteCustomer('nonexistent')).rejects.toThrow(
         'Customer not found'
       );
+    });
+  });
+
+  describe('ListCustomers', () => {
+    it('should pass account and customer filters to ListHelper', async () => {
+      const listSpy = jest
+        .spyOn(ListHelper.prototype, 'List')
+        .mockResolvedValue({
+          object: 'list',
+          data: [],
+          has_more: false,
+          url: '/v1/customers',
+        });
+      await module.ListCustomers({
+        account: 'acct_z_platform',
+        limit: 25,
+        email: 'test@example.com',
+        test_clock: 'clock_z_1',
+      });
+      expect(listSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          account: 'acct_z_platform',
+          limit: 25,
+          filters: expect.objectContaining({
+            email: 'test@example.com',
+            test_clock: 'clock_z_1',
+          }),
+        })
+      );
+      listSpy.mockRestore();
+    });
+
+    it('should omit optional filters when not provided', async () => {
+      const listSpy = jest
+        .spyOn(ListHelper.prototype, 'List')
+        .mockResolvedValue({
+          object: 'list',
+          data: [],
+          has_more: false,
+          url: '/v1/customers',
+        });
+      await module.ListCustomers({ account: 'acct_z_platform' });
+      expect(listSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filters: {},
+        })
+      );
+      listSpy.mockRestore();
     });
   });
 });

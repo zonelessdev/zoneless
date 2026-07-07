@@ -20,7 +20,9 @@ import {
   CreateCustomerInput,
   UpdateCustomerSchema,
   UpdateCustomerInput,
+  ListCustomersFiltersInput,
 } from '@zoneless/shared-schemas';
+import { ListHelper, ListOptions, ListResult } from '../utils/ListHelper';
 import { Now } from '../utils/Timestamp';
 import { GetAppConfig } from './AppConfig';
 import { AppError } from '../utils/AppError';
@@ -47,10 +49,18 @@ function ToCustomerAddress(input: AddressInput): CustomerAddress {
 export class CustomerModule {
   private readonly db: Database;
   private readonly eventService: EventService | null;
+  private readonly listHelper: ListHelper<CustomerType>;
 
   constructor(db: Database, eventService?: EventService) {
     this.db = db;
     this.eventService = eventService || null;
+    this.listHelper = new ListHelper<CustomerType>(db, {
+      collection: 'Customers',
+      orderByField: 'created',
+      orderDirection: 'desc',
+      urlPath: '/v1/customers',
+      accountField: 'platform_account',
+    });
   }
 
   /**
@@ -373,5 +383,24 @@ export class CustomerModule {
       object: 'customer',
       deleted: true,
     };
+  }
+
+  /**
+   * List customers
+   */
+  async ListCustomers(
+    options: ListOptions & ListCustomersFiltersInput
+  ): Promise<ListResult<CustomerType>> {
+    const { email, test_clock, ...listOptions } = options;
+
+    // Build filters
+    const filters: Record<string, unknown> = {};
+    if (email !== undefined) filters.email = email;
+    if (test_clock !== undefined) filters.test_clock = test_clock;
+
+    return this.listHelper.List({
+      ...listOptions,
+      filters: { ...listOptions.filters, ...filters },
+    });
   }
 }
