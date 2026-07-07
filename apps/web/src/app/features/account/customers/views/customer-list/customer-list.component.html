@@ -1,0 +1,13 @@
+<div class="header-wrapper">
+  <h1>Customers</h1>
+</div>
+<app-paginated-list
+  #customersList
+  endpoint="customers"
+  [columns]="customerColumns"
+  [limit]="10"
+  [queryParams]="customersQueryParams()"
+  (rowClick)="OnCustomerListClick($event)"
+></app-paginated-list>
+
+<app-customer-actions-host></app-customer-actions-host>

@@ -36,18 +36,6 @@
   object-fit: cover;
 }
 
-.view-panels {
-  margin-top: $spacing-large;
-}
-
-.view-left-panel {
-  width: 75%;
-}
-
-.view-right-panel {
-  flex: 1;
-}
-
 .section-edit-top {
   display: flex;
   justify-content: space-between;
@@ -69,11 +57,5 @@
 
   input {
     max-width: 360px;
-  }
-}
-
-@media only screen and (max-width: 1000px) {
-  .view-panels {
-    display: block;
   }
 }

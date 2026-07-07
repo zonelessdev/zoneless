@@ -2,6 +2,7 @@ export * from './account.service';
 export * from './account-link.service';
 export * from './api-key.service';
 export * from './balance.service';
+export * from './customer.service';
 export * from './config.service';
 export * from './external-wallet.service';
 export * from './person.service';

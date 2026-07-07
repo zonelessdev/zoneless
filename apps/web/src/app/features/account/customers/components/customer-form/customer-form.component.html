@@ -1,0 +1,43 @@
+<h3>Account information</h3>
+
+<div class="field">
+  <div class="field-title">Name</div>
+  <p class="field-help">Customer display name; appears on invoices.</p>
+  <div class="field-value">
+    <input
+      [ngModel]="name()"
+      (ngModelChange)="OnNameChange($event)"
+      type="text"
+      [maxlength]="NAME_MAX_LENGTH"
+      [class.field-error]="showErrors && nameError()"
+    />
+  </div>
+  @if (showErrors && nameError()) {
+  <div class="error">{{ nameError() }}</div>
+  }
+</div>
+
+<div class="field">
+  <div class="field-title">Email</div>
+  <div class="field-value">
+    <input
+      [ngModel]="email()"
+      (ngModelChange)="OnEmailChange($event)"
+      type="email"
+      [maxlength]="EMAIL_MAX_LENGTH"
+      [class.field-error]="showErrors && emailError()"
+    />
+  </div>
+  @if (showErrors && emailError()) {
+  <div class="error">{{ emailError() }}</div>
+  }
+</div>
+
+<div class="field">
+  <div class="field-title">Metadata</div>
+  <p class="field-help">Store additional, structured information.</p>
+  <app-metadata-editor
+    [metadata]="metadata()"
+    (formChange)="OnMetadataChange($event)"
+  ></app-metadata-editor>
+</div>

@@ -15,6 +15,11 @@ export const accountRoutes: Routes = [
       import('./balance/balance.component').then((m) => m.BalanceComponent),
   },
   {
+    path: 'customers',
+    loadChildren: () =>
+      import('./customers/customers.routes').then((m) => m.customerRoutes),
+  },
+  {
     path: 'connected-accounts',
     loadComponent: () =>
       import('./connected-accounts/connected-accounts.component').then(
