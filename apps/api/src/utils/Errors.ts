@@ -134,6 +134,11 @@ export const ERRORS = {
     status: 404,
     type: 'resource_missing',
   },
+  CHECKOUT_SESSION_NOT_FOUND: {
+    message: 'Checkout session not found',
+    status: 404,
+    type: 'resource_missing',
+  },
 
   // Validation errors
   VALIDATION_ERROR: {

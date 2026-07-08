@@ -24,6 +24,7 @@ import subscriptionsRouter from './subscriptions.routes';
 import productsRouter from './products.routes';
 import pricesRouter from './prices.routes';
 import customersRouter from './customers.routes';
+import checkoutSessionsRouter from './checkoutSessions.routes';
 
 const router = express.Router();
 
@@ -66,4 +67,5 @@ router.use('/subscriptions', subscriptionsRouter);
 router.use('/products', productsRouter);
 router.use('/prices', pricesRouter);
 router.use('/customers', customersRouter);
+router.use('/checkout/sessions', checkoutSessionsRouter);
 export default router;

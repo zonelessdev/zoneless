@@ -37,6 +37,12 @@ const EVENT_TYPE_LABELS: Record<(typeof EVENT_TYPES)[number], string> = {
   'api_key.deleted': 'API key deleted',
   'balance.available': 'Balance available',
   'balance_transaction.created': 'Balance transaction created',
+  'checkout.session.async_payment_failed':
+    'Checkout session async payment failed',
+  'checkout.session.async_payment_succeeded':
+    'Checkout session async payment succeeded',
+  'checkout.session.completed': 'Checkout session completed',
+  'checkout.session.expired': 'Checkout session expired',
   'customer.created': 'Customer created',
   'customer.updated': 'Customer updated',
   'customer.deleted': 'Customer deleted',
