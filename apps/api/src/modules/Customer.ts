@@ -12,6 +12,7 @@ import {
   Customer as CustomerType,
   CustomerAddress,
   CustomerDeleted,
+  QueryOperators,
 } from '@zoneless/shared-types';
 import { ValidateUpdate } from './Util';
 import { ExtractChangedFields } from './Event';
@@ -200,6 +201,30 @@ export class CustomerModule {
    */
   async GetCustomer(id: string): Promise<CustomerType | null> {
     return this.db.Get<CustomerType>('Customers', id);
+  }
+
+  /**
+   * Batch-load customers by id, scoped to a single platform account.
+   * Used by the expansion engine to avoid N+1 lookups.
+   */
+  async BatchGet(
+    ids: string[],
+    platformAccount: string
+  ): Promise<Map<string, CustomerType>> {
+    if (ids.length === 0) return new Map();
+    const customers = await this.db.Query<CustomerType>({
+      collection: 'Customers',
+      method: 'READ',
+      parameters: [
+        { key: 'id', operator: QueryOperators['in'], value: ids },
+        {
+          key: 'platform_account',
+          operator: QueryOperators['=='],
+          value: platformAccount,
+        },
+      ],
+    });
+    return new Map(customers.map((customer) => [customer.id, customer]));
   }
 
   /**

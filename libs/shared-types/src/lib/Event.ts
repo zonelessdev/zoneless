@@ -3,6 +3,7 @@ import { AccountLinkRecord } from './AccountLink';
 import { ApiKey } from './ApiKey';
 import { Balance } from './Balance';
 import { BalanceTransaction } from './BalanceTransaction';
+import { CheckoutSession } from './CheckoutSession';
 import { Customer } from './Customer';
 import { ExternalWallet } from './ExternalWallet';
 import { IdempotencyKey } from './IdempotencyKey';
@@ -37,6 +38,12 @@ export const EVENT_TYPES = [
 
   // Balance transaction events
   'balance_transaction.created',
+
+  // Checkout session events
+  'checkout.session.async_payment_failed',
+  'checkout.session.async_payment_succeeded',
+  'checkout.session.completed',
+  'checkout.session.expired',
 
   // Customer events
   'customer.created',
@@ -95,6 +102,7 @@ export type EventDataObject =
   | ApiKey
   | Balance
   | BalanceTransaction
+  | CheckoutSession
   | Customer
   | ExternalWallet
   | IdempotencyKey
