@@ -1,104 +1,126 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { SolanaWalletService } from '../../core';
-import { SubscriptionsService } from '../../data/services';
-import bs58 from 'bs58';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  OnInit,
+  signal,
+  WritableSignal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 
-import { Connection } from '@solana/web3.js';
+import { MetaService } from '../../core';
+import { CheckoutSessionService } from '../../data/services/checkout-session.service';
+import { PageLoaderComponent } from '../../shared';
+import {
+  CheckoutSession,
+  CheckoutSessionLineItem,
+  Product,
+} from '@zoneless/shared-types';
+
+/** Placeholder destination wallet until payment methods are wired up. */
+const PLACEHOLDER_WALLET_ADDRESS =
+  'zNL5sVYqe3Pv9xWmA7kQJcT2hGdRb8XuFnE4yLoZi6DC';
 
 @Component({
   selector: 'app-checkout',
-  imports: [FormsModule],
+  imports: [FormsModule, PageLoaderComponent],
   templateUrl: './checkout.component.html',
   styleUrl: './checkout.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CheckoutComponent {
-  private readonly solanaWalletService = inject(SolanaWalletService);
-  private readonly subscriptionsService = inject(SubscriptionsService);
+export class CheckoutComponent implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly checkoutSessionService = inject(CheckoutSessionService);
+  private readonly metaService = inject(MetaService);
 
-  amountInCents = 1;
-  periodSeconds = 30;
+  checkoutSession: WritableSignal<CheckoutSession | null> = signal(null);
+  loading: WritableSignal<boolean> = signal(true);
 
-  async ConnectWallet() {
-    await this.solanaWalletService.Connect();
+  email = '';
+  phone = '';
+  saveInfo = true;
+
+  readonly walletAddress = PLACEHOLDER_WALLET_ADDRESS;
+
+  async ngOnInit(): Promise<void> {
+    const id = this.route.snapshot.paramMap.get('checkoutSessionId');
+    if (!id) return;
+    await this.LoadCheckoutSession(id);
+    this.metaService.SetMetaTitle(`${this.MerchantName()} - Checkout`);
   }
 
-  GetAddress() {
-    console.log(this.solanaWalletService.GetAddress());
+  private async LoadCheckoutSession(id: string): Promise<void> {
+    this.loading.set(true);
+    try {
+      const checkoutSession =
+        await this.checkoutSessionService.GetPublicCheckoutSession(id);
+      this.checkoutSession.set(checkoutSession);
+      this.email =
+        checkoutSession.customer_email ??
+        checkoutSession.customer_details?.email ??
+        '';
+    } finally {
+      this.loading.set(false);
+    }
   }
 
-  async Subscribe() {
-    const subscriberPublicKey = this.solanaWalletService.GetAddress();
-    const prepared = await this.subscriptionsService.CreateSubscription(
-      subscriberPublicKey,
-      this.amountInCents,
-      this.periodSeconds
-    );
-    const signature =
-      await this.solanaWalletService.SignAndSendUnsignedTransaction(
-        prepared.unsigned_transaction
-      );
-    console.log('signature bytes:', signature);
+  LineItems(): CheckoutSessionLineItem[] {
+    return this.checkoutSession()?.line_items?.data ?? [];
   }
 
-  async GetSubscription() {
-    const subscriberPublicKey = this.solanaWalletService.GetAddress();
-    const result = await this.subscriptionsService.GetSubscription(
-      subscriberPublicKey
+  MerchantName(): string {
+    return (
+      this.checkoutSession()?.branding_settings?.display_name || 'Zoneless'
     );
-    console.log(result);
   }
 
-  async CancelSubscription() {
-    const subscriberPublicKey = this.solanaWalletService.GetAddress();
-    const result = await this.subscriptionsService.CancelSubscription(
-      subscriberPublicKey
-    );
-    console.log(result);
-    const signature =
-      await this.solanaWalletService.SignAndSendUnsignedTransaction(
-        result.unsigned_transaction
-      );
-    console.log('signature bytes:', signature);
+  MerchantIconUrl(): string | null {
+    const branding = this.checkoutSession()?.branding_settings;
+    return branding?.icon?.url ?? branding?.logo?.url ?? null;
   }
 
-  async ChargeSubscription() {
-    const subscriberPublicKey = this.solanaWalletService.GetAddress();
-    const prepared = await this.subscriptionsService.ChargeSubscription(
-      subscriberPublicKey,
-      subscriberPublicKey
-    );
-    const signatureBytes =
-      await this.solanaWalletService.SignAndSendUnsignedTransaction(
-        prepared.unsigned_transaction
-      );
-    const signature = bs58.encode(signatureBytes);
-    console.log('signature:', signature);
-    const connection = new Connection(
-      'https://api.devnet.solana.com',
-      'confirmed'
-    );
-    const confirmation = await connection.confirmTransaction(
-      {
-        signature,
-        blockhash: prepared.blockhash,
-        lastValidBlockHeight: prepared.last_valid_block_height,
-      },
-      'confirmed'
-    );
-    console.log('confirmation:', confirmation);
-    const state = await this.subscriptionsService.GetSubscription(
-      subscriberPublicKey
-    );
-    console.log('updated subscription:', state);
+  LineItemImage(item: CheckoutSessionLineItem): string {
+    const product = item.price?.product;
+    if (product && typeof product === 'object') {
+      const image = (product as Product).images?.[0];
+      if (image) return image;
+    }
+    return '/assets/images/logos/usdc.svg';
   }
 
-  async GetSubscriptionDebugInfo() {
-    const subscriberPublicKey = this.solanaWalletService.GetAddress();
-    const result = await this.subscriptionsService.GetSubscriptionDebugInfo(
-      subscriberPublicKey
-    );
-    console.log(result);
+  FormatAmount(cents: number | null | undefined): string {
+    return `US$${((cents ?? 0) / 100).toFixed(2)}`;
+  }
+
+  DiscountAmount(): number {
+    return this.checkoutSession()?.total_details?.amount_discount ?? 0;
+  }
+
+  DiscountLabel(): string {
+    const discounts =
+      this.checkoutSession()?.total_details?.breakdown?.discounts ?? [];
+    const discount = discounts[0]?.discount;
+    return discount?.promotion_code ?? discount?.source?.coupon ?? 'Discount';
+  }
+
+  DiscountPercent(): number | null {
+    const subtotal = this.checkoutSession()?.amount_subtotal ?? 0;
+    const discount = this.DiscountAmount();
+    if (subtotal <= 0 || discount <= 0) return null;
+    return Math.round((discount / subtotal) * 100);
+  }
+
+  SubmitLabel(): string {
+    switch (this.checkoutSession()?.submit_type) {
+      case 'book':
+        return 'Book';
+      case 'donate':
+        return 'Donate';
+      case 'subscribe':
+        return 'Subscribe';
+      default:
+        return 'Pay';
+    }
   }
 }
