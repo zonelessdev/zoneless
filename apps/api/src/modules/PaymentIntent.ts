@@ -14,6 +14,7 @@ import { AccountModule } from './Account';
 import type { CustomerModule } from './Customer';
 import { GenerateId } from '../utils/IdGenerator';
 import {
+  EventType,
   PaymentIntent as PaymentIntentType,
   PaymentIntentAmountDetails,
   PaymentIntentAmountDetailsLineItem,
@@ -52,6 +53,40 @@ const CANCELABLE_STATUSES: ReadonlySet<PaymentIntentType['status']> = new Set([
   'requires_action',
   'processing',
 ]);
+
+/** Statuses from which a PaymentIntent may enter `requires_confirmation`. */
+const REQUIRES_CONFIRMATION_FROM: ReadonlySet<PaymentIntentType['status']> =
+  new Set(['requires_payment_method']);
+
+/** Statuses from which a PaymentIntent may enter `requires_action`. */
+const REQUIRES_ACTION_FROM: ReadonlySet<PaymentIntentType['status']> = new Set([
+  'requires_payment_method',
+  'requires_confirmation',
+]);
+
+/** Statuses from which a PaymentIntent may enter `processing`. */
+const PROCESSING_FROM: ReadonlySet<PaymentIntentType['status']> = new Set([
+  'requires_payment_method',
+  'requires_confirmation',
+  'requires_action',
+]);
+
+/** Statuses from which a PaymentIntent may succeed or fail. */
+const TERMINAL_ATTEMPT_FROM: ReadonlySet<PaymentIntentType['status']> = new Set(
+  [
+    'requires_payment_method',
+    'requires_confirmation',
+    'requires_action',
+    'processing',
+  ]
+);
+
+export type PaymentIntentLastPaymentError = NonNullable<
+  PaymentIntentType['last_payment_error']
+>;
+export type PaymentIntentNextAction = NonNullable<
+  PaymentIntentType['next_action']
+>;
 
 type AddressInput = NonNullable<
   NonNullable<CreatePaymentIntentInput['shipping']>['address']
@@ -452,38 +487,222 @@ export class PaymentIntentModule {
   ): Promise<PaymentIntentType> {
     const validatedInput = ValidateUpdate(CancelPaymentIntentSchema, input);
 
-    const previousPaymentIntent = await this.GetPaymentIntent(id);
-    if (!previousPaymentIntent) {
-      throw new AppError(
-        ERRORS.PAYMENT_INTENT_NOT_FOUND.message,
-        ERRORS.PAYMENT_INTENT_NOT_FOUND.status,
-        ERRORS.PAYMENT_INTENT_NOT_FOUND.type
-      );
+    return this.ApplyStatusTransition(id, {
+      eventType: 'payment_intent.canceled',
+      allowedFromStatuses: CANCELABLE_STATUSES,
+      invalidTransitionMessage: (status) =>
+        `PaymentIntent cannot be canceled because it has status: ${status}`,
+      updatePayload: {
+        status: 'canceled',
+        canceled_at: Now(),
+        cancellation_reason: validatedInput.cancellation_reason ?? null,
+        next_action: null,
+        // Stripe refunds remaining capturable amount; until charges exist we zero it.
+        amount_capturable: 0,
+      },
+    });
+  }
+
+  /**
+   * Mark a PaymentIntent as ready to confirm after the customer has provided
+   * payment details (e.g. connected a wallet). Mirrors Stripe's transition
+   * into `requires_confirmation`. Stripe has no dedicated webhook for this
+   * status, so we emit `payment_intent.updated` with `previous_attributes`.
+   * Idempotent when already in `requires_confirmation`.
+   */
+  async MarkRequiresConfirmation(
+    id: string,
+    options: { paymentMethod?: string | null } = {}
+  ): Promise<PaymentIntentType> {
+    const previous = await this.RequirePaymentIntent(id);
+
+    if (previous.status === 'requires_confirmation') {
+      if (options.paymentMethod !== undefined) {
+        await this.db.Update<PaymentIntentType>('PaymentIntents', id, {
+          payment_method: options.paymentMethod,
+          last_payment_error: null,
+        });
+        return (await this.GetPaymentIntent(id))!;
+      }
+      return previous;
     }
 
-    if (!CANCELABLE_STATUSES.has(previousPaymentIntent.status)) {
+    const updatePayload: Partial<PaymentIntentType> = {
+      status: 'requires_confirmation',
+      next_action: null,
+      last_payment_error: null,
+    };
+    if (options.paymentMethod !== undefined) {
+      updatePayload.payment_method = options.paymentMethod;
+    }
+
+    return this.ApplyStatusTransition(id, {
+      eventType: 'payment_intent.updated',
+      allowedFromStatuses: REQUIRES_CONFIRMATION_FROM,
+      updatePayload,
+      previousAttributes: ExtractChangedFields(
+        previous as unknown as Record<string, unknown>,
+        updatePayload as Record<string, unknown>
+      ),
+    });
+  }
+
+  /**
+   * Mark a PaymentIntent as requiring additional customer action (e.g. 3DS)
+   * and emit `payment_intent.requires_action`. Not used by the standard USDC
+   * wallet checkout path — that uses `requires_confirmation` instead.
+   * Idempotent when already in `requires_action`: updates `next_action`
+   * without re-emitting.
+   */
+  async MarkRequiresAction(
+    id: string,
+    nextAction: PaymentIntentNextAction
+  ): Promise<PaymentIntentType> {
+    const previous = await this.RequirePaymentIntent(id);
+
+    if (previous.status === 'requires_action') {
+      await this.db.Update<PaymentIntentType>('PaymentIntents', id, {
+        next_action: nextAction,
+        last_payment_error: null,
+      });
+      return (await this.GetPaymentIntent(id))!;
+    }
+
+    return this.ApplyStatusTransition(id, {
+      eventType: 'payment_intent.requires_action',
+      allowedFromStatuses: REQUIRES_ACTION_FROM,
+      updatePayload: {
+        status: 'requires_action',
+        next_action: nextAction,
+        last_payment_error: null,
+      },
+    });
+  }
+
+  /**
+   * Mark a PaymentIntent as processing (on-chain confirmation in flight)
+   * and emit `payment_intent.processing`. Idempotent when already processing.
+   */
+  async MarkProcessing(id: string): Promise<PaymentIntentType> {
+    const previous = await this.RequirePaymentIntent(id);
+    if (previous.status === 'processing') {
+      return previous;
+    }
+
+    return this.ApplyStatusTransition(id, {
+      eventType: 'payment_intent.processing',
+      allowedFromStatuses: PROCESSING_FROM,
+      updatePayload: {
+        status: 'processing',
+        next_action: null,
+        last_payment_error: null,
+      },
+    });
+  }
+
+  /**
+   * Mark a PaymentIntent as succeeded and emit `payment_intent.succeeded`.
+   * Idempotent when already succeeded.
+   */
+  async MarkSucceeded(
+    id: string,
+    options: { amountReceived?: number; latestCharge?: string | null } = {}
+  ): Promise<PaymentIntentType> {
+    const previous = await this.RequirePaymentIntent(id);
+    if (previous.status === 'succeeded') {
+      return previous;
+    }
+
+    return this.ApplyStatusTransition(id, {
+      eventType: 'payment_intent.succeeded',
+      allowedFromStatuses: TERMINAL_ATTEMPT_FROM,
+      updatePayload: {
+        status: 'succeeded',
+        amount_received: options.amountReceived ?? previous.amount,
+        latest_charge: options.latestCharge ?? previous.latest_charge,
+        next_action: null,
+        last_payment_error: null,
+      },
+    });
+  }
+
+  /**
+   * Record a failed payment attempt: set `last_payment_error`, return the
+   * PaymentIntent to `requires_payment_method` so the customer can retry,
+   * and emit `payment_intent.payment_failed`.
+   */
+  async MarkPaymentFailed(
+    id: string,
+    lastPaymentError: PaymentIntentLastPaymentError
+  ): Promise<PaymentIntentType> {
+    return this.ApplyStatusTransition(id, {
+      eventType: 'payment_intent.payment_failed',
+      allowedFromStatuses: TERMINAL_ATTEMPT_FROM,
+      updatePayload: {
+        status: 'requires_payment_method',
+        last_payment_error: lastPaymentError,
+        next_action: null,
+      },
+    });
+  }
+
+  /**
+   * Persist a status transition and emit the corresponding lifecycle event.
+   * Shared by cancel / requires_confirmation / requires_action / processing /
+   * succeeded / payment_failed.
+   */
+  private async ApplyStatusTransition(
+    id: string,
+    options: {
+      eventType: EventType;
+      allowedFromStatuses: ReadonlySet<PaymentIntentType['status']>;
+      updatePayload: Partial<PaymentIntentType>;
+      previousAttributes?: Record<string, unknown>;
+      invalidTransitionMessage?: (
+        status: PaymentIntentType['status']
+      ) => string;
+    }
+  ): Promise<PaymentIntentType> {
+    const previousPaymentIntent = await this.RequirePaymentIntent(id);
+
+    if (!options.allowedFromStatuses.has(previousPaymentIntent.status)) {
       throw new AppError(
-        `PaymentIntent cannot be canceled because it has status: ${previousPaymentIntent.status}`,
+        options.invalidTransitionMessage?.(previousPaymentIntent.status) ??
+          `PaymentIntent cannot transition to '${options.updatePayload.status}' from status '${previousPaymentIntent.status}'.`,
         ERRORS.INVALID_REQUEST.status,
         ERRORS.INVALID_REQUEST.type
       );
     }
 
-    const updatePayload: Partial<PaymentIntentType> = {
-      status: 'canceled',
-      canceled_at: Now(),
-      cancellation_reason: validatedInput.cancellation_reason ?? null,
-      next_action: null,
-      // Stripe refunds remaining capturable amount; until charges exist we zero it.
-      amount_capturable: 0,
-    };
-
     await this.db.Update<PaymentIntentType>(
       'PaymentIntents',
       id,
-      updatePayload
+      options.updatePayload
     );
 
+    const paymentIntent = await this.RequirePaymentIntent(id);
+
+    if (this.eventService) {
+      if (options.previousAttributes) {
+        await this.eventService.Emit(
+          options.eventType,
+          paymentIntent.platform_account,
+          paymentIntent,
+          { previousAttributes: options.previousAttributes }
+        );
+      } else {
+        await this.eventService.Emit(
+          options.eventType,
+          paymentIntent.platform_account,
+          paymentIntent
+        );
+      }
+    }
+
+    return paymentIntent;
+  }
+
+  private async RequirePaymentIntent(id: string): Promise<PaymentIntentType> {
     const paymentIntent = await this.GetPaymentIntent(id);
     if (!paymentIntent) {
       throw new AppError(
@@ -492,15 +711,6 @@ export class PaymentIntentModule {
         ERRORS.PAYMENT_INTENT_NOT_FOUND.type
       );
     }
-
-    if (this.eventService) {
-      await this.eventService.Emit(
-        'payment_intent.canceled',
-        paymentIntent.platform_account,
-        paymentIntent
-      );
-    }
-
     return paymentIntent;
   }
 
