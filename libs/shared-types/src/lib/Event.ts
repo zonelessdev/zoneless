@@ -7,6 +7,7 @@ import { CheckoutSession } from './CheckoutSession';
 import { Customer } from './Customer';
 import { ExternalWallet } from './ExternalWallet';
 import { IdempotencyKey } from './IdempotencyKey';
+import { PaymentIntent } from './PaymentIntent';
 import { Payout } from './Payout';
 import { Person } from './Person';
 import { Price } from './Price';
@@ -54,6 +55,15 @@ export const EVENT_TYPES = [
   'external_account.created',
   'external_account.updated',
   'external_account.deleted',
+
+  // PaymentIntent events
+  'payment_intent.created',
+  'payment_intent.updated',
+  'payment_intent.canceled',
+  'payment_intent.payment_failed',
+  'payment_intent.processing',
+  'payment_intent.requires_action',
+  'payment_intent.succeeded',
 
   // Payout events
   'payout.created',
@@ -106,6 +116,7 @@ export type EventDataObject =
   | Customer
   | ExternalWallet
   | IdempotencyKey
+  | PaymentIntent
   | Payout
   | Person
   | Price

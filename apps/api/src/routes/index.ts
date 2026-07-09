@@ -26,6 +26,7 @@ import pricesRouter from './prices.routes';
 import customersRouter from './customers.routes';
 import checkoutSessionsRouter from './checkoutSessions.routes';
 import paymentPagesRouter from './paymentPages.routes';
+import paymentIntentsRouter from './paymentIntents.routes';
 
 const router = express.Router();
 
@@ -71,4 +72,5 @@ router.use('/products', productsRouter);
 router.use('/prices', pricesRouter);
 router.use('/customers', customersRouter);
 router.use('/checkout/sessions', checkoutSessionsRouter);
+router.use('/payment_intents', paymentIntentsRouter);
 export default router;

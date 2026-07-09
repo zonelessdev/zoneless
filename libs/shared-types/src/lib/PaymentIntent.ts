@@ -1,4 +1,42 @@
 /**
+ * A line item stored under PaymentIntent.amount_details.
+ * @see https://docs.stripe.com/api/payment_intents/amount_details_line_items
+ */
+export interface PaymentIntentAmountDetailsLineItem {
+  id: string;
+  object: 'payment_intent_amount_details_line_item';
+  discount_amount: number | null;
+  payment_method_options: object | null;
+  product_code: string | null;
+  product_name: string;
+  quantity: number;
+  tax: {
+    total_tax_amount: number;
+  } | null;
+  unit_cost: number;
+  unit_of_measure: string | null;
+}
+
+/**
+ * Industry-specific amount breakdown on a PaymentIntent.
+ */
+export interface PaymentIntentAmountDetails {
+  tip?: object;
+  discount_amount?: number;
+  enforce_arithmetic_validation?: boolean;
+  line_items?: PaymentIntentAmountDetailsLineItem[];
+  shipping?: {
+    amount?: number;
+    from_postal_code?: string;
+    to_postal_code?: string;
+  };
+  tax?: {
+    total_tax_amount: number;
+  };
+  [key: string]: unknown;
+}
+
+/**
  * Stripe-compatible Payment Intent object for Zoneless.
  * Represents a payment intent.
  *
@@ -81,7 +119,7 @@ export interface PaymentIntent {
     | 'succeeded';
   object: 'payment_intent';
   amount_capturable: number;
-  amount_details: object | null;
+  amount_details: PaymentIntentAmountDetails | null;
   amount_received: number;
   application: string | null;
   application_fee_amount: number | null;
