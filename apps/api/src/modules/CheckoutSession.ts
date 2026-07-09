@@ -540,6 +540,114 @@ export class CheckoutSessionModule {
   }
 
   /**
+   * Complete a checkout session after a verified payment. Only sessions with
+   * an `open` status can be completed. Records the on-chain payment details
+   * and emits a 'checkout.session.completed' event if EventService is
+   * configured.
+   *
+   * @param id - The checkout session ID
+   * @param paymentDetails - The verified on-chain payment details
+   * @returns The completed CheckoutSession
+   */
+  async CompleteCheckoutSession(
+    id: string,
+    paymentDetails: {
+      transaction_signature: string;
+      payer_wallet: string | null;
+    }
+  ): Promise<CheckoutSessionType> {
+    const previousSession = await this.GetCheckoutSession(id);
+    if (!previousSession) {
+      throw new AppError(
+        ERRORS.CHECKOUT_SESSION_NOT_FOUND.message,
+        ERRORS.CHECKOUT_SESSION_NOT_FOUND.status,
+        ERRORS.CHECKOUT_SESSION_NOT_FOUND.type
+      );
+    }
+
+    if (previousSession.status !== 'open') {
+      throw new AppError(
+        'Only Checkout Sessions with an `open` status can be completed',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    // The session url is only present while the session is active.
+    await this.db.Update<CheckoutSessionType>('CheckoutSessions', id, {
+      status: 'complete',
+      payment_status: 'paid',
+      url: null,
+      payment_details: paymentDetails,
+    });
+
+    const session = await this.GetCheckoutSession(id);
+    if (!session) {
+      throw new AppError(
+        ERRORS.CHECKOUT_SESSION_NOT_FOUND.message,
+        ERRORS.CHECKOUT_SESSION_NOT_FOUND.status,
+        ERRORS.CHECKOUT_SESSION_NOT_FOUND.type
+      );
+    }
+
+    if (this.eventService) {
+      await this.eventService.Emit(
+        'checkout.session.completed',
+        session.platform_account,
+        session
+      );
+    }
+
+    return session;
+  }
+
+  /**
+   * Record the customer's email on an open checkout session. Collected on
+   * the hosted checkout page before payment.
+   *
+   * @param id - The checkout session ID
+   * @param email - The customer's email address
+   */
+  async SetCustomerEmail(id: string, email: string): Promise<void> {
+    const session = await this.GetCheckoutSession(id);
+    if (!session || session.status !== 'open') return;
+
+    await this.db.Update<CheckoutSessionType>('CheckoutSessions', id, {
+      customer_email: email,
+      customer_details: {
+        address: session.customer_details?.address ?? null,
+        business_name: session.customer_details?.business_name ?? null,
+        email,
+        individual_name: session.customer_details?.individual_name ?? null,
+        name: session.customer_details?.name ?? null,
+        phone: session.customer_details?.phone ?? null,
+        tax_exempt: session.customer_details?.tax_exempt ?? 'none',
+        tax_ids: session.customer_details?.tax_ids ?? null,
+      },
+    });
+  }
+
+  /**
+   * Find the checkout session that recorded a given payment transaction
+   * signature. Used to prevent the same on-chain payment from completing
+   * more than one session.
+   *
+   * @param signature - The Solana transaction signature
+   * @returns The CheckoutSession if one recorded this signature, null otherwise
+   */
+  async GetCheckoutSessionByTransactionSignature(
+    signature: string
+  ): Promise<CheckoutSessionType | null> {
+    const sessions = await this.db.FindCustom<CheckoutSessionType>(
+      'CheckoutSessions',
+      'payment_details.transaction_signature',
+      '==',
+      signature
+    );
+    return sessions?.[0] ?? null;
+  }
+
+  /**
    * List checkout sessions
    */
   async ListCheckoutSessions(

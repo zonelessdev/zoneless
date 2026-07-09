@@ -2,7 +2,6 @@
 
 @if (checkoutSession(); as session) {
 <div class="checkout-page">
-  <!-- Order summary (left) -->
   <aside class="order-summary">
     <div class="order-summary-content">
       <div class="summary-header">
@@ -29,11 +28,13 @@
       <div class="line-items">
         @for (item of LineItems(); track item.id) {
         <div class="line-item">
+          @if (LineItemImage(item); as imageUrl) {
           <img
             class="line-item-image"
-            [src]="LineItemImage(item)"
+            [src]="imageUrl"
             [alt]="item.description ?? 'Line item'"
           />
+          }
           <div class="line-item-details">
             <div class="line-item-name">{{ item.description }}</div>
             @if ((item.quantity ?? 1) > 1) {
@@ -78,22 +79,8 @@
     </div>
   </aside>
 
-  <!-- Payment form (right) -->
   <main class="payment-panel">
     <div class="payment-content">
-      <div class="express-checkout">
-        <button type="button" class="wallet-button wallet-button-phantom">
-          <img src="/assets/icons/phantom-wallet.svg" alt="" />
-          Phantom
-        </button>
-        <button type="button" class="wallet-button wallet-button-solana">
-          <img src="/assets/images/logos/solana.svg" alt="" />
-          Solana Pay
-        </button>
-      </div>
-
-      <div class="divider"><span>OR</span></div>
-
       <div class="form-section">
         <div class="section-label">Contact information</div>
         <label class="contact-box">
@@ -117,54 +104,55 @@
           </label>
 
           <div class="method-detail">
-            <div class="method-detail-label">Send USDC on Solana to</div>
-            <div class="wallet-address">{{ walletAddress }}</div>
+            <div class="method-detail-label">Paying with USDC on Solana to</div>
+            <div class="wallet-address">{{ MerchantWalletAddress() }}</div>
             <div class="method-detail-help">
-              Send exactly {{ FormatAmount(session.amount_total) }} in USDC to
-              this address to complete your payment.
+              Connect your wallet and approve the payment of
+              {{ FormatAmount(session.amount_total) }} in USDC.
             </div>
           </div>
-
-          <label class="method-option">
-            <input type="radio" name="payment-method" />
-            <img src="/assets/icons/account_balance_wallet.svg" alt="" />
-            Connected wallet
-            <span class="method-option-note">Powered by Solana</span>
-          </label>
         </div>
       </div>
 
-      <!-- <div class="save-info-box">
-        <label class="save-info-header custom-checkbox">
-          <input type="checkbox" name="save-info" [(ngModel)]="saveInfo" />
-          <span class="checkmark"></span>
-          <span class="save-info-copy">
-            <span class="save-info-title">
-              Save my information for faster checkout
-            </span>
-            <span class="save-info-text">
-              Pay securely at {{ MerchantName() }} and everywhere Zoneless is
-              accepted.
-            </span>
+      <button
+        type="button"
+        class="action-button action-button-wide pay-button"
+        [class.pay-button-processing]="IsBusy()"
+        [class.pay-button-success]="IsComplete()"
+        [disabled]="IsBusy() || IsComplete()"
+        (click)="Pay()"
+      >
+        @if (IsComplete()) {
+        <span class="pay-button-icon pay-button-check">
+          <img src="/assets/icons/check.svg" alt="" />
+        </span>
+        } @else if (IsBusy()) {
+        <span class="pay-button-processing-label">
+          {{ BusyLabel() }}
+          <span class="pay-button-icon pay-button-spinner">
+            <app-loader size="small" color="light"></app-loader>
           </span>
-        </label>
-
-        @if (saveInfo) {
-        <input
-          type="tel"
-          name="phone"
-          [(ngModel)]="phone"
-          placeholder="(201) 555-0123"
-        />
-        }
-      </div> -->
-
-      <button type="button" class="action-button action-button-wide pay-button">
+        </span>
+        } @else {
         {{ SubmitLabel() }}
+        }
       </button>
 
+      @if (paymentError(); as errorMessage) {
+      <div class="payment-error">{{ errorMessage }}</div>
+      }
+
       <div class="fine-print">
-        By paying, you agree to Zoneless's <a>Terms</a> and <a>Privacy</a>.
+        By paying, you agree to {{ MerchantName() }}'s @if (MerchantTermsUrl();
+        as termsUrl) {
+        <a [href]="termsUrl" target="_blank" rel="noopener">Terms</a>
+        } @else {
+        <a>Terms</a>
+        } and @if (MerchantPrivacyUrl(); as privacyUrl) {
+        <a [href]="privacyUrl" target="_blank" rel="noopener">Privacy</a>
+        } @else {
+        <a>Privacy</a>
+        }.
       </div>
 
       <div class="payment-footer">

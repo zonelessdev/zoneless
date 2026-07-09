@@ -57,7 +57,8 @@ export class SolanaWalletService {
   }
 
   async SignAndSendUnsignedTransaction(
-    unsignedTxBase64: string
+    unsignedTxBase64: string,
+    chain: 'solana:devnet' | 'solana:mainnet' = 'solana:devnet'
   ): Promise<Uint8Array> {
     const selectedWallet = this.wallet();
     const connectedAccount = this.account();

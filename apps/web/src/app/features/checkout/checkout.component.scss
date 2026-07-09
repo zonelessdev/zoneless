@@ -225,11 +225,6 @@
   color: #1c1c1c;
 }
 
-.wallet-button-solana {
-  background-color: #000000;
-  color: $background-color;
-}
-
 .divider {
   display: flex;
   align-items: center;
@@ -320,13 +315,6 @@
   }
 }
 
-.method-option-note {
-  margin-left: auto;
-  font-size: $font-size-small;
-  font-weight: $text-weight;
-  opacity: $dimmed-extra;
-}
-
 .method-detail {
   padding: 0 $spacing $spacing;
 }
@@ -353,48 +341,86 @@
   margin-top: $spacing-small;
 }
 
-.save-info-box {
-  border: 1px solid $darkest-background-color;
-  border-radius: $border-radius;
-  padding: $spacing;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing;
-}
-
-.save-info-header {
-  display: flex;
-  align-items: flex-start;
-  gap: $spacing-small;
-  cursor: pointer;
-
-  .checkmark {
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-}
-
-.save-info-copy {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-extra-small;
-}
-
-.save-info-title {
-  font-size: $font-size;
-  font-weight: $medium-weight;
-}
-
-.save-info-text {
-  font-size: $font-size-small;
-  opacity: $dimmed-extra;
-}
-
 .pay-button {
   margin-top: $spacing-plus;
   justify-content: center;
+  align-items: center;
   font-size: $font-size-med;
-  padding: $spacing-snug $spacing;
+  padding: 0 $spacing;
+  height: 48px;
+  line-height: 1;
+  transition: background-color 0.25s ease, transform $transition,
+    box-shadow $transition;
+
+  &:disabled {
+    cursor: default;
+    pointer-events: none;
+  }
+
+  &:disabled:not(.pay-button-success):not(.pay-button-processing) {
+    opacity: $dimmed;
+  }
+
+  &.pay-button-processing,
+  &.pay-button-success {
+    opacity: 1;
+    transform: none;
+    box-shadow: none;
+  }
+
+  &.pay-button-success {
+    background-color: #54b484;
+    background-image: none;
+  }
+}
+
+.pay-button-processing-label {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-small;
+}
+
+.pay-button-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  animation: payIconSlideIn 0.35s ease;
+}
+
+.pay-button-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid $background-color;
+
+  img {
+    width: 14px;
+    height: 14px;
+    filter: brightness(0) invert(1);
+  }
+}
+
+@keyframes payIconSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.payment-error {
+  margin-top: $spacing;
+  padding: $spacing-small $spacing-snug;
+  border-radius: $border-radius-small;
+  background-color: rgba(223, 27, 65, 0.08);
+  color: #df1b41;
+  font-size: $font-size-small;
 }
 
 .fine-print {

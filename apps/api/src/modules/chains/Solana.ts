@@ -22,10 +22,27 @@ import bs58 from 'bs58';
 import {
   getAssociatedTokenAddress,
   createTransferInstruction,
+  createTransferCheckedInstruction,
   createAssociatedTokenAccountIdempotentInstruction,
   createApproveCheckedInstruction,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
+
+/** SPL Memo program, used to bind a payment transaction to a checkout session. */
+const MEMO_PROGRAM_ID = new PublicKey(
+  'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'
+);
+
+/** Result of verifying a checkout payment transaction on-chain */
+export interface CheckoutPaymentVerification {
+  verified: boolean;
+  /** Total USDC (in cents) transferred to the merchant in this transaction */
+  amount_cents: number;
+  /** The payer's wallet address (transfer authority) */
+  payer_address: string | null;
+  /** Reason verification failed, if it did */
+  failure_reason?: string;
+}
 
 /** Represents a single recipient in a batch USDC transfer */
 export interface TransferRecipient {
@@ -580,6 +597,235 @@ export class Solana {
     }
 
     return null;
+  }
+
+  /**
+   * Build an unsigned one-time USDC payment transaction for a checkout session.
+   * Transfers the session total from the payer to the merchant wallet and
+   * attaches an SPL Memo with the checkout session ID so the payment can be
+   * unambiguously matched to the session during verification.
+   *
+   * @param payerPublicKey - The customer's wallet public key (fee payer and source)
+   * @param merchantWalletAddress - The merchant's wallet address (destination)
+   * @param amountInCents - Payment amount in cents (1 cent = 10,000 USDC atomic units)
+   * @param checkoutSessionId - The checkout session ID to embed in the memo
+   * @returns Object containing the unsigned transaction (base64), fee estimate, and blockhash
+   */
+  async BuildCheckoutPaymentTransaction(
+    payerPublicKey: string,
+    merchantWalletAddress: string,
+    amountInCents: number,
+    checkoutSessionId: string
+  ): Promise<{
+    unsigned_transaction: string;
+    estimated_fee_lamports: number;
+    blockhash: string;
+    last_valid_block_height: number;
+  }> {
+    if (!payerPublicKey) {
+      throw new Error('Payer public key is required');
+    }
+    if (!merchantWalletAddress) {
+      throw new Error('Merchant wallet address is required');
+    }
+    if (!Number.isInteger(amountInCents) || amountInCents <= 0) {
+      throw new Error('Amount must be a positive integer number of cents');
+    }
+    if (!checkoutSessionId) {
+      throw new Error('Checkout session ID is required');
+    }
+
+    const payer = new PublicKey(payerPublicKey);
+    const merchant = new PublicKey(merchantWalletAddress);
+    const usdcMint = new PublicKey(this.GetUSDCMintAddress());
+
+    const payerTokenAccount = await getAssociatedTokenAddress(usdcMint, payer);
+    const merchantTokenAccount = await getAssociatedTokenAddress(
+      usdcMint,
+      merchant
+    );
+
+    // Convert cents to USDC atomic units (6 decimals => 1 cent = 10,000 units)
+    const amountInSmallestUnit = amountInCents * 10_000;
+
+    const transaction = new Transaction();
+
+    // Ensure the merchant's USDC token account exists (payer funds rent if not)
+    transaction.add(
+      createAssociatedTokenAccountIdempotentInstruction(
+        payer,
+        merchantTokenAccount,
+        merchant,
+        usdcMint
+      )
+    );
+
+    transaction.add(
+      createTransferCheckedInstruction(
+        payerTokenAccount,
+        usdcMint,
+        merchantTokenAccount,
+        payer,
+        amountInSmallestUnit,
+        6
+      )
+    );
+
+    // Memo binds this transaction to the checkout session
+    transaction.add(
+      new TransactionInstruction({
+        programId: MEMO_PROGRAM_ID,
+        keys: [],
+        data: Buffer.from(checkoutSessionId, 'utf8'),
+      })
+    );
+
+    const { blockhash, lastValidBlockHeight } = await this.WithRetry(() =>
+      this.connection.getLatestBlockhash('confirmed')
+    );
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = payer;
+
+    const fee = await this.WithRetry(() =>
+      this.connection.getFeeForMessage(
+        transaction.compileMessage(),
+        'confirmed'
+      )
+    );
+
+    const serializedTransaction = transaction
+      .serialize({ requireAllSignatures: false })
+      .toString('base64');
+
+    return {
+      unsigned_transaction: serializedTransaction,
+      estimated_fee_lamports: fee.value || 0,
+      blockhash,
+      last_valid_block_height: lastValidBlockHeight,
+    };
+  }
+
+  /**
+   * Verify that a broadcast transaction is a valid payment for a checkout
+   * session: it succeeded, transferred at least the expected USDC amount to
+   * the merchant's token account, and carries the session ID memo.
+   *
+   * Polls until the transaction is visible at 'confirmed' commitment or a
+   * timeout is reached (the customer's wallet broadcasts the transaction, so
+   * it may not be queryable immediately).
+   *
+   * @param signature - The transaction signature to verify
+   * @param expected - Expected merchant wallet, amount, and session ID
+   * @returns Verification result with the payer address on success
+   */
+  async VerifyCheckoutPayment(
+    signature: string,
+    expected: {
+      merchantWalletAddress: string;
+      amountInCents: number;
+      checkoutSessionId: string;
+    }
+  ): Promise<CheckoutPaymentVerification> {
+    const merchant = new PublicKey(expected.merchantWalletAddress);
+    const usdcMint = new PublicKey(this.GetUSDCMintAddress());
+    const merchantTokenAccount = await getAssociatedTokenAddress(
+      usdcMint,
+      merchant
+    );
+    const merchantTokenAccountStr = merchantTokenAccount.toBase58();
+
+    // Poll for the transaction to reach 'confirmed' commitment
+    const maxAttempts = 15;
+    let tx: ParsedTransactionWithMeta | null = null;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      tx = await this.GetParsedTransaction(signature);
+      if (tx) break;
+      await Sleep(RPC_DELAY_MS);
+    }
+
+    if (!tx || !tx.meta) {
+      return {
+        verified: false,
+        amount_cents: 0,
+        payer_address: null,
+        failure_reason:
+          'Transaction not found on-chain (may not be confirmed yet)',
+      };
+    }
+
+    if (tx.meta.err) {
+      return {
+        verified: false,
+        amount_cents: 0,
+        payer_address: null,
+        failure_reason: `Transaction failed on-chain: ${JSON.stringify(
+          tx.meta.err
+        )}`,
+      };
+    }
+
+    let transferredAtomic = 0;
+    let payerAddress: string | null = null;
+    let memoMatches = false;
+
+    for (const instruction of tx.transaction.message.instructions) {
+      if (!('parsed' in instruction)) continue;
+
+      if (instruction.program === 'spl-token') {
+        const parsed = instruction.parsed;
+        if (parsed.type !== 'transfer' && parsed.type !== 'transferChecked') {
+          continue;
+        }
+
+        const info = parsed.info;
+        if (info.destination !== merchantTokenAccountStr) continue;
+
+        // transferChecked carries the mint; reject transfers of other tokens
+        if (info.mint && info.mint !== usdcMint.toBase58()) continue;
+
+        const amountRaw =
+          parsed.type === 'transferChecked'
+            ? info.tokenAmount?.amount || '0'
+            : info.amount || '0';
+
+        transferredAtomic += parseInt(amountRaw, 10);
+        payerAddress = info.authority || info.source || payerAddress;
+      }
+
+      if (instruction.program === 'spl-memo') {
+        // Parsed memo instructions expose the memo string directly
+        if (instruction.parsed === expected.checkoutSessionId) {
+          memoMatches = true;
+        }
+      }
+    }
+
+    const transferredCents = Math.floor(transferredAtomic / 10_000);
+
+    if (!memoMatches) {
+      return {
+        verified: false,
+        amount_cents: transferredCents,
+        payer_address: payerAddress,
+        failure_reason:
+          'Transaction does not reference this checkout session (memo missing or mismatched)',
+      };
+    }
+
+    if (transferredAtomic < expected.amountInCents * 10_000) {
+      return {
+        verified: false,
+        amount_cents: transferredCents,
+        payer_address: payerAddress,
+        failure_reason: `Insufficient amount: expected ${expected.amountInCents} cents, received ${transferredCents} cents`,
+      };
+    }
+
+    return {
+      verified: true,
+      amount_cents: transferredCents,
+      payer_address: payerAddress,
+    };
   }
 
   async CreateSubscription(
