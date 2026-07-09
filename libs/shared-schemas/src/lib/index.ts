@@ -7,6 +7,7 @@ export * from './CustomerSchema';
 export * from './EventSchema';
 export * from './ExpandableSchema';
 export * from './ExternalWalletSchema';
+export * from './PaymentIntentSchema';
 export * from './PayoutSchema';
 export * from './PersonSchema';
 export * from './PriceSchema';
