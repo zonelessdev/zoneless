@@ -10,6 +10,7 @@ import { EventService } from '../modules/EventService';
 import { PriceModule } from '../modules/Price';
 import { ProductModule } from '../modules/Product';
 import { CustomerModule } from '../modules/Customer';
+import { PaymentIntentModule } from '../modules/PaymentIntent';
 import { ListHelper } from '../utils/ListHelper';
 import {
   CreateMockDatabase,
@@ -86,6 +87,7 @@ describe('CheckoutSessionModule', () => {
   let module: CheckoutSessionModule;
   let mockDb: jest.Mocked<Database>;
   let eventService: jest.Mocked<EventService>;
+  let paymentIntentModule: PaymentIntentModule;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -98,12 +100,18 @@ describe('CheckoutSessionModule', () => {
     const productModule = new ProductModule(mockDb);
     const priceModule = new PriceModule(mockDb, undefined, productModule);
     const customerModule = new CustomerModule(mockDb);
+    paymentIntentModule = new PaymentIntentModule(
+      mockDb,
+      eventService,
+      customerModule
+    );
     module = new CheckoutSessionModule(
       mockDb,
       eventService,
       priceModule,
       productModule,
-      customerModule
+      customerModule,
+      paymentIntentModule
     );
   });
 
@@ -254,7 +262,7 @@ describe('CheckoutSessionModule', () => {
   });
 
   describe('CreateCheckoutSession', () => {
-    it('should resolve line item prices and persist the session', async () => {
+    it('should resolve line item prices, create a PaymentIntent, and persist the session', async () => {
       mockDb.Get = jest
         .fn()
         .mockImplementation(async (collection: string, id: string) => {
@@ -274,10 +282,22 @@ describe('CheckoutSessionModule', () => {
       });
 
       expect(mockDb.Set).toHaveBeenCalledWith(
+        'PaymentIntents',
+        expect.stringContaining('pi_z'),
+        expect.objectContaining({
+          object: 'payment_intent',
+          amount: 2000,
+          currency: 'usdc',
+          status: 'requires_payment_method',
+          platform_account: 'acct_z_platform',
+        })
+      );
+      expect(mockDb.Set).toHaveBeenCalledWith(
         'CheckoutSessions',
         session.id,
         session
       );
+      expect(session.payment_intent).toEqual(expect.stringContaining('pi_z'));
       expect(session.line_items?.data).toEqual([
         expect.objectContaining({
           object: 'item',
@@ -291,6 +311,70 @@ describe('CheckoutSessionModule', () => {
       ]);
       expect(session.amount_subtotal).toBe(2000);
       expect(session.amount_total).toBe(2000);
+      expect(eventService.Emit).toHaveBeenCalledWith(
+        'payment_intent.created',
+        'acct_z_platform',
+        expect.objectContaining({
+          id: session.payment_intent,
+          amount: 2000,
+          status: 'requires_payment_method',
+        })
+      );
+      expect(eventService.Emit).toHaveBeenCalledTimes(1);
+    });
+
+    it('should pass payment_intent_data through to the linked PaymentIntent', async () => {
+      mockDb.Get = jest
+        .fn()
+        .mockImplementation(async (collection: string, id: string) => {
+          if (collection === 'Prices' && id === 'price_z_1') {
+            return BuildPrice();
+          }
+          if (collection === 'Products' && id === 'prod_z_1') {
+            return { id: 'prod_z_1', name: 'Test Product' } as Product;
+          }
+          return null;
+        });
+
+      const session = await module.CreateCheckoutSession('acct_z_platform', {
+        mode: 'payment',
+        success_url: 'https://example.com/success',
+        line_items: [{ price: 'price_z_1', quantity: 1 }],
+        payment_intent_data: {
+          description: 'Order #42',
+          metadata: { order_id: '42' },
+          statement_descriptor: 'ZONELESS',
+        },
+      });
+
+      expect(mockDb.Set).toHaveBeenCalledWith(
+        'PaymentIntents',
+        session.payment_intent,
+        expect.objectContaining({
+          description: 'Order #42',
+          metadata: { order_id: '42' },
+          statement_descriptor: 'ZONELESS',
+        })
+      );
+    });
+
+    it('should not create a PaymentIntent in setup mode', async () => {
+      const session = await module.CreateCheckoutSession('acct_z_platform', {
+        mode: 'setup',
+        success_url: 'https://example.com/success',
+      });
+
+      expect(session.payment_intent).toBeNull();
+      expect(mockDb.Set).toHaveBeenCalledWith(
+        'CheckoutSessions',
+        session.id,
+        session
+      );
+      expect(mockDb.Set).not.toHaveBeenCalledWith(
+        'PaymentIntents',
+        expect.anything(),
+        expect.anything()
+      );
       expect(eventService.Emit).not.toHaveBeenCalled();
     });
 
@@ -539,7 +623,72 @@ describe('CheckoutSessionModule', () => {
   });
 
   describe('ExpireCheckoutSession', () => {
-    it('should expire an open session and emit checkout.session.expired', async () => {
+    it('should expire an open session, cancel its PaymentIntent, and emit events', async () => {
+      const openSession = {
+        ...BuildOpenSession(),
+        payment_intent: 'pi_z_1',
+      };
+      const paymentIntent = paymentIntentModule.PaymentIntentObject(
+        'acct_z_platform',
+        { amount: 1000, currency: 'usdc' }
+      );
+      paymentIntent.id = 'pi_z_1';
+      const canceledPaymentIntent = {
+        ...paymentIntent,
+        status: 'canceled' as const,
+        canceled_at: GetFixedTimestamp(),
+        cancellation_reason: 'abandoned' as const,
+        next_action: null,
+        amount_capturable: 0,
+      };
+      const expiredSession = { ...openSession, status: 'expired', url: null };
+
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValueOnce(openSession)
+        // CancelPaymentIntent: RequirePaymentIntent before + after update
+        .mockResolvedValueOnce(paymentIntent)
+        .mockResolvedValueOnce(canceledPaymentIntent)
+        // ExpireCheckoutSession: reload after status update
+        .mockResolvedValueOnce(expiredSession);
+
+      const result = await module.ExpireCheckoutSession(openSession.id);
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'PaymentIntents',
+        'pi_z_1',
+        expect.objectContaining({
+          status: 'canceled',
+          cancellation_reason: 'abandoned',
+        })
+      );
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'CheckoutSessions',
+        openSession.id,
+        { status: 'expired', url: null }
+      );
+      expect(eventService.Emit.mock.calls.map((call) => call[0])).toEqual([
+        'payment_intent.canceled',
+        'checkout.session.expired',
+      ]);
+      expect(eventService.Emit).toHaveBeenCalledWith(
+        'payment_intent.canceled',
+        'acct_z_platform',
+        expect.objectContaining({
+          id: 'pi_z_1',
+          status: 'canceled',
+          cancellation_reason: 'abandoned',
+        })
+      );
+      expect(eventService.Emit).toHaveBeenCalledWith(
+        'checkout.session.expired',
+        'acct_z_platform',
+        expiredSession
+      );
+      expect(result).toEqual(expiredSession);
+    });
+
+    it('should expire a session without a PaymentIntent', async () => {
       const openSession = BuildOpenSession();
       const expiredSession = { ...openSession, status: 'expired', url: null };
       mockDb.Get = jest
@@ -559,6 +708,7 @@ describe('CheckoutSessionModule', () => {
         'acct_z_platform',
         expiredSession
       );
+      expect(eventService.Emit).toHaveBeenCalledTimes(1);
       expect(result).toEqual(expiredSession);
     });
 
@@ -580,6 +730,54 @@ describe('CheckoutSessionModule', () => {
       );
       expect(mockDb.Update).not.toHaveBeenCalled();
       expect(eventService.Emit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('CompleteCheckoutSession', () => {
+    it('should complete an open session and emit checkout.session.completed', async () => {
+      const openSession = {
+        ...BuildOpenSession(),
+        payment_intent: 'pi_z_1',
+      };
+      const completedSession = {
+        ...openSession,
+        status: 'complete' as const,
+        payment_status: 'paid' as const,
+        url: null,
+        payment_details: {
+          transaction_signature: 'sig_abc',
+          payer_wallet: 'payer_wallet_1',
+        },
+      };
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValueOnce(openSession)
+        .mockResolvedValueOnce(completedSession);
+
+      const result = await module.CompleteCheckoutSession(openSession.id, {
+        transaction_signature: 'sig_abc',
+        payer_wallet: 'payer_wallet_1',
+      });
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'CheckoutSessions',
+        openSession.id,
+        {
+          status: 'complete',
+          payment_status: 'paid',
+          url: null,
+          payment_details: {
+            transaction_signature: 'sig_abc',
+            payer_wallet: 'payer_wallet_1',
+          },
+        }
+      );
+      expect(eventService.Emit).toHaveBeenCalledWith(
+        'checkout.session.completed',
+        'acct_z_platform',
+        completedSession
+      );
+      expect(result).toEqual(completedSession);
     });
   });
 

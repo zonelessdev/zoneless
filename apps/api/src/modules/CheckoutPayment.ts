@@ -14,6 +14,7 @@ import { ExternalWalletModule } from './ExternalWallet';
 import { BalanceModule } from './Balance';
 import { BalanceTransactionModule } from './BalanceTransaction';
 import { ProductModule } from './Product';
+import type { PaymentIntentModule } from './PaymentIntent';
 import { Solana, SolanaExplorerUrl } from './chains/Solana';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
@@ -49,6 +50,7 @@ export class CheckoutPaymentModule {
   private readonly productModule: ProductModule;
   private readonly balanceModule: BalanceModule;
   private readonly balanceTransactionModule: BalanceTransactionModule;
+  private readonly paymentIntentModule: PaymentIntentModule | null;
   private readonly solana: Solana;
 
   constructor(
@@ -56,6 +58,7 @@ export class CheckoutPaymentModule {
     checkoutSessionModule: CheckoutSessionModule,
     externalWalletModule: ExternalWalletModule,
     productModule: ProductModule,
+    paymentIntentModule?: PaymentIntentModule,
     solana?: Solana
   ) {
     this.db = db;
@@ -65,6 +68,7 @@ export class CheckoutPaymentModule {
     this.productModule = productModule;
     this.balanceModule = new BalanceModule(db);
     this.balanceTransactionModule = new BalanceTransactionModule(db);
+    this.paymentIntentModule = paymentIntentModule || null;
     this.solana = solana || new Solana();
   }
 
@@ -169,6 +173,10 @@ export class CheckoutPaymentModule {
    * total from the customer's wallet to the merchant's wallet. The customer
    * signs and broadcasts it via their wallet.
    *
+   * Transitions the linked PaymentIntent to `requires_confirmation` once the
+   * customer has provided a wallet (Stripe: payment details attached, ready
+   * to confirm). Emits `payment_intent.updated`.
+   *
    * @param id - The checkout session ID
    * @param payerWallet - The customer's wallet address
    * @param email - Optional customer email to record on the session
@@ -210,6 +218,8 @@ export class CheckoutPaymentModule {
       session.id
     );
 
+    await this.MarkPaymentIntentRequiresConfirmation(session, payerWallet);
+
     return {
       object: 'checkout.payment_transaction',
       checkout_session: session.id,
@@ -222,9 +232,9 @@ export class CheckoutPaymentModule {
 
   /**
    * Verify a broadcast payment transaction on-chain and complete the
-   * checkout session, emitting 'checkout.session.completed'. Idempotent: if
-   * the session was already completed with the same signature, it is
-   * returned as-is.
+   * checkout session, emitting PaymentIntent lifecycle events then
+   * `checkout.session.completed`. Idempotent: if the session was already
+   * completed with the same signature, it is returned as-is.
    *
    * @param id - The checkout session ID
    * @param signature - The Solana transaction signature of the payment
@@ -284,6 +294,8 @@ export class CheckoutPaymentModule {
       signature,
     });
 
+    await this.MarkPaymentIntentProcessing(session);
+
     const verification = await this.solana.VerifyCheckoutPayment(signature, {
       merchantWalletAddress: merchantWallet.wallet_address,
       amountInCents: session.amount_total!,
@@ -291,12 +303,23 @@ export class CheckoutPaymentModule {
     });
 
     if (!verification.verified) {
+      await this.MarkPaymentIntentFailed(
+        session,
+        verification.failure_reason || 'Payment verification failed'
+      );
       throw new AppError(
         verification.failure_reason || 'Payment verification failed',
         ERRORS.INVALID_REQUEST.status,
         ERRORS.INVALID_REQUEST.type
       );
     }
+
+    // Stripe typically delivers payment_intent.succeeded before
+    // checkout.session.completed.
+    await this.MarkPaymentIntentSucceeded(session, {
+      amountReceived: verification.amount_cents,
+      signature,
+    });
 
     const completedSession =
       await this.checkoutSessionModule.CompleteCheckoutSession(session.id, {
@@ -490,5 +513,64 @@ export class CheckoutPaymentModule {
         ERRORS.INVALID_REQUEST.type
       );
     }
+  }
+
+  private async MarkPaymentIntentRequiresConfirmation(
+    session: CheckoutSession,
+    payerWallet: string
+  ): Promise<void> {
+    if (!session.payment_intent || !this.paymentIntentModule) return;
+
+    // Until crypto PaymentMethods exist, store the payer wallet address as
+    // the payment_method stand-in so the PI reflects that details were
+    // collected (Stripe: attach PM → requires_confirmation).
+    await this.paymentIntentModule.MarkRequiresConfirmation(
+      session.payment_intent,
+      { paymentMethod: payerWallet }
+    );
+  }
+
+  private async MarkPaymentIntentProcessing(
+    session: CheckoutSession
+  ): Promise<void> {
+    if (!session.payment_intent || !this.paymentIntentModule) return;
+    await this.paymentIntentModule.MarkProcessing(session.payment_intent);
+  }
+
+  private async MarkPaymentIntentSucceeded(
+    session: CheckoutSession,
+    details: { amountReceived: number; signature: string }
+  ): Promise<void> {
+    if (!session.payment_intent || !this.paymentIntentModule) return;
+
+    await this.paymentIntentModule.MarkSucceeded(session.payment_intent, {
+      amountReceived: details.amountReceived,
+      // Charges are not modeled yet; store the on-chain signature as the
+      // closest Stripe-compatible stand-in for latest_charge.
+      latestCharge: details.signature,
+    });
+  }
+
+  private async MarkPaymentIntentFailed(
+    session: CheckoutSession,
+    message: string
+  ): Promise<void> {
+    if (!session.payment_intent || !this.paymentIntentModule) return;
+
+    await this.paymentIntentModule.MarkPaymentFailed(session.payment_intent, {
+      advice_code: null,
+      charge: null,
+      code: 'payment_intent_payment_attempt_failed',
+      decline_code: null,
+      doc_url: null,
+      message,
+      network_advice_code: null,
+      network_decline_code: null,
+      param: null,
+      payment_method: null,
+      payment_method_type: 'crypto',
+      source: null,
+      type: 'invalid_request_error',
+    });
   }
 }

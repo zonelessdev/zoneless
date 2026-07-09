@@ -11,6 +11,7 @@ import { CheckoutSessionModule } from '../modules/CheckoutSession';
 import { PriceModule } from '../modules/Price';
 import { ProductModule } from '../modules/Product';
 import { CustomerModule } from '../modules/Customer';
+import { PaymentIntentModule } from '../modules/PaymentIntent';
 
 import { ValidateRequest } from '../middleware/ValidateRequest';
 import { RequirePlatform } from '../middleware/Authorization';
@@ -29,12 +30,18 @@ const eventService = new EventService(db);
 const productModule = new ProductModule(db, eventService);
 const priceModule = new PriceModule(db, eventService, productModule);
 const customerModule = new CustomerModule(db, eventService);
+const paymentIntentModule = new PaymentIntentModule(
+  db,
+  eventService,
+  customerModule
+);
 const checkoutSessionModule = new CheckoutSessionModule(
   db,
   eventService,
   priceModule,
   productModule,
-  customerModule
+  customerModule,
+  paymentIntentModule
 );
 
 RegisterExpansions('checkout.session', {
@@ -42,6 +49,12 @@ RegisterExpansions('checkout.session', {
     sourcePath: 'customer',
     targetObject: 'customer',
     BatchLoad: (ids, ctx) => customerModule.BatchGet(ids, ctx.platformAccount),
+  },
+  payment_intent: {
+    sourcePath: 'payment_intent',
+    targetObject: 'payment_intent',
+    BatchLoad: (ids, ctx) =>
+      paymentIntentModule.BatchGet(ids, ctx.platformAccount),
   },
 });
 

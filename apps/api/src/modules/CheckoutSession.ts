@@ -18,6 +18,7 @@ import { ValidateUpdate } from './Util';
 import type { PriceModule } from './Price';
 import type { ProductModule } from './Product';
 import type { CustomerModule } from './Customer';
+import type { PaymentIntentModule } from './PaymentIntent';
 import {
   CreateCheckoutSessionSchema,
   CreateCheckoutSessionInput,
@@ -25,6 +26,7 @@ import {
   UpdateCheckoutSessionInput,
   ListCheckoutSessionsFiltersInput,
   CreatePriceInput,
+  CreatePaymentIntentInput,
 } from '@zoneless/shared-schemas';
 import { ListHelper, ListOptions, ListResult } from '../utils/ListHelper';
 import { Now } from '../utils/Timestamp';
@@ -44,6 +46,9 @@ type PriceDataInput = NonNullable<LineItemInput['price_data']>;
 type ShippingOptionInput = NonNullable<
   CreateCheckoutSessionInput['shipping_options']
 >[number];
+type PaymentIntentDataInput = NonNullable<
+  CreateCheckoutSessionInput['payment_intent_data']
+>;
 
 export class CheckoutSessionModule {
   private readonly db: Database;
@@ -52,13 +57,15 @@ export class CheckoutSessionModule {
   private readonly priceModule: PriceModule | null;
   private readonly productModule: ProductModule | null;
   private readonly customerModule: CustomerModule | null;
+  private readonly paymentIntentModule: PaymentIntentModule | null;
 
   constructor(
     db: Database,
     eventService?: EventService,
     priceModule?: PriceModule,
     productModule?: ProductModule,
-    customerModule?: CustomerModule
+    customerModule?: CustomerModule,
+    paymentIntentModule?: PaymentIntentModule
   ) {
     this.db = db;
     this.eventService = eventService || null;
@@ -72,14 +79,17 @@ export class CheckoutSessionModule {
     this.priceModule = priceModule || null;
     this.productModule = productModule || null;
     this.customerModule = customerModule || null;
+    this.paymentIntentModule = paymentIntentModule || null;
   }
 
   /**
    * Create a new checkout session.
    *
-   * Note: no event is emitted on creation. `checkout.session.completed`
-   * and the async payment events are emitted by the payment flow;
-   * `checkout.session.expired` is emitted by ExpireCheckoutSession.
+   * For `payment` mode, creates a linked PaymentIntent (emitting
+   * `payment_intent.created`) and stores its id on the session. No
+   * `checkout.session.*` event is emitted on creation —
+   * `checkout.session.completed` / async payment events come from the
+   * payment flow; `checkout.session.expired` from ExpireCheckoutSession.
    *
    * @param platformAccountId - The platform account ID
    * @param input - The input data for the checkout session
@@ -115,6 +125,14 @@ export class CheckoutSessionModule {
       validatedInput,
       lineItems
     );
+
+    if (session.mode === 'payment' && this.paymentIntentModule) {
+      const paymentIntent = await this.paymentIntentModule.CreatePaymentIntent(
+        platformAccountId,
+        this.BuildPaymentIntentCreateInput(session, validatedInput)
+      );
+      session.payment_intent = paymentIntent.id;
+    }
 
     await this.db.Set('CheckoutSessions', session.id, session);
 
@@ -467,6 +485,18 @@ export class CheckoutSessionModule {
       };
       updatePayload.amount_subtotal = totals.amount_subtotal;
       updatePayload.amount_total = totals.amount_total;
+
+      // Keep the linked PaymentIntent amount in sync (Stripe does the same).
+      if (
+        previousSession.payment_intent &&
+        this.paymentIntentModule &&
+        totals.amount_total !== previousSession.amount_total
+      ) {
+        await this.paymentIntentModule.UpdatePaymentIntent(
+          previousSession.payment_intent,
+          { amount: totals.amount_total }
+        );
+      }
     }
 
     await this.db.Update<CheckoutSessionType>(
@@ -489,8 +519,9 @@ export class CheckoutSessionModule {
 
   /**
    * Expire a checkout session. Only sessions with an `open` status can be
-   * expired. Emits a 'checkout.session.expired' event if EventService is
-   * configured.
+   * expired. Cancels any linked PaymentIntent (emitting
+   * `payment_intent.canceled`) and emits `checkout.session.expired` if
+   * EventService is configured.
    *
    * @param id - The checkout session ID
    * @returns The expired CheckoutSession
@@ -510,6 +541,13 @@ export class CheckoutSessionModule {
         'Only Checkout Sessions with an `open` status can be expired',
         ERRORS.INVALID_REQUEST.status,
         ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    if (previousSession.payment_intent && this.paymentIntentModule) {
+      await this.paymentIntentModule.CancelPaymentIntent(
+        previousSession.payment_intent,
+        { cancellation_reason: 'abandoned' }
       );
     }
 
@@ -963,6 +1001,40 @@ export class CheckoutSessionModule {
       file: input.file ?? null,
       type: input.type,
       url: input.url ?? null,
+    };
+  }
+
+  /**
+   * Maps Checkout Session fields (plus optional `payment_intent_data`) into
+   * the create payload for the linked PaymentIntent.
+   */
+  private BuildPaymentIntentCreateInput(
+    session: CheckoutSessionType,
+    input: CreateCheckoutSessionInput
+  ): CreatePaymentIntentInput {
+    const paymentIntentData: PaymentIntentDataInput =
+      input.payment_intent_data ?? {};
+
+    return {
+      amount: session.amount_total!,
+      currency: session.currency ?? 'usdc',
+      customer: session.customer ?? undefined,
+      customer_account: session.customer_account ?? undefined,
+      payment_method_types: ['crypto'],
+      receipt_email:
+        paymentIntentData.receipt_email ?? session.customer_email ?? undefined,
+      application_fee_amount: paymentIntentData.application_fee_amount,
+      capture_method: paymentIntentData.capture_method,
+      description: paymentIntentData.description,
+      metadata: paymentIntentData.metadata,
+      on_behalf_of: paymentIntentData.on_behalf_of,
+      setup_future_usage: paymentIntentData.setup_future_usage,
+      shipping: paymentIntentData.shipping,
+      statement_descriptor: paymentIntentData.statement_descriptor,
+      statement_descriptor_suffix:
+        paymentIntentData.statement_descriptor_suffix,
+      transfer_data: paymentIntentData.transfer_data,
+      transfer_group: paymentIntentData.transfer_group,
     };
   }
 }

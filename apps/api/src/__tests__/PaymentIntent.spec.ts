@@ -2,6 +2,7 @@ import { PaymentIntentModule } from '../modules/PaymentIntent';
 import { Database } from '../modules/Database';
 import { CustomerModule } from '../modules/Customer';
 import { AccountModule } from '../modules/Account';
+import { EventService } from '../modules/EventService';
 import { AppError } from '../utils/AppError';
 import { ListHelper } from '../utils/ListHelper';
 import {
@@ -34,6 +35,7 @@ describe('PaymentIntentModule', () => {
   let module: PaymentIntentModule;
   let mockDb: jest.Mocked<Database>;
   let mockCustomerModule: jest.Mocked<Pick<CustomerModule, 'GetCustomer'>>;
+  let eventService: jest.Mocked<EventService>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -42,9 +44,12 @@ describe('PaymentIntentModule', () => {
     mockCustomerModule = {
       GetCustomer: jest.fn(),
     };
+    eventService = {
+      Emit: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<EventService>;
     module = new PaymentIntentModule(
       mockDb,
-      undefined,
+      eventService,
       mockCustomerModule as unknown as CustomerModule
     );
   });
@@ -822,6 +827,250 @@ describe('PaymentIntentModule', () => {
           startingAfter: 'uli_z_unknown',
         })
       ).toThrow('Invalid starting_after ID');
+    });
+  });
+
+  describe('lifecycle transitions', () => {
+    function StoredPaymentIntent(
+      status: PaymentIntent['status'] = 'requires_payment_method'
+    ): PaymentIntent {
+      return {
+        ...module.PaymentIntentObject('acct_z_platform', {
+          amount: 2000,
+          currency: 'usdc',
+        }),
+        status,
+      };
+    }
+
+    it('should mark requires_confirmation and emit payment_intent.updated', async () => {
+      const stored = StoredPaymentIntent();
+      const updated = {
+        ...stored,
+        status: 'requires_confirmation' as const,
+        payment_method: 'PayerWallet111',
+        next_action: null,
+      };
+      mockDb.Get.mockResolvedValueOnce(stored)
+        .mockResolvedValueOnce(stored)
+        .mockResolvedValueOnce(updated);
+
+      const result = await module.MarkRequiresConfirmation(stored.id, {
+        paymentMethod: 'PayerWallet111',
+      });
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'PaymentIntents',
+        stored.id,
+        expect.objectContaining({
+          status: 'requires_confirmation',
+          payment_method: 'PayerWallet111',
+        })
+      );
+      expect(eventService.Emit).toHaveBeenCalledWith(
+        'payment_intent.updated',
+        'acct_z_platform',
+        updated,
+        expect.objectContaining({
+          previousAttributes: expect.objectContaining({
+            status: 'requires_payment_method',
+          }),
+        })
+      );
+      expect(result.status).toBe('requires_confirmation');
+    });
+
+    it('should be idempotent when already requires_confirmation', async () => {
+      const stored = StoredPaymentIntent('requires_confirmation');
+      mockDb.Get.mockResolvedValue(stored);
+
+      const result = await module.MarkRequiresConfirmation(stored.id);
+
+      expect(mockDb.Update).not.toHaveBeenCalled();
+      expect(eventService.Emit).not.toHaveBeenCalled();
+      expect(result).toEqual(stored);
+    });
+
+    it('should mark requires_action and emit payment_intent.requires_action', async () => {
+      const stored = StoredPaymentIntent('requires_confirmation');
+      const updated = {
+        ...stored,
+        status: 'requires_action' as const,
+        next_action: { type: 'use_stripe_sdk' },
+      };
+      mockDb.Get.mockResolvedValueOnce(stored)
+        .mockResolvedValueOnce(stored)
+        .mockResolvedValueOnce(updated);
+
+      const result = await module.MarkRequiresAction(stored.id, {
+        type: 'use_stripe_sdk',
+      });
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'PaymentIntents',
+        stored.id,
+        expect.objectContaining({
+          status: 'requires_action',
+          next_action: { type: 'use_stripe_sdk' },
+        })
+      );
+      expect(eventService.Emit).toHaveBeenCalledWith(
+        'payment_intent.requires_action',
+        'acct_z_platform',
+        updated
+      );
+      expect(result.status).toBe('requires_action');
+    });
+
+    it('should refresh next_action without re-emitting when already requires_action', async () => {
+      const stored = StoredPaymentIntent('requires_action');
+      const refreshed = {
+        ...stored,
+        next_action: { type: 'use_stripe_sdk', attempt: 2 },
+      };
+      mockDb.Get.mockResolvedValueOnce(stored).mockResolvedValueOnce(refreshed);
+
+      await module.MarkRequiresAction(stored.id, {
+        type: 'use_stripe_sdk',
+        attempt: 2,
+      });
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'PaymentIntents',
+        stored.id,
+        expect.objectContaining({
+          next_action: { type: 'use_stripe_sdk', attempt: 2 },
+        })
+      );
+      expect(eventService.Emit).not.toHaveBeenCalled();
+    });
+
+    it('should mark processing and emit payment_intent.processing', async () => {
+      const stored = StoredPaymentIntent('requires_confirmation');
+      const updated = {
+        ...stored,
+        status: 'processing' as const,
+        next_action: null,
+      };
+      mockDb.Get.mockResolvedValueOnce(stored)
+        .mockResolvedValueOnce(stored)
+        .mockResolvedValueOnce(updated);
+
+      const result = await module.MarkProcessing(stored.id);
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'PaymentIntents',
+        stored.id,
+        expect.objectContaining({ status: 'processing', next_action: null })
+      );
+      expect(eventService.Emit).toHaveBeenCalledWith(
+        'payment_intent.processing',
+        'acct_z_platform',
+        updated
+      );
+      expect(result.status).toBe('processing');
+    });
+
+    it('should be idempotent when already processing', async () => {
+      const stored = StoredPaymentIntent('processing');
+      mockDb.Get.mockResolvedValue(stored);
+
+      const result = await module.MarkProcessing(stored.id);
+
+      expect(mockDb.Update).not.toHaveBeenCalled();
+      expect(eventService.Emit).not.toHaveBeenCalled();
+      expect(result).toEqual(stored);
+    });
+
+    it('should mark succeeded and emit payment_intent.succeeded', async () => {
+      const stored = StoredPaymentIntent('processing');
+      const updated = {
+        ...stored,
+        status: 'succeeded' as const,
+        amount_received: 2000,
+        latest_charge: 'sig_abc',
+        next_action: null,
+      };
+      mockDb.Get.mockResolvedValueOnce(stored)
+        .mockResolvedValueOnce(stored)
+        .mockResolvedValueOnce(updated);
+
+      const result = await module.MarkSucceeded(stored.id, {
+        amountReceived: 2000,
+        latestCharge: 'sig_abc',
+      });
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'PaymentIntents',
+        stored.id,
+        expect.objectContaining({
+          status: 'succeeded',
+          amount_received: 2000,
+          latest_charge: 'sig_abc',
+        })
+      );
+      expect(eventService.Emit).toHaveBeenCalledWith(
+        'payment_intent.succeeded',
+        'acct_z_platform',
+        updated
+      );
+      expect(result.status).toBe('succeeded');
+    });
+
+    it('should mark payment failed and emit payment_intent.payment_failed', async () => {
+      const stored = StoredPaymentIntent('processing');
+      const lastPaymentError = {
+        advice_code: null,
+        charge: null,
+        code: 'payment_intent_payment_attempt_failed',
+        decline_code: null,
+        doc_url: null,
+        message: 'Amount mismatch',
+        network_advice_code: null,
+        network_decline_code: null,
+        param: null,
+        payment_method: null,
+        payment_method_type: 'crypto',
+        source: null,
+        type: 'invalid_request_error' as const,
+      };
+      const updated = {
+        ...stored,
+        status: 'requires_payment_method' as const,
+        last_payment_error: lastPaymentError,
+        next_action: null,
+      };
+      mockDb.Get.mockResolvedValueOnce(stored).mockResolvedValueOnce(updated);
+
+      const result = await module.MarkPaymentFailed(
+        stored.id,
+        lastPaymentError
+      );
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'PaymentIntents',
+        stored.id,
+        expect.objectContaining({
+          status: 'requires_payment_method',
+          last_payment_error: lastPaymentError,
+        })
+      );
+      expect(eventService.Emit).toHaveBeenCalledWith(
+        'payment_intent.payment_failed',
+        'acct_z_platform',
+        updated
+      );
+      expect(result.status).toBe('requires_payment_method');
+    });
+
+    it('should reject succeeded transition from canceled', async () => {
+      const stored = StoredPaymentIntent('canceled');
+      mockDb.Get.mockResolvedValue(stored);
+
+      await expect(module.MarkSucceeded(stored.id)).rejects.toThrow(
+        /cannot transition to 'succeeded' from status 'canceled'/
+      );
+      expect(eventService.Emit).not.toHaveBeenCalled();
     });
   });
 });

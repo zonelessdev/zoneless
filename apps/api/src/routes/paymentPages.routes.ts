@@ -9,6 +9,7 @@ import { PriceModule } from '../modules/Price';
 import { ProductModule } from '../modules/Product';
 import { CustomerModule } from '../modules/Customer';
 import { ExternalWalletModule } from '../modules/ExternalWallet';
+import { PaymentIntentModule } from '../modules/PaymentIntent';
 
 const router = express.Router();
 
@@ -16,19 +17,26 @@ const eventService = new EventService(db);
 const productModule = new ProductModule(db, eventService);
 const priceModule = new PriceModule(db, eventService, productModule);
 const customerModule = new CustomerModule(db, eventService);
+const paymentIntentModule = new PaymentIntentModule(
+  db,
+  eventService,
+  customerModule
+);
 const checkoutSessionModule = new CheckoutSessionModule(
   db,
   eventService,
   priceModule,
   productModule,
-  customerModule
+  customerModule,
+  paymentIntentModule
 );
 const externalWalletModule = new ExternalWalletModule(db, eventService);
 const checkoutPaymentModule = new CheckoutPaymentModule(
   db,
   checkoutSessionModule,
   externalWalletModule,
-  productModule
+  productModule,
+  paymentIntentModule
 );
 
 /**
