@@ -139,6 +139,11 @@ export const ERRORS = {
     status: 404,
     type: 'resource_missing',
   },
+  PAYMENT_INTENT_NOT_FOUND: {
+    message: 'Payment intent not found',
+    status: 404,
+    type: 'resource_missing',
+  },
 
   // Validation errors
   VALIDATION_ERROR: {
