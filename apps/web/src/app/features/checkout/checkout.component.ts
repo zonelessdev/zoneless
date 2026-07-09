@@ -12,16 +12,18 @@ import bs58 from 'bs58';
 
 import { MetaService, SolanaWalletService } from '../../core';
 import { CheckoutSessionService } from '../../data/services/checkout-session.service';
-import { PageLoaderComponent } from '../../shared';
+import { LoaderComponent, PageLoaderComponent } from '../../shared';
 import {
   CheckoutSession,
   CheckoutSessionLineItem,
   Product,
 } from '@zoneless/shared-types';
 
+type PaymentPhase = 'idle' | 'awaiting_wallet' | 'processing' | 'complete';
+
 @Component({
   selector: 'app-checkout',
-  imports: [FormsModule, PageLoaderComponent],
+  imports: [FormsModule, PageLoaderComponent, LoaderComponent],
   templateUrl: './checkout.component.html',
   styleUrl: './checkout.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,9 +36,8 @@ export class CheckoutComponent implements OnInit {
 
   checkoutSession: WritableSignal<CheckoutSession | null> = signal(null);
   loading: WritableSignal<boolean> = signal(true);
-  paying: WritableSignal<boolean> = signal(false);
+  paymentPhase: WritableSignal<PaymentPhase> = signal('idle');
   paymentError: WritableSignal<string | null> = signal(null);
-  paymentComplete: WritableSignal<boolean> = signal(false);
 
   email = '';
 
@@ -44,7 +45,6 @@ export class CheckoutComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('checkoutSessionId');
     if (!id) return;
     await this.LoadCheckoutSession(id);
-    this.metaService.SetMetaTitle(`${this.MerchantName()} - Checkout`);
   }
 
   private async LoadCheckoutSession(id: string): Promise<void> {
@@ -57,6 +57,7 @@ export class CheckoutComponent implements OnInit {
         checkoutSession.customer_email ??
         checkoutSession.customer_details?.email ??
         '';
+      this.metaService.SetMetaTitle(`${this.MerchantName()} - Checkout`);
     } finally {
       this.loading.set(false);
     }
@@ -67,51 +68,46 @@ export class CheckoutComponent implements OnInit {
   }
 
   MerchantName(): string {
-    return (
-      this.checkoutSession()?.branding_settings?.display_name || 'Zoneless'
-    );
+    return this.checkoutSession()?.merchant?.display_name || 'Merchant';
   }
 
   MerchantIconUrl(): string | null {
-    const branding = this.checkoutSession()?.branding_settings;
-    return branding?.icon?.url ?? branding?.logo?.url ?? null;
+    return this.checkoutSession()?.merchant?.icon_url ?? null;
+  }
+
+  MerchantTermsUrl(): string | null {
+    return this.checkoutSession()?.merchant?.terms_url ?? null;
+  }
+
+  MerchantPrivacyUrl(): string | null {
+    return this.checkoutSession()?.merchant?.privacy_url ?? null;
   }
 
   MerchantWalletAddress(): string {
     return this.checkoutSession()?.merchant_wallet?.wallet_address ?? '';
   }
 
-  ConnectedWalletAddress(): string {
-    return this.solanaWalletService.GetAddress();
+  IsBusy(): boolean {
+    const phase = this.paymentPhase();
+    return phase === 'awaiting_wallet' || phase === 'processing';
   }
 
-  ConnectedWalletLabel(): string {
-    const address = this.ConnectedWalletAddress();
-    if (!address) return 'Phantom';
-    return `${address.slice(0, 4)}…${address.slice(-4)}`;
-  }
-
-  async ConnectWallet(): Promise<void> {
-    this.paymentError.set(null);
-    try {
-      await this.solanaWalletService.Connect();
-    } catch (error) {
-      this.paymentError.set(this.ErrorMessage(error));
-    }
+  IsComplete(): boolean {
+    return this.paymentPhase() === 'complete';
   }
 
   async Pay(): Promise<void> {
     const session = this.checkoutSession();
-    if (!session || this.paying() || this.paymentComplete()) return;
+    if (!session || this.paymentPhase() !== 'idle') return;
 
-    this.paying.set(true);
+    this.paymentPhase.set('awaiting_wallet');
     this.paymentError.set(null);
 
     try {
-      if (!this.ConnectedWalletAddress()) {
+      if (!this.solanaWalletService.GetAddress()) {
         await this.solanaWalletService.Connect();
       }
-      const payerWallet = this.ConnectedWalletAddress();
+      const payerWallet = this.solanaWalletService.GetAddress();
       if (!payerWallet) {
         throw new Error('Connect a wallet to pay');
       }
@@ -129,18 +125,19 @@ export class CheckoutComponent implements OnInit {
         );
       const signature = bs58.encode(signatureBytes);
 
+      this.paymentPhase.set('processing');
+
       const completedSession = await this.checkoutSessionService.ConfirmPayment(
         session.id,
         signature
       );
 
       this.checkoutSession.set(completedSession);
-      this.paymentComplete.set(true);
+      this.paymentPhase.set('complete');
       this.RedirectToSuccessUrl(completedSession);
     } catch (error) {
       this.paymentError.set(this.ErrorMessage(error));
-    } finally {
-      this.paying.set(false);
+      this.paymentPhase.set('idle');
     }
   }
 
@@ -150,7 +147,7 @@ export class CheckoutComponent implements OnInit {
       '{CHECKOUT_SESSION_ID}',
       session.id
     );
-    window.location.assign(url);
+    window.setTimeout(() => window.location.assign(url), 1200);
   }
 
   private ErrorMessage(error: unknown): string {
@@ -158,13 +155,12 @@ export class CheckoutComponent implements OnInit {
     return 'Something went wrong processing your payment. Please try again.';
   }
 
-  LineItemImage(item: CheckoutSessionLineItem): string {
+  LineItemImage(item: CheckoutSessionLineItem): string | null {
     const product = item.price?.product;
     if (product && typeof product === 'object') {
-      const image = (product as Product).images?.[0];
-      if (image) return image;
+      return (product as Product).images?.[0] ?? null;
     }
-    return '/assets/images/logos/usdc.svg';
+    return null;
   }
 
   FormatAmount(cents: number | null | undefined): string {
@@ -190,7 +186,6 @@ export class CheckoutComponent implements OnInit {
   }
 
   SubmitLabel(): string {
-    if (this.paying()) return 'Processing…';
     switch (this.checkoutSession()?.submit_type) {
       case 'book':
         return 'Book';
@@ -201,5 +196,11 @@ export class CheckoutComponent implements OnInit {
       default:
         return 'Pay';
     }
+  }
+
+  BusyLabel(): string {
+    return this.paymentPhase() === 'awaiting_wallet'
+      ? 'Confirm in wallet'
+      : 'Processing';
   }
 }

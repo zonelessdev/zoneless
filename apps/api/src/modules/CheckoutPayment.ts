@@ -8,19 +8,24 @@
 
 import { ClientSession } from 'mongoose';
 import { Database } from './Database';
+import { AccountModule } from './Account';
 import { CheckoutSessionModule } from './CheckoutSession';
 import { ExternalWalletModule } from './ExternalWallet';
 import { BalanceModule } from './Balance';
 import { BalanceTransactionModule } from './BalanceTransaction';
+import { ProductModule } from './Product';
 import { Solana, SolanaExplorerUrl } from './chains/Solana';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
 import { Logger } from '../utils/Logger';
 import { Now } from '../utils/Timestamp';
 import {
+  Account,
   BalanceTransaction,
   CheckoutSession,
   ExternalWallet,
+  Price,
+  Product,
 } from '@zoneless/shared-types';
 
 /** Unsigned payment transaction bundle returned by PreparePayment. */
@@ -38,8 +43,10 @@ export interface PreparedCheckoutPayment {
 
 export class CheckoutPaymentModule {
   private readonly db: Database;
+  private readonly accountModule: AccountModule;
   private readonly checkoutSessionModule: CheckoutSessionModule;
   private readonly externalWalletModule: ExternalWalletModule;
+  private readonly productModule: ProductModule;
   private readonly balanceModule: BalanceModule;
   private readonly balanceTransactionModule: BalanceTransactionModule;
   private readonly solana: Solana;
@@ -48,11 +55,14 @@ export class CheckoutPaymentModule {
     db: Database,
     checkoutSessionModule: CheckoutSessionModule,
     externalWalletModule: ExternalWalletModule,
+    productModule: ProductModule,
     solana?: Solana
   ) {
     this.db = db;
+    this.accountModule = new AccountModule(db);
     this.checkoutSessionModule = checkoutSessionModule;
     this.externalWalletModule = externalWalletModule;
+    this.productModule = productModule;
     this.balanceModule = new BalanceModule(db);
     this.balanceTransactionModule = new BalanceTransactionModule(db);
     this.solana = solana || new Solana();
@@ -60,25 +70,97 @@ export class CheckoutPaymentModule {
 
   /**
    * Bootstrap the hosted checkout page: the sanitized session enriched with
-   * the merchant's receiving wallet so the page can build the payment.
-   *
-   * @param id - The checkout session ID
-   * @returns The public checkout session with merchant wallet details
+   * the merchant's receiving wallet, display details, and expanded products.
    */
   async GetPaymentPageSession(id: string): Promise<CheckoutSession> {
     const session = await this.GetSessionOrThrow(id);
-    const merchantWallet = await this.ResolveMerchantWallet(
-      session.platform_account
-    );
+    const [merchantWallet, account, expandedSession] = await Promise.all([
+      this.ResolveMerchantWallet(session.platform_account),
+      this.accountModule.GetAccount(session.platform_account),
+      this.ExpandLineItemProducts(session),
+    ]);
 
     return {
-      ...this.SanitizeCheckoutSession(session),
+      ...this.SanitizeCheckoutSession(expandedSession),
       merchant_wallet: {
         wallet_address: merchantWallet.wallet_address,
         network: merchantWallet.network,
         currency: merchantWallet.currency,
         usdc_mint: this.solana.GetUSDCMintAddress(),
       },
+      merchant: this.ResolveMerchant(session, account),
+    };
+  }
+
+  private async ExpandLineItemProducts(
+    session: CheckoutSession
+  ): Promise<CheckoutSession> {
+    const lineItems = session.line_items?.data ?? [];
+    const productIds = [
+      ...new Set(
+        lineItems
+          .map((item) => item.price?.product)
+          .filter((product): product is string => typeof product === 'string')
+      ),
+    ];
+
+    if (productIds.length === 0) return session;
+
+    const products = await this.productModule.BatchGet(
+      productIds,
+      session.platform_account
+    );
+
+    return {
+      ...session,
+      line_items: session.line_items
+        ? {
+            ...session.line_items,
+            data: lineItems.map((item) => {
+              const price = item.price as Price | null;
+              if (!price || typeof price.product !== 'string') return item;
+
+              const product = products.get(price.product);
+              if (!product) return item;
+
+              return {
+                ...item,
+                price: {
+                  ...price,
+                  product: product as Product,
+                },
+              };
+            }),
+          }
+        : null,
+    };
+  }
+
+  private ResolveMerchant(
+    session: CheckoutSession,
+    account: Account | null
+  ): NonNullable<CheckoutSession['merchant']> {
+    const brandingName = session.branding_settings?.display_name?.trim();
+    const displayName =
+      brandingName ||
+      account?.business_profile?.name?.trim() ||
+      account?.settings?.dashboard?.display_name?.trim() ||
+      'Merchant';
+
+    const brandingIcon =
+      session.branding_settings?.icon?.url ??
+      session.branding_settings?.logo?.url ??
+      null;
+
+    return {
+      display_name: displayName,
+      terms_url: account?.settings?.terms_url ?? null,
+      privacy_url: account?.settings?.privacy_url ?? null,
+      icon_url:
+        brandingIcon ||
+        account?.settings?.branding?.icon ||
+        account?.settings?.branding?.logo ||
+        null,
     };
   }
 

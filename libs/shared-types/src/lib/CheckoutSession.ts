@@ -479,6 +479,18 @@ export interface CheckoutSession {
     /** The USDC mint address for the active network. */
     usdc_mint: string;
   } | null;
+
+  /**
+   * Merchant display details for the hosted checkout page. Resolved from the
+   * platform account that owns the session (with branding_settings overrides).
+   * @zoneless_extension
+   */
+  merchant?: {
+    display_name: string;
+    terms_url: string | null;
+    privacy_url: string | null;
+    icon_url: string | null;
+  } | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

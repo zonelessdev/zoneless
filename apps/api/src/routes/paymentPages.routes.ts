@@ -27,7 +27,8 @@ const externalWalletModule = new ExternalWalletModule(db, eventService);
 const checkoutPaymentModule = new CheckoutPaymentModule(
   db,
   checkoutSessionModule,
-  externalWalletModule
+  externalWalletModule,
+  productModule
 );
 
 /**
