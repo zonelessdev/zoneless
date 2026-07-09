@@ -6,6 +6,19 @@ import {
   UpdateCheckoutSessionInput,
 } from '@zoneless/shared-schemas';
 
+/** Unsigned payment transaction returned by the public prepare endpoint. */
+export interface CheckoutPaymentTransaction {
+  object: 'checkout.payment_transaction';
+  checkout_session: string;
+  amount_total: number;
+  currency: string | null;
+  merchant_wallet_address: string;
+  unsigned_transaction: string;
+  estimated_fee_lamports: number;
+  blockhash: string;
+  last_valid_block_height: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -91,5 +104,36 @@ export class CheckoutSessionService {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  /**
+   * Build an unsigned USDC payment transaction for a checkout session via
+   * the public payment pages endpoint. The customer signs it in their wallet.
+   */
+  async PreparePayment(
+    checkoutSessionId: string,
+    payerWallet: string,
+    email?: string
+  ): Promise<CheckoutPaymentTransaction> {
+    return this.api.Call<CheckoutPaymentTransaction>(
+      'POST',
+      `payment_pages/${checkoutSessionId}/prepare`,
+      { payer_wallet: payerWallet, ...(email ? { email } : {}) }
+    );
+  }
+
+  /**
+   * Confirm a broadcast payment transaction. The backend verifies it
+   * on-chain and completes the checkout session.
+   */
+  async ConfirmPayment(
+    checkoutSessionId: string,
+    signature: string
+  ): Promise<CheckoutSession> {
+    return this.api.Call<CheckoutSession>(
+      'POST',
+      `payment_pages/${checkoutSessionId}/confirm`,
+      { signature }
+    );
   }
 }

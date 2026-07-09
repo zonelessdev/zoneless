@@ -151,13 +151,9 @@ router.get(
   ValidateApiKey,
   RequirePlatform(),
   AsyncHandler(async (req: express.Request, res: express.Response) => {
-    const wallets = await externalWalletModule.GetExternalWalletsByAccount(
+    const platformWallet = await externalWalletModule.GetDefaultWallet(
       req.user.account
     );
-
-    // Get the default wallet (or first one)
-    const platformWallet =
-      wallets.find((w) => w.default_for_currency) || wallets[0];
 
     if (!platformWallet) {
       throw new AppError(

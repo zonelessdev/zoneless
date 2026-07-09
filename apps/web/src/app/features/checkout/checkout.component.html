@@ -82,13 +82,13 @@
   <main class="payment-panel">
     <div class="payment-content">
       <div class="express-checkout">
-        <button type="button" class="wallet-button wallet-button-phantom">
+        <button
+          type="button"
+          class="wallet-button wallet-button-phantom"
+          (click)="ConnectWallet()"
+        >
           <img src="/assets/icons/phantom-wallet.svg" alt="" />
-          Phantom
-        </button>
-        <button type="button" class="wallet-button wallet-button-solana">
-          <img src="/assets/images/logos/solana.svg" alt="" />
-          Solana Pay
+          {{ ConnectedWalletLabel() }}
         </button>
       </div>
 
@@ -117,51 +117,36 @@
           </label>
 
           <div class="method-detail">
-            <div class="method-detail-label">Send USDC on Solana to</div>
-            <div class="wallet-address">{{ walletAddress }}</div>
+            <div class="method-detail-label">Paying with USDC on Solana to</div>
+            <div class="wallet-address">{{ MerchantWalletAddress() }}</div>
             <div class="method-detail-help">
-              Send exactly {{ FormatAmount(session.amount_total) }} in USDC to
-              this address to complete your payment.
+              Connect your wallet and approve the payment of
+              {{ FormatAmount(session.amount_total) }} in USDC.
             </div>
           </div>
-
-          <label class="method-option">
-            <input type="radio" name="payment-method" />
-            <img src="/assets/icons/account_balance_wallet.svg" alt="" />
-            Connected wallet
-            <span class="method-option-note">Powered by Solana</span>
-          </label>
         </div>
       </div>
 
-      <!-- <div class="save-info-box">
-        <label class="save-info-header custom-checkbox">
-          <input type="checkbox" name="save-info" [(ngModel)]="saveInfo" />
-          <span class="checkmark"></span>
-          <span class="save-info-copy">
-            <span class="save-info-title">
-              Save my information for faster checkout
-            </span>
-            <span class="save-info-text">
-              Pay securely at {{ MerchantName() }} and everywhere Zoneless is
-              accepted.
-            </span>
-          </span>
-        </label>
-
-        @if (saveInfo) {
-        <input
-          type="tel"
-          name="phone"
-          [(ngModel)]="phone"
-          placeholder="(201) 555-0123"
-        />
-        }
-      </div> -->
-
-      <button type="button" class="action-button action-button-wide pay-button">
+      @if (paymentComplete()) {
+      <div class="payment-success">
+        <span class="payment-success-title">Payment complete</span>
+        <span class="payment-success-text">
+          Thanks! Your payment of {{ FormatAmount(session.amount_total) }} to
+          {{ MerchantName() }} has been confirmed.
+        </span>
+      </div>
+      } @else {
+      <button
+        type="button"
+        class="action-button action-button-wide pay-button"
+        [disabled]="paying()"
+        (click)="Pay()"
+      >
         {{ SubmitLabel() }}
       </button>
+      } @if (paymentError(); as errorMessage) {
+      <div class="payment-error">{{ errorMessage }}</div>
+      }
 
       <div class="fine-print">
         By paying, you agree to Zoneless's <a>Terms</a> and <a>Privacy</a>.

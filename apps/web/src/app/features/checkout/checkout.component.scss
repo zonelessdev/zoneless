@@ -225,11 +225,6 @@
   color: #1c1c1c;
 }
 
-.wallet-button-solana {
-  background-color: #000000;
-  color: $background-color;
-}
-
 .divider {
   display: flex;
   align-items: center;
@@ -320,13 +315,6 @@
   }
 }
 
-.method-option-note {
-  margin-left: auto;
-  font-size: $font-size-small;
-  font-weight: $text-weight;
-  opacity: $dimmed-extra;
-}
-
 .method-detail {
   padding: 0 $spacing $spacing;
 }
@@ -353,48 +341,46 @@
   margin-top: $spacing-small;
 }
 
-.save-info-box {
-  border: 1px solid $darkest-background-color;
-  border-radius: $border-radius;
-  padding: $spacing;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing;
-}
-
-.save-info-header {
-  display: flex;
-  align-items: flex-start;
-  gap: $spacing-small;
-  cursor: pointer;
-
-  .checkmark {
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-}
-
-.save-info-copy {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-extra-small;
-}
-
-.save-info-title {
-  font-size: $font-size;
-  font-weight: $medium-weight;
-}
-
-.save-info-text {
-  font-size: $font-size-small;
-  opacity: $dimmed-extra;
-}
-
 .pay-button {
   margin-top: $spacing-plus;
   justify-content: center;
   font-size: $font-size-med;
   padding: $spacing-snug $spacing;
+
+  &:disabled {
+    opacity: $dimmed;
+    cursor: default;
+    pointer-events: none;
+  }
+}
+
+.payment-error {
+  margin-top: $spacing;
+  padding: $spacing-small $spacing-snug;
+  border-radius: $border-radius-small;
+  background-color: rgba(223, 27, 65, 0.08);
+  color: #df1b41;
+  font-size: $font-size-small;
+}
+
+.payment-success {
+  margin-top: $spacing-plus;
+  padding: $spacing;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-extra-small;
+}
+
+.payment-success-title {
+  font-size: $font-size-med;
+  font-weight: $medium-weight;
+}
+
+.payment-success-text {
+  font-size: $font-size-small;
+  opacity: $dimmed-extra;
 }
 
 .fine-print {

@@ -242,6 +242,18 @@ export class ExternalWalletModule {
   }
 
   /**
+   * Get the account's default receiving wallet: the wallet marked
+   * default_for_currency, falling back to the first active wallet.
+   *
+   * @param account - The account ID to get the default wallet for
+   * @returns The default external wallet, or null if none is configured
+   */
+  async GetDefaultWallet(account: string): Promise<ExternalWalletType | null> {
+    const wallets = await this.GetExternalWalletsByAccount(account);
+    return wallets.find((w) => w.default_for_currency) ?? wallets[0] ?? null;
+  }
+
+  /**
    * List external wallets for an account with cursor-based pagination.
    *
    * @param account - The account ID to list wallets for

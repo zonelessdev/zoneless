@@ -1,16 +1,14 @@
 import * as express from 'express';
 import { AsyncHandler } from '../utils/AsyncHandler';
-import { AppError } from '../utils/AppError';
-import { ERRORS } from '../utils/Errors';
 
 import { db } from '../modules/Database';
 import { EventService } from '../modules/EventService';
 import { CheckoutSessionModule } from '../modules/CheckoutSession';
+import { CheckoutPaymentModule } from '../modules/CheckoutPayment';
 import { PriceModule } from '../modules/Price';
 import { ProductModule } from '../modules/Product';
 import { CustomerModule } from '../modules/Customer';
-
-import { CheckoutSession } from '@zoneless/shared-types';
+import { ExternalWalletModule } from '../modules/ExternalWallet';
 
 const router = express.Router();
 
@@ -25,26 +23,12 @@ const checkoutSessionModule = new CheckoutSessionModule(
   productModule,
   customerModule
 );
-
-/**
- * Strips platform-internal fields before serving a session to an
- * unauthenticated customer.
- */
-function SanitizeCheckoutSession(session: CheckoutSession): CheckoutSession {
-  return {
-    ...session,
-    metadata: null,
-    line_items: session.line_items
-      ? {
-          ...session.line_items,
-          data: session.line_items.data.map((item) => ({
-            ...item,
-            metadata: {},
-          })),
-        }
-      : null,
-  };
-}
+const externalWalletModule = new ExternalWalletModule(db, eventService);
+const checkoutPaymentModule = new CheckoutPaymentModule(
+  db,
+  checkoutSessionModule,
+  externalWalletModule
+);
 
 /**
  * GET /v1/payment_pages/:id
@@ -52,23 +36,59 @@ function SanitizeCheckoutSession(session: CheckoutSession): CheckoutSession {
  * payment_pages endpoint. No authentication is required: the unguessable
  * checkout session ID in the URL acts as the bearer credential, which is how
  * Stripe-hosted checkout links work.
+ *
+ * The response is enriched with the merchant's receiving wallet so the
+ * checkout page can display it and build the payment transaction.
  */
 router.get(
   '/:id',
   AsyncHandler(async (req: express.Request, res: express.Response) => {
-    const session = await checkoutSessionModule.GetCheckoutSession(
+    const session = await checkoutPaymentModule.GetPaymentPageSession(
       req.params.id
     );
+    res.json(session);
+  })
+);
 
-    if (!session) {
-      throw new AppError(
-        ERRORS.CHECKOUT_SESSION_NOT_FOUND.message,
-        ERRORS.CHECKOUT_SESSION_NOT_FOUND.status,
-        ERRORS.CHECKOUT_SESSION_NOT_FOUND.type
-      );
-    }
+/**
+ * POST /v1/payment_pages/:id/prepare
+ * Build an unsigned USDC payment transaction for the checkout session,
+ * transferring the session total from the customer's wallet to the
+ * merchant's wallet. The customer signs and broadcasts it via their wallet.
+ */
+router.post(
+  '/:id/prepare',
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const { payer_wallet: payerWallet, email } = req.body as {
+      payer_wallet?: string;
+      email?: string;
+    };
 
-    res.json(SanitizeCheckoutSession(session));
+    const prepared = await checkoutPaymentModule.PreparePayment(
+      req.params.id,
+      payerWallet,
+      email
+    );
+    res.json(prepared);
+  })
+);
+
+/**
+ * POST /v1/payment_pages/:id/confirm
+ * Verify a broadcast payment transaction on-chain and complete the checkout
+ * session. Emits 'checkout.session.completed' on success. Idempotent: if the
+ * session was already completed with the same signature, it is returned as-is.
+ */
+router.post(
+  '/:id/confirm',
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const { signature } = req.body as { signature?: string };
+
+    const session = await checkoutPaymentModule.ConfirmPayment(
+      req.params.id,
+      signature
+    );
+    res.json(session);
   })
 );
 

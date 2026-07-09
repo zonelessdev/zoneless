@@ -451,6 +451,34 @@ export interface CheckoutSession {
    * @zoneless_extension
    */
   platform_account: string;
+
+  /**
+   * On-chain payment details recorded when the session is completed.
+   * @zoneless_extension
+   */
+  payment_details?: {
+    /** The Solana transaction signature of the payment. */
+    transaction_signature: string;
+    /** The customer wallet that paid. */
+    payer_wallet: string | null;
+  } | null;
+
+  /**
+   * The merchant wallet that receives the payment. Only populated on the
+   * public payment_pages response so the hosted checkout can build the
+   * payment transaction.
+   * @zoneless_extension
+   */
+  merchant_wallet?: {
+    /** The merchant's receiving wallet address. */
+    wallet_address: string;
+    /** The network the wallet is on. */
+    network: string;
+    /** The currency the wallet receives. */
+    currency: string;
+    /** The USDC mint address for the active network. */
+    usdc_mint: string;
+  } | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
