@@ -1,33 +1,180 @@
-<div class="checkout-container">
-  <button class="action-button" type="button" (click)="ConnectWallet()">
-    Connect Wallet
-  </button>
-  <button class="action-button" type="button" (click)="GetAddress()">
-    Get Address
-  </button>
-  <div class="input-container">
-    <label for="amountInCents">Amount (cents)</label>
-    <input id="amountInCents" type="number" [(ngModel)]="amountInCents" />
-    <label for="periodSeconds">Period Seconds</label>
-    <input id="periodSeconds" type="number" [(ngModel)]="periodSeconds" />
-  </div>
-  <button class="action-button" type="button" (click)="Subscribe()">
-    Subscribe
-  </button>
-  <button class="action-button" type="button" (click)="GetSubscription()">
-    Get Subscription
-  </button>
-  <button class="action-button" type="button" (click)="CancelSubscription()">
-    Cancel Subscription
-  </button>
-  <button class="action-button" type="button" (click)="ChargeSubscription()">
-    Charge Subscription
-  </button>
-  <button
-    class="action-button"
-    type="button"
-    (click)="GetSubscriptionDebugInfo()"
-  >
-    Get Subscription Debug Info
-  </button>
+<app-page-loader [loading]="loading()"></app-page-loader>
+
+@if (checkoutSession(); as session) {
+<div class="checkout-page">
+  <!-- Order summary (left) -->
+  <aside class="order-summary">
+    <div class="order-summary-content">
+      <div class="summary-header">
+        @if (session.cancel_url) {
+        <a class="back-button" [href]="session.cancel_url">
+          <img src="/assets/icons/arrow_forward.svg" alt="Back" />
+        </a>
+        }
+        <div class="merchant-icon">
+          @if (MerchantIconUrl(); as iconUrl) {
+          <img [src]="iconUrl" [alt]="MerchantName()" />
+          } @else {
+          {{ MerchantName().charAt(0) }}
+          }
+        </div>
+        @if (!session.livemode) {
+        <span class="sandbox-chip">Sandbox</span>
+        }
+      </div>
+
+      <div class="summary-merchant">Pay {{ MerchantName() }}</div>
+      <div class="summary-total">{{ FormatAmount(session.amount_total) }}</div>
+
+      <div class="line-items">
+        @for (item of LineItems(); track item.id) {
+        <div class="line-item">
+          <img
+            class="line-item-image"
+            [src]="LineItemImage(item)"
+            [alt]="item.description ?? 'Line item'"
+          />
+          <div class="line-item-details">
+            <div class="line-item-name">{{ item.description }}</div>
+            @if ((item.quantity ?? 1) > 1) {
+            <div class="line-item-quantity">Qty {{ item.quantity }}</div>
+            }
+          </div>
+          <div class="line-item-amount">
+            {{ FormatAmount(item.amount_subtotal) }}
+          </div>
+        </div>
+        }
+      </div>
+
+      <div class="summary-breakdown">
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <span>{{ FormatAmount(session.amount_subtotal) }}</span>
+        </div>
+
+        @if (DiscountAmount() > 0) {
+        <div class="summary-row">
+          <span>
+            <span class="discount-chip">
+              <img src="/assets/icons/sell.svg" alt="" />
+              {{ DiscountLabel() }}
+            </span>
+            @if (DiscountPercent(); as percent) {
+            <span class="discount-percent">{{ percent }}% off</span>
+            }
+          </span>
+          <span class="discount-amount">
+            -{{ FormatAmount(DiscountAmount()) }}
+          </span>
+        </div>
+        }
+
+        <div class="summary-row summary-row-total">
+          <span>Total due</span>
+          <span>{{ FormatAmount(session.amount_total) }}</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Payment form (right) -->
+  <main class="payment-panel">
+    <div class="payment-content">
+      <div class="express-checkout">
+        <button type="button" class="wallet-button wallet-button-phantom">
+          <img src="/assets/icons/phantom-wallet.svg" alt="" />
+          Phantom
+        </button>
+        <button type="button" class="wallet-button wallet-button-solana">
+          <img src="/assets/images/logos/solana.svg" alt="" />
+          Solana Pay
+        </button>
+      </div>
+
+      <div class="divider"><span>OR</span></div>
+
+      <div class="form-section">
+        <div class="section-label">Contact information</div>
+        <label class="contact-box">
+          <span class="contact-label">Email</span>
+          <input
+            type="email"
+            name="email"
+            [(ngModel)]="email"
+            placeholder="you@example.com"
+          />
+        </label>
+      </div>
+
+      <div class="form-section">
+        <div class="section-label">Payment method</div>
+        <div class="method-box">
+          <label class="method-option">
+            <input type="radio" name="payment-method" checked />
+            <img src="/assets/images/logos/usdc.svg" alt="" />
+            USDC
+          </label>
+
+          <div class="method-detail">
+            <div class="method-detail-label">Send USDC on Solana to</div>
+            <div class="wallet-address">{{ walletAddress }}</div>
+            <div class="method-detail-help">
+              Send exactly {{ FormatAmount(session.amount_total) }} in USDC to
+              this address to complete your payment.
+            </div>
+          </div>
+
+          <label class="method-option">
+            <input type="radio" name="payment-method" />
+            <img src="/assets/icons/account_balance_wallet.svg" alt="" />
+            Connected wallet
+            <span class="method-option-note">Powered by Solana</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- <div class="save-info-box">
+        <label class="save-info-header custom-checkbox">
+          <input type="checkbox" name="save-info" [(ngModel)]="saveInfo" />
+          <span class="checkmark"></span>
+          <span class="save-info-copy">
+            <span class="save-info-title">
+              Save my information for faster checkout
+            </span>
+            <span class="save-info-text">
+              Pay securely at {{ MerchantName() }} and everywhere Zoneless is
+              accepted.
+            </span>
+          </span>
+        </label>
+
+        @if (saveInfo) {
+        <input
+          type="tel"
+          name="phone"
+          [(ngModel)]="phone"
+          placeholder="(201) 555-0123"
+        />
+        }
+      </div> -->
+
+      <button type="button" class="action-button action-button-wide pay-button">
+        {{ SubmitLabel() }}
+      </button>
+
+      <div class="fine-print">
+        By paying, you agree to Zoneless's <a>Terms</a> and <a>Privacy</a>.
+      </div>
+
+      <div class="payment-footer">
+        <span>Powered by <b>Zoneless</b></span>
+        <span class="payment-footer-divider"></span>
+        <a>Legal</a>
+        <a>Returns</a>
+        <a>Contact</a>
+      </div>
+    </div>
+  </main>
 </div>
+}

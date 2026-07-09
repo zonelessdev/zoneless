@@ -1,0 +1,33 @@
+<div class="checkout-container">
+  <button class="action-button" type="button" (click)="ConnectWallet()">
+    Connect Wallet
+  </button>
+  <button class="action-button" type="button" (click)="GetAddress()">
+    Get Address
+  </button>
+  <div class="input-container">
+    <label for="amountInCents">Amount (cents)</label>
+    <input id="amountInCents" type="number" [(ngModel)]="amountInCents" />
+    <label for="periodSeconds">Period Seconds</label>
+    <input id="periodSeconds" type="number" [(ngModel)]="periodSeconds" />
+  </div>
+  <button class="action-button" type="button" (click)="Subscribe()">
+    Subscribe
+  </button>
+  <button class="action-button" type="button" (click)="GetSubscription()">
+    Get Subscription
+  </button>
+  <button class="action-button" type="button" (click)="CancelSubscription()">
+    Cancel Subscription
+  </button>
+  <button class="action-button" type="button" (click)="ChargeSubscription()">
+    Charge Subscription
+  </button>
+  <button
+    class="action-button"
+    type="button"
+    (click)="GetSubscriptionDebugInfo()"
+  >
+    Get Subscription Debug Info
+  </button>
+</div>

@@ -51,12 +51,19 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'checkout',
+    path: 'checkout-old',
     loadComponent: () =>
-      import('./features/checkout/checkout.component').then(
+      import('./features/checkout-old/checkout-old.component').then(
         (mod) => mod.CheckoutComponent
       ),
   },
+	{
+		path: 'checkout/:checkoutSessionId',
+		loadComponent: () =>
+			import('./features/checkout/checkout.component').then(
+				(mod) => mod.CheckoutComponent
+			),
+	},
   {
     path: '',
     redirectTo: '/account/home',

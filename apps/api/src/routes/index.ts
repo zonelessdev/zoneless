@@ -25,6 +25,7 @@ import productsRouter from './products.routes';
 import pricesRouter from './prices.routes';
 import customersRouter from './customers.routes';
 import checkoutSessionsRouter from './checkoutSessions.routes';
+import paymentPagesRouter from './paymentPages.routes';
 
 const router = express.Router();
 
@@ -32,6 +33,8 @@ const router = express.Router();
 router.use('/auth', authExchangeRouter);
 router.use('/config', configRouter);
 router.use('/setup', setupRouter);
+// Hosted checkout page bootstrap - the unguessable session ID is the credential
+router.use('/payment_pages', paymentPagesRouter);
 
 // --- Operator Routes ---
 // Guarded by the operator API key (managed hosting only)
