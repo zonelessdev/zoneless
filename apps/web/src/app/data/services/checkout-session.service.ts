@@ -14,10 +14,16 @@ export class CheckoutSessionService {
 
   loading: WritableSignal<boolean> = signal(false);
 
-  async CreateCheckoutSession(data: CreateCheckoutSessionInput): Promise<CheckoutSession> {
+  async CreateCheckoutSession(
+    data: CreateCheckoutSessionInput
+  ): Promise<CheckoutSession> {
     this.loading.set(true);
     try {
-      const checkoutSession = await this.api.Call<CheckoutSession>('POST', `checkout/sessions`, data);
+      const checkoutSession = await this.api.Call<CheckoutSession>(
+        'POST',
+        `checkout/sessions`,
+        data
+      );
       return checkoutSession;
     } finally {
       this.loading.set(false);
@@ -44,13 +50,18 @@ export class CheckoutSessionService {
   async DeleteCheckoutSession(checkoutSessionId: string): Promise<void> {
     this.loading.set(true);
     try {
-      await this.api.Call<void>('DELETE', `checkout/sessions/${checkoutSessionId}`);
+      await this.api.Call<void>(
+        'DELETE',
+        `checkout/sessions/${checkoutSessionId}`
+      );
     } finally {
       this.loading.set(false);
     }
   }
 
-  async GetCheckoutSession(checkoutSessionId: string): Promise<CheckoutSession> {
+  async GetCheckoutSession(
+    checkoutSessionId: string
+  ): Promise<CheckoutSession> {
     this.loading.set(true);
     try {
       const checkoutSession = await this.api.Call<CheckoutSession>(

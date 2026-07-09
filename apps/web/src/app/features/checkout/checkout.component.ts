@@ -70,7 +70,9 @@ export class CheckoutComponent implements OnInit {
   }
 
   MerchantName(): string {
-    return this.checkoutSession()?.branding_settings?.display_name || 'Zoneless';
+    return (
+      this.checkoutSession()?.branding_settings?.display_name || 'Zoneless'
+    );
   }
 
   MerchantIconUrl(): string | null {
