@@ -39,6 +39,13 @@ export const accountRoutes: Routes = [
       import('./settings/settings.component').then((m) => m.SettingsComponent),
   },
   {
+    path: 'payments',
+    loadChildren: () =>
+      import('./payment-intents/payment-intents.routes').then(
+        (m) => m.paymentIntentRoutes
+      ),
+  },
+  {
     path: 'products',
     loadChildren: () =>
       import('./products/products.routes').then((m) => m.productRoutes),

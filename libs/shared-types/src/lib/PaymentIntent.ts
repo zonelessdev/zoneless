@@ -1,3 +1,5 @@
+import type { Customer } from './Customer';
+
 /**
  * A line item stored under PaymentIntent.amount_details.
  * @see https://docs.stripe.com/api/payment_intents/amount_details_line_items
@@ -51,7 +53,7 @@ export interface PaymentIntent {
   } | null;
   client_secret: string | null;
   currency: string;
-  customer: string | null;
+  customer: string | Customer | null;
   customer_account: string | null;
   description: string | null;
   last_payment_error: {
