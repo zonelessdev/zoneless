@@ -1,54 +1,8 @@
-@use '../../styles/base.scss' as *;
-@use '../../styles/buttons.scss' as *;
-@use '../../styles/account.scss' as *;
-
-.test-mode-bar {
-  background-color: #0e3459;
-  color: white;
-  text-align: center;
-  padding: $spacing-snug;
-  font-size: $font-size;
-  flex-shrink: 0;
-}
-
-.site-wrapper-dashboard {
-  padding: 0;
-  max-width: none;
-  margin: 0;
-  flex-direction: column;
-  display: flex;
-  height: 100vh;
-}
-
-.account-content-wrapper {
-  display: flex;
-  flex: 1;
-  min-height: 300px;
-}
-
-.sidebar-wrapper {
+:host {
+  display: block;
   height: 100%;
 }
 
-.content-wrapper {
-  flex: 1;
-  padding: $spacing-large $spacing-extra-large;
+.account-host {
   height: 100%;
-  overflow-y: auto;
-  max-width: 1320px;
-  margin: auto;
-}
-
-@media only screen and (max-width: 1000px) {
-  .content-wrapper {
-    padding: $spacing;
-  }
-
-  .account-content-wrapper {
-    display: block;
-  }
-
-  .sidebar-wrapper {
-    height: auto;
-  }
 }

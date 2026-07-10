@@ -13,9 +13,18 @@
   background-color: $background-color;
 }
 
+.variant-full {
+  background-color: $mid-background-color;
+  width: 56px;
+}
+
 .expanded-side-menu {
   width: 180px;
   text-align: left;
+}
+
+.variant-full.expanded-side-menu {
+  width: 220px;
 }
 
 .side-menu-top {
@@ -39,6 +48,29 @@
   padding: $spacing-large $spacing;
 }
 
+.variant-full .sub-menus-wrapper {
+  padding: $spacing $spacing-snug;
+}
+
+.menu-group {
+  margin-bottom: $spacing;
+}
+
+.menu-group:last-child {
+  margin-bottom: 0;
+}
+
+.menu-group-label {
+  font-size: $font-size-small;
+  font-weight: $medium-weight;
+  color: $text-color;
+  opacity: $dimmed-extra;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: $spacing-small $spacing-extra-small;
+  margin-bottom: $spacing-extra-small;
+}
+
 ul {
   margin-top: 0;
   padding: 0;
@@ -53,6 +85,10 @@ li:last-child {
   margin-bottom: $spacing;
 }
 
+.variant-full li:last-child {
+  margin-bottom: $spacing-extra-small;
+}
+
 a {
   color: $text-color !important;
 }
@@ -63,11 +99,19 @@ a {
   align-items: center;
   transition: $transition-fast;
   cursor: pointer;
+  border-radius: $border-radius-small;
+  width: 100%;
+}
+
+.variant-full .side-menu-item {
+  padding: $spacing-extra-small $spacing-small;
+}
+
+.variant-full .side-menu-item:hover {
+  background-color: $darker-background-color;
 }
 
 .side-menu-text {
-  display: inline;
-  font-weight: 400;
   display: inline-block;
   vertical-align: top;
   opacity: $dimmed-extra;
@@ -75,10 +119,21 @@ a {
   font-size: $font-size;
 }
 
+.variant-full .side-menu-text {
+  font-size: $font-size-small;
+}
+
 .menu-icon {
   margin-right: $spacing-small;
   transition: $transition-fast;
   opacity: $dimmed-extra;
+  width: 18px;
+  height: 18px;
+}
+
+.menu-icon.large-icon {
+  width: 24px;
+  height: 24px;
 }
 
 .side-menu-item:hover .side-menu-text,
@@ -93,6 +148,14 @@ a {
 
 .menu-icon-selected {
   opacity: 1 !important;
+}
+
+.variant-full a.side-menu-item:has(.menu-icon-selected) {
+  background-color: $darker-background-color;
+}
+
+.variant-full .text-selected {
+  color: $base-color;
 }
 
 .line {
@@ -127,13 +190,13 @@ a {
   transform: rotate(180deg);
 }
 
-// Hide bottom items in main menu on desktop (they show in side-menu-bottom)
 .desktop-hidden {
   display: none;
 }
 
 @media only screen and (max-width: 1000px) {
-  .side-menu-wrapper {
+  .side-menu-wrapper,
+  .variant-full {
     width: 100%;
     border-right: 0;
     border-bottom: 1px solid $darker-background-color;
@@ -148,6 +211,15 @@ a {
     padding: $spacing;
     scrollbar-width: none;
     -ms-overflow-style: none;
+  }
+
+  .menu-group {
+    display: flex;
+    margin-bottom: 0;
+  }
+
+  .menu-group-label {
+    display: none;
   }
 
   ul {
@@ -180,8 +252,12 @@ a {
     margin-bottom: 0;
   }
 
-  // Show bottom items in main menu on mobile
   .desktop-hidden {
     display: inline-flex;
+  }
+
+  .variant-full .side-menu-item:hover,
+  .variant-full a.side-menu-item:has(.menu-icon-selected) {
+    background-color: transparent;
   }
 }

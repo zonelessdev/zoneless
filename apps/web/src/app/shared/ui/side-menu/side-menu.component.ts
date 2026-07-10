@@ -19,6 +19,13 @@ export interface SideMenuItem {
   bottom?: boolean;
 }
 
+export interface SideMenuGroup {
+  label?: string;
+  items: SideMenuItem[];
+}
+
+export type SideMenuVariant = 'express' | 'full';
+
 @Component({
   selector: 'app-side-menu',
   templateUrl: './side-menu.component.html',
@@ -33,7 +40,9 @@ export class SideMenuComponent {
   /** Route prefix that every menu item id is appended to */
   @Input() basePath: (string | number)[] = ['/account'];
 
-  @Input() sideMenu: SideMenuItem[][] = [];
+  @Input() sideMenu: SideMenuGroup[] = [];
+
+  @Input() variant: SideMenuVariant = 'express';
 
   expanded: WritableSignal<boolean> = signal(true);
 

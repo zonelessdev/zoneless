@@ -1,0 +1,120 @@
+@use '../../../../styles/base.scss' as *;
+@use '../../../../styles/buttons.scss' as *;
+@use '../../../../styles/account.scss' as *;
+
+.today-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(240px, 0.8fr);
+  gap: $spacing-large;
+  margin-top: $spacing;
+}
+
+.today-primary {
+  padding: $spacing-medium;
+  background-color: $mid-background-color;
+  border-radius: $border-radius;
+  border: 1px solid $darker-background-color;
+}
+
+.today-secondary {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing;
+}
+
+.summary-card {
+  flex: 1;
+  padding: $spacing;
+  border: 1px solid $darker-background-color;
+  border-radius: $border-radius;
+  background-color: $background-color;
+}
+
+.metric-label {
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed-extra;
+  margin-bottom: $spacing-extra-small;
+}
+
+.metric-value {
+  font-size: 36px;
+  font-weight: $title-weight;
+  font-family: $title-font;
+  line-height: 1.1;
+  margin-bottom: $spacing-small;
+}
+
+.metric-sub {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+  margin-bottom: $spacing;
+}
+
+.summary-value {
+  font-size: $font-size-large;
+  font-weight: $title-weight;
+  margin-bottom: $spacing-small;
+}
+
+.summary-value-small {
+  font-size: $font-size;
+  font-weight: $medium-weight;
+  word-break: break-word;
+}
+
+.text-link {
+  display: inline-block;
+  font-size: $font-size;
+  font-weight: $medium-weight;
+  color: $base-color;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
+.overview-meta {
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed-extra;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $spacing;
+}
+
+.overview-card {
+  padding: $spacing;
+  border: 1px solid $darker-background-color;
+  border-radius: $border-radius;
+  background-color: $background-color;
+}
+
+.overview-value {
+  font-size: $font-size-extra-large;
+  font-weight: $title-weight;
+  font-family: $title-font;
+  margin-bottom: $spacing-extra-small;
+}
+
+.overview-hint {
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed-extra;
+}
+
+@media only screen and (max-width: 900px) {
+  .today-grid,
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+}

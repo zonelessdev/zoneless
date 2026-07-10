@@ -1,46 +1,55 @@
-<div class="side-menu-wrapper" [class.expanded-side-menu]="expanded()">
-  <!-- Platform Logo -->
+<div
+  class="side-menu-wrapper"
+  [class.expanded-side-menu]="expanded()"
+  [class.variant-full]="variant === 'full'"
+  [class.variant-express]="variant === 'express'"
+>
   <div class="side-menu-top">
     <app-platform-logo
-      [size]="expanded() ? 'small' : 'small'"
+      [size]="'small'"
       [showName]="expanded()"
     ></app-platform-logo>
   </div>
 
   <div class="sub-menus-wrapper">
-    @for (subMenu of sideMenu; track $index) {
-    <ul>
-      @for (sideMenuItem of subMenu; track sideMenuItem.id) { @if
-      (!sideMenuItem.hidden) {
-      <li [class.bottom-item-mobile]="sideMenuItem.bottom">
-        <a
-          class="side-menu-item"
-          [class.desktop-hidden]="sideMenuItem.bottom"
-          tabindex="0"
-          [routerLink]="LinkFor(sideMenuItem.id)"
-          routerLinkActive
-          #rla="routerLinkActive"
-        >
-          <img
-            class="menu-icon icon large-icon"
-            [class.menu-icon-selected]="rla.isActive"
-            [src]="'assets/icons/' + sideMenuItem.icon"
-            [alt]="sideMenuItem.title"
-          />
-          @if (expanded()) {
-          <span class="side-menu-text" [class.text-selected]="rla.isActive">
-            {{ sideMenuItem.title }}
-          </span>
-          }
-        </a>
-      </li>
-      } }
-    </ul>
+    @for (group of sideMenu; track $index) {
+    <div class="menu-group">
+      @if (group.label && expanded()) {
+      <div class="menu-group-label">{{ group.label }}</div>
+      }
+      <ul>
+        @for (sideMenuItem of group.items; track sideMenuItem.id) { @if
+        (!sideMenuItem.hidden) {
+        <li [class.bottom-item-mobile]="sideMenuItem.bottom">
+          <a
+            class="side-menu-item"
+            [class.desktop-hidden]="sideMenuItem.bottom"
+            tabindex="0"
+            [routerLink]="LinkFor(sideMenuItem.id)"
+            routerLinkActive
+            #rla="routerLinkActive"
+          >
+            <img
+              class="menu-icon icon"
+              [class.large-icon]="variant === 'express'"
+              [class.menu-icon-selected]="rla.isActive"
+              [src]="'assets/icons/' + sideMenuItem.icon"
+              [alt]="sideMenuItem.title"
+            />
+            @if (expanded()) {
+            <span class="side-menu-text" [class.text-selected]="rla.isActive">
+              {{ sideMenuItem.title }}
+            </span>
+            }
+          </a>
+        </li>
+        } }
+      </ul>
+    </div>
     }
   </div>
   <div class="side-menu-bottom">
-    <!-- Bottom menu items (desktop only) -->
-    @for (subMenu of sideMenu; track $index) { @for (sideMenuItem of subMenu;
+    @for (group of sideMenu; track $index) { @for (sideMenuItem of group.items;
     track sideMenuItem.id) { @if (!sideMenuItem.hidden && sideMenuItem.bottom) {
     <ul class="bottom-menu-items">
       <li>
@@ -52,7 +61,8 @@
           #rla="routerLinkActive"
         >
           <img
-            class="menu-icon icon large-icon"
+            class="menu-icon icon"
+            [class.large-icon]="variant === 'express'"
             [class.menu-icon-selected]="rla.isActive"
             [src]="'assets/icons/' + sideMenuItem.icon"
             [alt]="sideMenuItem.title"
@@ -66,7 +76,6 @@
       </li>
     </ul>
     } } }
-    <!-- Toggle sidebar button -->
     <ul class="toggle-button-wrapper">
       <li [class.expanded-bottom]="expanded()">
         <a
@@ -76,7 +85,8 @@
           (keyup.enter)="ToggleSidebar()"
         >
           <img
-            class="menu-icon icon large-icon"
+            class="menu-icon icon"
+            [class.large-icon]="variant === 'express'"
             src="assets/icons/arrow_forward.svg"
             alt="Toggle sidebar"
           />
