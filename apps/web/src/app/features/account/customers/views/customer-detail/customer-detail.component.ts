@@ -8,7 +8,7 @@ import {
   OnDestroy,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import type { Customer } from '@zoneless/shared-types';
+import type { Customer, PaymentIntent } from '@zoneless/shared-types';
 import { CustomerService } from '../../../../../data';
 import { CustomerActionsService } from '../../services/customer-actions.service';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -17,6 +17,8 @@ import {
   PopupMenuAction,
   PopupMenuComponent,
   CopyTextComponent,
+  PaginatedListComponent,
+  PaginatedListColumn,
 } from '../../../../../shared';
 import { EventsListComponent } from '../../../components';
 import { MetadataToArray } from '../../../util/metadata';
@@ -31,6 +33,7 @@ import { Subscription } from 'rxjs';
     DatePipe,
     EventsListComponent,
     CopyTextComponent,
+    PaginatedListComponent,
   ],
   templateUrl: './customer-detail.component.html',
   styleUrl: './customer-detail.component.scss',
@@ -47,6 +50,9 @@ export class CustomerDetailComponent implements OnInit, OnDestroy {
   customer: WritableSignal<Customer | null> = signal(null);
   loading: WritableSignal<boolean> = signal(false);
   detailsExpanded: WritableSignal<boolean> = signal(false);
+
+  paymentColumns: PaginatedListColumn[] = [];
+  paymentQueryParams: WritableSignal<Record<string, string>> = signal({});
 
   private sub?: Subscription;
 
@@ -66,6 +72,7 @@ export class CustomerDetailComponent implements OnInit, OnDestroy {
     if (!id) return;
     await this.LoadCustomer(id);
     this.metaService.SetMetaTitle(this.customer()?.name ?? 'Customer');
+    this.InitPaymentList(id);
     this.sub = this.actions.events$.subscribe((event) => {
       if (event.type === 'deleted' && event.customerId === id) {
         this.router.navigate(['/account/customers']);
@@ -86,6 +93,41 @@ export class CustomerDetailComponent implements OnInit, OnDestroy {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private InitPaymentList(customerId: string): void {
+    this.paymentColumns = [
+      {
+        header: 'Amount',
+        field: 'amount',
+        type: 'currency-with-code',
+        bolded: true,
+      },
+      {
+        header: 'Status',
+        field: 'status',
+        type: 'status',
+      },
+      {
+        header: 'Description',
+        field: 'description',
+        type: 'text',
+        formatter: (item: unknown) => {
+          const paymentIntent = item as PaymentIntent;
+          return paymentIntent.description ?? '—';
+        },
+      },
+      {
+        header: 'Date',
+        field: 'created',
+        type: 'date',
+      },
+    ];
+    this.paymentQueryParams.set({ customer: customerId });
+  }
+
+  OnPaymentClick(paymentIntent: PaymentIntent): void {
+    this.router.navigate(['/account/payments', paymentIntent.id]);
   }
 
   OnEdit(): void {

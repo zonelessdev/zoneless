@@ -1,0 +1,13 @@
+<div class="header-wrapper">
+  <h1>Transactions</h1>
+</div>
+<app-paginated-list
+  endpoint="payment_intents"
+  [columns]="paymentIntentColumns"
+  [limit]="10"
+  [queryParams]="paymentIntentsQueryParams()"
+  [expand]="paymentIntentsExpand()"
+  (rowClick)="OnPaymentIntentClick($event)"
+></app-paginated-list>
+
+<app-payment-intent-actions-host></app-payment-intent-actions-host>

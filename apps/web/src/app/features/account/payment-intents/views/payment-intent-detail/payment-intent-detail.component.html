@@ -1,0 +1,415 @@
+@if (paymentIntent(); as pi) {
+<div class="flex align-vert-start space-between">
+  <div class="flex flex-column gap-small">
+    <a class="link-highlight" routerLink="/account/payments">Transactions</a>
+    <div class="flex align-vert gap-small">
+      <h1 class="amount-title">
+        ${{ FormatAmount(pi.amount) | number : '1.2-2' }}
+        <span class="currency-label">{{ FormatCurrency(pi.currency) }}</span>
+      </h1>
+      <app-status-chip [status]="pi.status"></app-status-chip>
+    </div>
+    @if (GetChargedToLabel(); as chargedTo) {
+    <div class="charged-to dimmed">
+      Charged to @if (customerId(); as cusId) {
+      <a class="link-highlight" [routerLink]="['/account/customers', cusId]">{{
+        chargedTo
+      }}</a>
+      } @else {
+      <span>{{ chargedTo }}</span>
+      }
+    </div>
+    }
+  </div>
+</div>
+
+<div class="flex gap-extra-large view-panels">
+  <div class="view-left-panel">
+    <!-- Recent activity -->
+    <div class="view-section">
+      <h2 class="section-title">Recent activity</h2>
+      <div class="panel-timeline">
+        @for (event of timelineEvents(); track event.title; let last = $last) {
+        <div class="panel-timeline-item">
+          <div class="panel-timeline-dot" [class.active]="event.active"></div>
+          @if (!last) {
+          <div class="panel-timeline-line"></div>
+          }
+          <div class="panel-timeline-title">{{ event.title }}</div>
+          <div class="panel-timeline-date">
+            {{ event.timestamp | date : 'd MMM, HH:mm' }}
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+
+    <!-- Payment breakdown -->
+    <div class="view-section">
+      <h2 class="section-title">Payment breakdown</h2>
+      <div class="breakdown-rows">
+        <div class="breakdown-row">
+          <span class="dimmed">Payment amount</span>
+          <span
+            >${{ FormatAmount(pi.amount) | number : '1.2-2' }}
+            {{ FormatCurrency(pi.currency) }}</span
+          >
+        </div>
+        @if (feeAmount() !== null) {
+        <div class="breakdown-row">
+          <span class="dimmed">Application fee</span>
+          <span
+            >− ${{ FormatAmount(feeAmount()!) | number : '1.2-2' }}
+            {{ FormatCurrency(pi.currency) }}</span
+          >
+        </div>
+        }
+        <div class="breakdown-row breakdown-row-net">
+          <span class="bolded">Net amount</span>
+          <span class="bolded"
+            >${{ FormatAmount(netAmount()) | number : '1.2-2' }}
+            {{ FormatCurrency(pi.currency) }}</span
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment method -->
+    <div class="view-section">
+      <h2 class="section-title">Payment method</h2>
+      @if (cryptoDetails(); as crypto) {
+      <div class="payment-method-grid">
+        @if (pi.payment_method) {
+        <div class="pm-field">
+          <div class="bolded mb-small">ID</div>
+          <app-copy-text [text]="pi.payment_method"></app-copy-text>
+        </div>
+        } @if (crypto.buyer_address) {
+        <div class="pm-field">
+          <div class="bolded mb-small">Wallet</div>
+          <div class="panel-badge">
+            <img
+              src="assets/icons/account_balance_wallet.svg"
+              alt="Wallet"
+              class="panel-badge-icon"
+            />
+            <app-copy-text
+              [text]="crypto.buyer_address"
+              [displayText]="ShortenAddress(crypto.buyer_address)"
+              tooltipText="Copy wallet address"
+            ></app-copy-text>
+          </div>
+        </div>
+        }
+        <div class="pm-field">
+          <div class="bolded mb-small">Network</div>
+          <div class="dimmed">
+            {{ crypto.network ?? 'solana' | titlecase }}
+          </div>
+        </div>
+        <div class="pm-field">
+          <div class="bolded mb-small">Token</div>
+          <div class="dimmed">
+            {{ FormatCurrency(crypto.token_currency ?? 'usdc') }}
+          </div>
+        </div>
+        @if (crypto.transaction_hash) {
+        <div class="pm-field">
+          <div class="bolded mb-small">Transaction</div>
+          <app-copy-text
+            [text]="crypto.transaction_hash"
+            [displayText]="ShortenAddress(crypto.transaction_hash)"
+          ></app-copy-text>
+        </div>
+        } @if (crypto.fingerprint) {
+        <div class="pm-field">
+          <div class="bolded mb-small">Fingerprint</div>
+          <app-copy-text [text]="crypto.fingerprint"></app-copy-text>
+        </div>
+        } @if (charge()?.billing_details?.name) {
+        <div class="pm-field">
+          <div class="bolded mb-small">Owner</div>
+          <div class="dimmed">{{ charge()!.billing_details.name }}</div>
+        </div>
+        } @if (charge()?.billing_details?.email) {
+        <div class="pm-field">
+          <div class="bolded mb-small">Owner email</div>
+          <app-copy-text
+            [text]="charge()!.billing_details.email!"
+          ></app-copy-text>
+        </div>
+        } @if (charge()?.billing_details?.address?.country) {
+        <div class="pm-field">
+          <div class="bolded mb-small">Address</div>
+          <div class="dimmed">
+            {{ charge()!.billing_details.address!.country }}
+          </div>
+        </div>
+        }
+      </div>
+      @if (GetExplorerUrl(crypto.transaction_hash)) {
+      <button
+        type="button"
+        class="action-button action-button-dainty outline panel-action-button"
+        (click)="OnViewOnBlockchain()"
+      >
+        <span>View on blockchain</span>
+        <img
+          src="assets/icons/arrow_forward.svg"
+          alt="View"
+          class="panel-action-icon"
+        />
+      </button>
+      } } @else if (pi.payment_method) {
+      <div class="pm-field">
+        <div class="bolded mb-small">ID</div>
+        <app-copy-text [text]="pi.payment_method"></app-copy-text>
+      </div>
+      @if (pi.payment_method_types.length > 0) {
+      <div class="pm-field mt-field">
+        <div class="bolded mb-small">Type</div>
+        <div class="dimmed">
+          {{ FormatPaymentMethodType(pi.payment_method_types[0]) }}
+        </div>
+      </div>
+      } } @else {
+      <div class="dashed-placeholder">
+        <span>No payment method</span>
+      </div>
+      }
+    </div>
+
+    <!-- Failure details -->
+    @if (pi.last_payment_error; as paymentError) {
+    <div class="view-section">
+      <h2 class="section-title">Failure details</h2>
+      @if (paymentError.code) {
+      <div class="mb">
+        <div class="bolded mb-small">Code</div>
+        <div class="dimmed mono">{{ paymentError.code }}</div>
+      </div>
+      } @if (paymentError.message) {
+      <div class="mb">
+        <div class="bolded mb-small">Message</div>
+        <div class="dimmed">{{ paymentError.message }}</div>
+      </div>
+      }
+    </div>
+    }
+
+    <!-- Allowed payment methods -->
+    <div class="view-section">
+      <h2 class="section-title">Allowed payment methods</h2>
+      @if (pi.payment_method_types.length > 0) {
+      <div class="dimmed">
+        @for ( type of pi.payment_method_types; track type; let last = $last ) {
+        <span>{{ FormatPaymentMethodType(type) }}</span
+        >@if (!last) {
+        <span>, </span>
+        } }
+      </div>
+      } @else {
+      <div class="dimmed">—</div>
+      }
+    </div>
+
+    <!-- Risk analysis -->
+    @if (charge()?.outcome; as outcome) {
+    <div class="view-section">
+      <h2 class="section-title">Risk analysis</h2>
+      <div class="flex align-vert gap-small">
+        <span class="dimmed">Risk level</span>
+        <app-status-chip
+          [status]="FormatRiskLevel(outcome.risk_level)"
+        ></app-status-chip>
+      </div>
+    </div>
+    }
+
+    <!-- Related objects -->
+    <div class="view-section">
+      <h2 class="section-title">Related objects</h2>
+      <div class="related-objects">
+        <div class="mb">
+          <div class="bolded mb-small">Latest charge</div>
+          @if (pi.latest_charge) {
+          <app-copy-text [text]="pi.latest_charge"></app-copy-text>
+          } @else {
+          <div class="dimmed">—</div>
+          }
+        </div>
+        @if (charge()?.balance_transaction) {
+        <div class="mb">
+          <div class="bolded mb-small">Balance transaction</div>
+          <app-copy-text
+            [text]="charge()!.balance_transaction!"
+          ></app-copy-text>
+        </div>
+        } @if (pi.transfer_group) {
+        <div class="mb">
+          <div class="bolded mb-small">Transfer group</div>
+          <div class="dimmed">{{ pi.transfer_group }}</div>
+        </div>
+        }
+      </div>
+    </div>
+
+    <!-- Events -->
+    <div class="view-section">
+      <h2 class="section-title">Events</h2>
+      <app-events-list [itemId]="pi.id"></app-events-list>
+    </div>
+  </div>
+
+  <div class="view-right-panel">
+    <!-- Details -->
+    <div class="view-section">
+      <h2 class="section-title">Details</h2>
+      <div class="mb">
+        <div class="bolded mb-small">Payment ID</div>
+        <div><app-copy-text [text]="pi.id"></app-copy-text></div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Payment method</div>
+        @if (cryptoDetails(); as crypto) {
+        <div class="flex align-vert gap-extra-small">
+          <div class="panel-badge">
+            <img
+              src="assets/icons/token.svg"
+              alt="USDC"
+              class="panel-badge-icon"
+            />
+            <span class="panel-badge-text">{{
+              FormatCurrency(crypto.token_currency ?? 'usdc')
+            }}</span>
+          </div>
+          @if (crypto.buyer_address) {
+          <span class="dimmed mono">{{
+            ShortenAddress(crypto.buyer_address)
+          }}</span>
+          }
+        </div>
+        } @else if (pi.payment_method) {
+        <app-copy-text [text]="pi.payment_method"></app-copy-text>
+        } @else {
+        <div class="dimmed">—</div>
+        }
+      </div>
+      @if (charge()?.outcome?.risk_level; as riskLevel) {
+      <div class="mb">
+        <div class="bolded mb-small">Risk level</div>
+        <app-status-chip [status]="riskLevel"></app-status-chip>
+      </div>
+      }
+      <div class="mb">
+        <div class="bolded mb-small">Description</div>
+        <div class="dimmed">{{ pi.description ? pi.description : '—' }}</div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Statement descriptor</div>
+        <div class="dimmed">
+          {{
+            pi.statement_descriptor
+              ? pi.statement_descriptor
+              : pi.statement_descriptor_suffix
+              ? pi.statement_descriptor_suffix
+              : '—'
+          }}
+        </div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Created</div>
+        <div class="dimmed flex align-vert gap-extra-small">
+          <img src="assets/icons/clock.svg" class="icon" alt="Clock icon" />
+          <span>{{ pi.created * 1000 | date : 'd MMM y, HH:mm' }}</span>
+        </div>
+      </div>
+      @if (pi.canceled_at) {
+      <div class="mb">
+        <div class="bolded mb-small">Canceled</div>
+        <div class="dimmed flex align-vert gap-extra-small">
+          <img src="assets/icons/clock.svg" class="icon" alt="Clock icon" />
+          <span>{{ pi.canceled_at * 1000 | date : 'd MMM y, HH:mm' }}</span>
+        </div>
+      </div>
+      }
+      <div class="mb">
+        <div class="bolded mb-small">
+          <a class="link-highlight" routerLink="/account/balance"
+            >View balances</a
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer -->
+    <div class="view-section">
+      <h2 class="section-title">Customer</h2>
+      @if (customerId(); as cusId) {
+      <div class="mb">
+        <div class="bolded mb-small">ID</div>
+        <a
+          class="link-highlight mono"
+          [routerLink]="['/account/customers', cusId]"
+          >{{ cusId }}</a
+        >
+      </div>
+      @if (customer(); as cus) {
+      <div class="mb">
+        <div class="bolded mb-small">Name</div>
+        <div class="dimmed">{{ cus.name ? cus.name : '—' }}</div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Email address</div>
+        @if (cus.email) {
+        <app-copy-text [text]="cus.email"></app-copy-text>
+        } @else {
+        <div class="dimmed">—</div>
+        }
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Phone number</div>
+        <div class="dimmed">{{ cus.phone ? cus.phone : '—' }}</div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Country</div>
+        <div class="dimmed">
+          {{ cus.address?.country ? cus.address!.country : '—' }}
+        </div>
+      </div>
+      } } @else {
+      <div class="dashed-placeholder">
+        <span>No customer</span>
+      </div>
+      }
+    </div>
+
+    <!-- Metadata -->
+    <div class="view-section">
+      <div class="section-edit-top">
+        <h2 class="section-title">Metadata</h2>
+        <button
+          type="button"
+          class="action-button action-button-small outline"
+          (click)="OnEditMetadata()"
+        >
+          <img src="assets/icons/edit.svg" class="icon" alt="Edit icon" />
+        </button>
+      </div>
+      @if (hasMetadata()) { @for (entry of MetadataToArray(pi.metadata); track
+      entry.key) {
+      <div class="mb">
+        <div class="bolded mb-small">{{ entry.key }}</div>
+        <div class="dimmed">{{ entry.value }}</div>
+      </div>
+      } } @else {
+      <div class="dashed-placeholder">
+        <span>No metadata</span>
+      </div>
+      }
+    </div>
+  </div>
+</div>
+}
+
+<app-payment-intent-actions-host></app-payment-intent-actions-host>

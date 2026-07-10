@@ -1,0 +1,88 @@
+@use '../../../../../styles/base.scss' as *;
+@use '../../../../../styles/chips.scss' as *;
+@use '../../../../../styles/buttons.scss' as *;
+@use '../../../../../styles/account.scss' as *;
+@use '../../../../../styles/align.scss' as *;
+@use '../../../../../styles/spacing.scss' as *;
+@use '../../../../../styles/panels.scss' as *;
+
+.link-highlight {
+  font-weight: 500;
+}
+
+.amount-title {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-small;
+}
+
+.charged-to {
+  font-size: $font-size;
+}
+
+.section-edit-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing;
+}
+
+.section-edit-top h2 {
+  margin: 0;
+}
+
+.breakdown-rows {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-small;
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: $spacing;
+  padding: $spacing-extra-small 0;
+}
+
+.breakdown-row-net {
+  border-top: 1px solid $darkest-background-color;
+  padding-top: $spacing-small;
+  margin-top: $spacing-extra-small;
+}
+
+.payment-method-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-large $spacing-extra-large;
+}
+
+.pm-field {
+  min-width: 0;
+}
+
+.mt-field {
+  margin-top: $spacing;
+}
+
+.mono {
+  font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: $font-size-small;
+}
+
+.panel-action-button {
+  margin-top: $spacing;
+}
+
+.panel-action-icon {
+  width: 16px;
+  height: 16px;
+}
+
+@media only screen and (max-width: 800px) {
+  .payment-method-grid {
+    grid-template-columns: 1fr;
+  }
+}

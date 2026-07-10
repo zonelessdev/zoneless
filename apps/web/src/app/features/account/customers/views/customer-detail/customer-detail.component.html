@@ -39,9 +39,14 @@
     </div>
     <div class="view-section">
       <h2 class="section-title">Payments</h2>
-      <div class="dashed-placeholder">
-        <span>No payments</span>
-      </div>
+      <app-paginated-list
+        endpoint="payment_intents"
+        [columns]="paymentColumns"
+        [limit]="5"
+        [queryParams]="paymentQueryParams()"
+        [paginationEnabled]="false"
+        (rowClick)="OnPaymentClick($event)"
+      ></app-paginated-list>
     </div>
     <div class="view-section">
       <h2 class="section-title">Payment methods</h2>
