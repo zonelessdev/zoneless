@@ -10,6 +10,7 @@ import { ProductModule } from '../modules/Product';
 import { CustomerModule } from '../modules/Customer';
 import { ExternalWalletModule } from '../modules/ExternalWallet';
 import { PaymentIntentModule } from '../modules/PaymentIntent';
+import { ChargeModule } from '../modules/Charge';
 
 const router = express.Router();
 
@@ -22,6 +23,7 @@ const paymentIntentModule = new PaymentIntentModule(
   eventService,
   customerModule
 );
+const chargeModule = new ChargeModule(db, eventService, customerModule);
 const checkoutSessionModule = new CheckoutSessionModule(
   db,
   eventService,
@@ -36,7 +38,8 @@ const checkoutPaymentModule = new CheckoutPaymentModule(
   checkoutSessionModule,
   externalWalletModule,
   productModule,
-  paymentIntentModule
+  paymentIntentModule,
+  chargeModule
 );
 
 /**

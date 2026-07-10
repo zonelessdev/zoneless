@@ -2,6 +2,7 @@ export * from './AccountLinkSchema';
 export * from './AccountSchema';
 export * from './ApiKeySchema';
 export * from './BalanceTransactionSchema';
+export * from './ChargeSchema';
 export * from './CheckoutSessionSchema';
 export * from './CustomerSchema';
 export * from './EventSchema';
