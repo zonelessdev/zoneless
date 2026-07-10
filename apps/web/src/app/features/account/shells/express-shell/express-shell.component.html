@@ -1,0 +1,19 @@
+<div class="site-wrapper-dashboard">
+  @if (showTestMode) {
+  <div class="test-mode-bar">
+    You're using test data. No real transactions will be processed.
+  </div>
+  }
+
+  <div class="account-content-wrapper">
+    <div class="sidebar-wrapper">
+      <app-side-menu [sideMenu]="sideMenu" variant="express"></app-side-menu>
+    </div>
+
+    <div class="shell-main">
+      <div class="content-wrapper">
+        <ng-content></ng-content>
+      </div>
+    </div>
+  </div>
+</div>

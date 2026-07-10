@@ -1,24 +1,19 @@
-<div class="site-wrapper-dashboard">
+<div class="account-host">
   <app-page-loader [loading]="loading()"></app-page-loader>
 
-  @if (configService.IsTestMode()) {
-  <div class="test-mode-bar">
-    You're using test data. No real transactions will be processed.
-  </div>
-  }
-
-  <div class="account-content-wrapper">
-    <div class="sidebar-wrapper">
-      <app-side-menu [sideMenu]="sideMenu()"></app-side-menu>
-    </div>
-
-    <div class="content-wrapper">
-      @if (accountService.account() && balanceService.balance() &&
-      personService.person()) {
-      <div class="view">
-        <router-outlet></router-outlet>
-      </div>
-      }
-    </div>
-  </div>
+  @if (ready()) { @if (dashboardType() === 'full') {
+  <app-full-shell
+    [sideMenu]="sideMenu()"
+    [showTestMode]="configService.IsTestMode()"
+  >
+    <router-outlet></router-outlet>
+  </app-full-shell>
+  } @else {
+  <app-express-shell
+    [sideMenu]="sideMenu()"
+    [showTestMode]="configService.IsTestMode()"
+  >
+    <router-outlet></router-outlet>
+  </app-express-shell>
+  } }
 </div>

@@ -1,13 +1,12 @@
 import { Routes } from '@angular/router';
+import { platformOnlyGuard } from './guards/platform-only.guard';
 
 export const accountRoutes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
   {
     path: 'home',
     loadComponent: () =>
-      import('./dashboard/dashboard.component').then(
-        (m) => m.DashboardComponent
-      ),
+      import('./dashboard/home.component').then((m) => m.HomeComponent),
   },
   {
     path: 'balance',
@@ -16,11 +15,13 @@ export const accountRoutes: Routes = [
   },
   {
     path: 'customers',
+    canActivate: [platformOnlyGuard],
     loadChildren: () =>
       import('./customers/customers.routes').then((m) => m.customerRoutes),
   },
   {
     path: 'connected-accounts',
+    canActivate: [platformOnlyGuard],
     loadComponent: () =>
       import('./connected-accounts/connected-accounts.component').then(
         (m) => m.ConnectedAccountsComponent
@@ -28,6 +29,7 @@ export const accountRoutes: Routes = [
   },
   {
     path: 'developers',
+    canActivate: [platformOnlyGuard],
     loadComponent: () =>
       import('./developers/developers.component').then(
         (m) => m.DevelopersComponent
@@ -40,6 +42,7 @@ export const accountRoutes: Routes = [
   },
   {
     path: 'payments',
+    canActivate: [platformOnlyGuard],
     loadChildren: () =>
       import('./payment-intents/payment-intents.routes').then(
         (m) => m.paymentIntentRoutes
@@ -47,11 +50,13 @@ export const accountRoutes: Routes = [
   },
   {
     path: 'products',
+    canActivate: [platformOnlyGuard],
     loadChildren: () =>
       import('./products/products.routes').then((m) => m.productRoutes),
   },
   {
     path: 'prices',
+    canActivate: [platformOnlyGuard],
     loadChildren: () =>
       import('./products/prices.routes').then((m) => m.priceRoutes),
   },

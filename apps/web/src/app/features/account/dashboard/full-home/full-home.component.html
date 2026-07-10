@@ -1,0 +1,121 @@
+<div class="view-section today-section">
+  <div class="header-wrapper">
+    <h1>Today</h1>
+    <button
+      type="button"
+      class="action-button action-button-dainty"
+      (click)="OnAddFundsClick()"
+    >
+      <img class="button-icon" src="assets/icons/add_circle.svg" alt="" />
+      <span>Add funds</span>
+    </button>
+  </div>
+
+  <div class="today-grid">
+    <div class="today-primary">
+      <div class="metric-label">USDC balance</div>
+      <div class="metric-value">
+        ${{ GetTotalBalance() | number : '1.2-2' }}
+      </div>
+      <div class="metric-sub">
+        Available ${{ GetAvailableBalance() | number : '1.2-2' }}
+        @if (GetPendingBalance() > 0) {
+        <span> · Pending ${{ GetPendingBalance() | number : '1.2-2' }} </span>
+        }
+      </div>
+      <button type="button" class="text-link" (click)="OnBalanceDetailClick()">
+        View
+      </button>
+    </div>
+
+    <div class="today-secondary">
+      <div class="summary-card">
+        <div class="metric-label">Available to pay out</div>
+        <div class="summary-value">
+          ${{ GetAvailableBalance() | number : '1.2-2' }}
+        </div>
+        <a class="text-link" routerLink="/account/balance">See details</a>
+      </div>
+      <div class="summary-card">
+        <div class="metric-label">Account</div>
+        <div class="summary-value summary-value-small">
+          {{
+            GetAccount()?.business_profile?.name || GetAccount()?.email || '—'
+          }}
+        </div>
+        <a class="text-link" routerLink="/account/settings">Settings</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="view-section">
+  <div class="section-header">
+    <h2 class="section-title">Your overview</h2>
+    <div class="overview-meta">
+      @if (GetAccount()?.created) { Account created
+      {{ GetAccount()!.created * 1000 | date : 'mediumDate' }}
+      }
+    </div>
+  </div>
+
+  <div class="overview-grid">
+    <div class="overview-card">
+      <div class="metric-label">Total balance</div>
+      <div class="overview-value">
+        ${{ GetTotalBalance() | number : '1.2-2' }}
+      </div>
+      <div class="overview-hint">USDC across available and pending</div>
+    </div>
+    <div class="overview-card">
+      <div class="metric-label">Available</div>
+      <div class="overview-value">
+        ${{ GetAvailableBalance() | number : '1.2-2' }}
+      </div>
+      <div class="overview-hint">Ready to pay out</div>
+    </div>
+    <div class="overview-card">
+      <div class="metric-label">Pending</div>
+      <div class="overview-value">
+        ${{ GetPendingBalance() | number : '1.2-2' }}
+      </div>
+      <div class="overview-hint">Settling to available</div>
+    </div>
+  </div>
+</div>
+
+<div class="view-section">
+  <div class="section-header">
+    <h2 class="section-title">Recent transactions</h2>
+    <a class="text-link" routerLink="/account/payments">See all</a>
+  </div>
+  <app-transaction-list
+    [transactionColumns]="recentTransactionColumns"
+    [limit]="8"
+    [paginationEnabled]="false"
+  ></app-transaction-list>
+</div>
+
+<app-slide-panel
+  [isOpen]="addFundsPanelOpen()"
+  title="Add funds"
+  [viewOnly]="true"
+  (closed)="OnAddFundsPanelClosed()"
+>
+  <app-add-funds-panel
+    [isOpen]="addFundsPanelOpen()"
+    (depositCompleted)="OnDepositCompleted($event)"
+  ></app-add-funds-panel>
+</app-slide-panel>
+
+<app-slide-panel
+  [isOpen]="balanceDetailPanelOpen()"
+  title="Balance details"
+  [viewOnly]="true"
+  (closed)="OnBalanceDetailPanelClosed()"
+>
+  <app-balance-detail
+    [isOpen]="balanceDetailPanelOpen()"
+    (synced)="OnBalanceSynced()"
+  ></app-balance-detail>
+</app-slide-panel>

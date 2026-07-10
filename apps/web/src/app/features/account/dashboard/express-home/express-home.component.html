@@ -1,0 +1,28 @@
+<div class="view-section">
+  <div class="header-wrapper">
+    <h1>Hi {{ personService.person()?.first_name }} 👋</h1>
+  </div>
+
+  <div class="balance-label">Total balance</div>
+  <div class="balance-wrapper">
+    <div class="balance">${{ GetTotalBalance() | number : '1.2-2' }}</div>
+    <div class="currency-label">USDC</div>
+  </div>
+
+  <div class="balance-label">Available to pay out</div>
+  <div class="balance-wrapper">
+    <div class="balance-secondary">
+      ${{ GetAvailableBalance() | number : '1.2-2' }}
+    </div>
+    <div class="currency-label">USDC</div>
+  </div>
+</div>
+
+<div class="view-section">
+  <h2 class="section-title">Recent transactions</h2>
+  <app-transaction-list
+    [transactionColumns]="recentTransactionColumns"
+    [limit]="5"
+    [paginationEnabled]="false"
+  ></app-transaction-list>
+</div>

@@ -7,7 +7,7 @@ import {
   WritableSignal,
   computed,
 } from '@angular/core';
-import { Router, ActivatedRoute, RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
 
 import { MetaService, AuthService } from '../../core';
 import {
@@ -20,15 +20,20 @@ import {
   ConfigService,
   WebhookEndpointService,
 } from '../../data';
-import {
-  PageLoaderComponent,
-  SideMenuComponent,
-  SideMenuItem,
-} from '../../shared';
+import { PageLoaderComponent, SideMenuGroup } from '../../shared';
+import { ExpressShellComponent } from './shells/express-shell/express-shell.component';
+import { FullShellComponent } from './shells/full-shell/full-shell.component';
+import { EXPRESS_NAV } from './nav/express-nav';
+import { FULL_NAV } from './nav/full-nav';
 
 @Component({
   selector: 'app-account',
-  imports: [PageLoaderComponent, SideMenuComponent, RouterOutlet],
+  imports: [
+    PageLoaderComponent,
+    RouterOutlet,
+    ExpressShellComponent,
+    FullShellComponent,
+  ],
   templateUrl: './account.component.html',
   styleUrl: './account.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,7 +41,6 @@ import {
 export class AccountComponent implements OnInit {
   private readonly meta = inject(MetaService);
   private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
   private readonly authService = inject(AuthService);
   readonly accountService = inject(AccountService);
   readonly balanceService = inject(BalanceService);
@@ -49,65 +53,18 @@ export class AccountComponent implements OnInit {
 
   loading: WritableSignal<boolean> = signal(true);
 
-  // Transaction detail panel state
-  transactionDetailPanelOpen: WritableSignal<boolean> = signal(false);
+  dashboardType = this.authService.dashboardType;
 
-  // Computed signal for side menu based on platform status
-  sideMenu = computed<SideMenuItem[][]>(() => {
-    const baseMenu: SideMenuItem[][] = [
-      [
-        {
-          title: 'Home',
-          icon: 'home.svg',
-          id: 'home',
-        },
-        {
-          title: 'Balance',
-          icon: 'account_balance.svg',
-          id: 'balance',
-        },
-      ],
-    ];
+  sideMenu = computed<SideMenuGroup[]>(() =>
+    this.dashboardType() === 'full' ? FULL_NAV : EXPRESS_NAV
+  );
 
-    // Add platform-only tabs
-    if (this.authService.isPlatform()) {
-      baseMenu[0].push({
-        title: 'Connected',
-        icon: 'groups.svg',
-        id: 'connected-accounts',
-      });
-      baseMenu[0].push({
-        title: 'Transactions',
-        icon: 'autorenew.svg',
-        id: 'payments',
-      });
-      baseMenu[0].push({
-        title: 'Customers',
-        icon: 'person.svg',
-        id: 'customers',
-      });
-      baseMenu[0].push({
-        title: 'Products',
-        icon: 'package.svg',
-        id: 'products',
-      });
-      baseMenu[0].push({
-        title: 'Developers',
-        icon: 'code.svg',
-        id: 'developers',
-      });
-    }
-
-    // Add Settings at the bottom
-    baseMenu[0].push({
-      title: 'Settings',
-      icon: 'person.svg',
-      id: 'settings',
-      bottom: true,
-    });
-
-    return baseMenu;
-  });
+  ready = computed(
+    () =>
+      !!this.accountService.account() &&
+      !!this.balanceService.balance() &&
+      !!this.personService.person()
+  );
 
   async ngOnInit(): Promise<void> {
     this.meta.SetMetaTitle('Home');
@@ -121,7 +78,6 @@ export class AccountComponent implements OnInit {
   }
 
   private async LoadAccountData(): Promise<void> {
-    // Load platform config for branding (parallel with account)
     const [account] = await Promise.all([
       this.accountService.GetAccount(),
       this.configService.LoadConfig(),
@@ -131,6 +87,8 @@ export class AccountComponent implements OnInit {
       this.router.navigateByUrl('/onboard');
       return;
     }
+
+    this.authService.SyncFromAccount(account);
 
     if (!account.tos_acceptance) {
       this.router.navigateByUrl('/onboard');
@@ -142,10 +100,8 @@ export class AccountComponent implements OnInit {
     }
 
     await this.externalWalletService.GetExternalWallets(account.id);
-
     await this.balanceService.GetBalance();
 
-    // Load webhook endpoints and API keys if platform
     if (this.authService.isPlatform()) {
       await Promise.all([
         this.webhookEndpointService.ListWebhookEndpoints(),

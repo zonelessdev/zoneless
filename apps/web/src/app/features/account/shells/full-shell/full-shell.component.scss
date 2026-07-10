@@ -1,0 +1,89 @@
+@use '../../../../styles/base.scss' as *;
+@use '../shell-layout.scss';
+
+.full-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing;
+  padding: $spacing-snug $spacing-large;
+  border-bottom: 1px solid $darker-background-color;
+  background-color: $background-color;
+  flex-shrink: 0;
+}
+
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+  flex: 1;
+  max-width: 480px;
+  padding: $spacing-extra-small $spacing;
+  background-color: $mid-background-color;
+  border: 1px solid $darkest-background-color;
+  border-radius: 999px;
+}
+
+.search-icon {
+  width: 16px;
+  height: 16px;
+  opacity: $dimmed-extra;
+  flex-shrink: 0;
+}
+
+.search-field input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: $text-font;
+  font-size: $font-size;
+  color: $text-color;
+  min-width: 0;
+}
+
+.search-field input::placeholder {
+  color: $text-color;
+  opacity: $dimmed-extra;
+}
+
+.search-field input:disabled {
+  cursor: default;
+  opacity: $dimmed;
+}
+
+.top-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-extra-small;
+}
+
+.top-bar-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: $border-radius-small;
+  transition: background-color $transition-fast;
+}
+
+.top-bar-icon-button:hover {
+  background-color: $darker-background-color;
+}
+
+.top-bar-icon-button img {
+  width: 18px;
+  height: 18px;
+  opacity: $dimmed;
+}
+
+@media only screen and (max-width: 1000px) {
+  .full-top-bar {
+    padding: $spacing-small $spacing;
+  }
+
+  .search-field {
+    max-width: none;
+  }
+}

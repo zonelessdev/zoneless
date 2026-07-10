@@ -1,0 +1,60 @@
+<div class="site-wrapper-dashboard">
+  @if (showTestMode) {
+  <div class="test-mode-bar">
+    Test mode — You're using test data. No real transactions will be processed.
+  </div>
+  }
+
+  <div class="account-content-wrapper">
+    <div class="sidebar-wrapper">
+      <app-side-menu [sideMenu]="sideMenu" variant="full"></app-side-menu>
+    </div>
+
+    <div class="shell-main">
+      <header class="full-top-bar">
+        <div class="search-field">
+          <img
+            class="search-icon"
+            src="assets/icons/search.svg"
+            alt=""
+            aria-hidden="true"
+          />
+          <input
+            type="search"
+            placeholder="Search"
+            aria-label="Search"
+            disabled
+          />
+        </div>
+
+        <div class="top-bar-actions">
+          <a
+            class="top-bar-icon-button"
+            routerLink="/account/developers"
+            title="Developers"
+          >
+            <img src="assets/icons/code.svg" alt="Developers" />
+          </a>
+          <a
+            class="top-bar-icon-button"
+            routerLink="/account/settings"
+            title="Settings"
+          >
+            <img src="assets/icons/settings.svg" alt="Settings" />
+          </a>
+          <a
+            class="top-bar-icon-button"
+            routerLink="/account/settings"
+            title="Account"
+          >
+            <img src="assets/icons/person.svg" alt="Account" />
+          </a>
+        </div>
+      </header>
+
+      <div class="content-wrapper full-content">
+        <ng-content></ng-content>
+      </div>
+    </div>
+  </div>
+</div>
