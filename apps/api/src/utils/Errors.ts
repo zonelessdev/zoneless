@@ -144,6 +144,11 @@ export const ERRORS = {
     status: 404,
     type: 'resource_missing',
   },
+  CHARGE_NOT_FOUND: {
+    message: 'Charge not found',
+    status: 404,
+    type: 'resource_missing',
+  },
 
   // Validation errors
   VALIDATION_ERROR: {

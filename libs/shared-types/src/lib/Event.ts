@@ -3,6 +3,7 @@ import { AccountLinkRecord } from './AccountLink';
 import { ApiKey } from './ApiKey';
 import { Balance } from './Balance';
 import { BalanceTransaction } from './BalanceTransaction';
+import { Charge } from './Charge';
 import { CheckoutSession } from './CheckoutSession';
 import { Customer } from './Customer';
 import { ExternalWallet } from './ExternalWallet';
@@ -39,6 +40,15 @@ export const EVENT_TYPES = [
 
   // Balance transaction events
   'balance_transaction.created',
+
+  // Charge events
+  'charge.captured',
+  'charge.expired',
+  'charge.failed',
+  'charge.pending',
+  'charge.refunded',
+  'charge.succeeded',
+  'charge.updated',
 
   // Checkout session events
   'checkout.session.async_payment_failed',
@@ -112,6 +122,7 @@ export type EventDataObject =
   | ApiKey
   | Balance
   | BalanceTransaction
+  | Charge
   | CheckoutSession
   | Customer
   | ExternalWallet

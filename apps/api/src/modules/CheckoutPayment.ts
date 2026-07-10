@@ -15,6 +15,7 @@ import { BalanceModule } from './Balance';
 import { BalanceTransactionModule } from './BalanceTransaction';
 import { ProductModule } from './Product';
 import type { PaymentIntentModule } from './PaymentIntent';
+import type { ChargeModule } from './Charge';
 import { Solana, SolanaExplorerUrl } from './chains/Solana';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
@@ -23,12 +24,12 @@ import { Now } from '../utils/Timestamp';
 import {
   Account,
   BalanceTransaction,
+  Charge,
   CheckoutSession,
   ExternalWallet,
   Price,
   Product,
 } from '@zoneless/shared-types';
-
 /** Unsigned payment transaction bundle returned by PreparePayment. */
 export interface PreparedCheckoutPayment {
   object: 'checkout.payment_transaction';
@@ -51,6 +52,7 @@ export class CheckoutPaymentModule {
   private readonly balanceModule: BalanceModule;
   private readonly balanceTransactionModule: BalanceTransactionModule;
   private readonly paymentIntentModule: PaymentIntentModule | null;
+  private readonly chargeModule: ChargeModule | null;
   private readonly solana: Solana;
 
   constructor(
@@ -59,6 +61,7 @@ export class CheckoutPaymentModule {
     externalWalletModule: ExternalWalletModule,
     productModule: ProductModule,
     paymentIntentModule?: PaymentIntentModule,
+    chargeModule?: ChargeModule,
     solana?: Solana
   ) {
     this.db = db;
@@ -69,6 +72,7 @@ export class CheckoutPaymentModule {
     this.balanceModule = new BalanceModule(db);
     this.balanceTransactionModule = new BalanceTransactionModule(db);
     this.paymentIntentModule = paymentIntentModule || null;
+    this.chargeModule = chargeModule || null;
     this.solana = solana || new Solana();
   }
 
@@ -232,7 +236,7 @@ export class CheckoutPaymentModule {
 
   /**
    * Verify a broadcast payment transaction on-chain and complete the
-   * checkout session, emitting PaymentIntent lifecycle events then
+   * checkout session. Emits Charge + PaymentIntent lifecycle events then
    * `checkout.session.completed`. Idempotent: if the session was already
    * completed with the same signature, it is returned as-is.
    *
@@ -303,22 +307,39 @@ export class CheckoutPaymentModule {
     });
 
     if (!verification.verified) {
+      const failureMessage =
+        verification.failure_reason || 'Payment verification failed';
+      const failedCharge = await this.CreateCheckoutCharge(session, {
+        amount: session.amount_total!,
+        signature,
+        payerAddress: verification.payer_address,
+        outcome: 'failed',
+        failureMessage,
+      });
       await this.MarkPaymentIntentFailed(
         session,
-        verification.failure_reason || 'Payment verification failed'
+        failureMessage,
+        failedCharge?.id ?? null
       );
       throw new AppError(
-        verification.failure_reason || 'Payment verification failed',
+        failureMessage,
         ERRORS.INVALID_REQUEST.status,
         ERRORS.INVALID_REQUEST.type
       );
     }
 
-    // Stripe typically delivers payment_intent.succeeded before
+    // Stripe order: charge.succeeded → payment_intent.succeeded →
     // checkout.session.completed.
+    const charge = await this.CreateCheckoutCharge(session, {
+      amount: verification.amount_cents,
+      signature,
+      payerAddress: verification.payer_address,
+      outcome: 'succeeded',
+    });
+
     await this.MarkPaymentIntentSucceeded(session, {
       amountReceived: verification.amount_cents,
-      signature,
+      latestCharge: charge?.id ?? null,
     });
 
     const completedSession =
@@ -327,16 +348,24 @@ export class CheckoutPaymentModule {
         payer_wallet: verification.payer_address,
       });
 
-    await this.RecordPaymentOnLedger(
+    const balanceTransaction = await this.RecordPaymentOnLedger(
       completedSession,
       verification.amount_cents,
       verification.payer_address,
       signature
     );
 
+    if (charge && this.chargeModule) {
+      await this.chargeModule.AttachBalanceTransaction(
+        charge.id,
+        balanceTransaction.id
+      );
+    }
+
     Logger.info('Checkout session completed via payment', {
       checkoutSessionId: completedSession.id,
       signature,
+      chargeId: charge?.id,
     });
 
     return this.SanitizeCheckoutSession(completedSession);
@@ -539,27 +568,26 @@ export class CheckoutPaymentModule {
 
   private async MarkPaymentIntentSucceeded(
     session: CheckoutSession,
-    details: { amountReceived: number; signature: string }
+    details: { amountReceived: number; latestCharge: string | null }
   ): Promise<void> {
     if (!session.payment_intent || !this.paymentIntentModule) return;
 
     await this.paymentIntentModule.MarkSucceeded(session.payment_intent, {
       amountReceived: details.amountReceived,
-      // Charges are not modeled yet; store the on-chain signature as the
-      // closest Stripe-compatible stand-in for latest_charge.
-      latestCharge: details.signature,
+      latestCharge: details.latestCharge,
     });
   }
 
   private async MarkPaymentIntentFailed(
     session: CheckoutSession,
-    message: string
+    message: string,
+    chargeId: string | null = null
   ): Promise<void> {
     if (!session.payment_intent || !this.paymentIntentModule) return;
 
     await this.paymentIntentModule.MarkPaymentFailed(session.payment_intent, {
       advice_code: null,
-      charge: null,
+      charge: chargeId,
       code: 'payment_intent_payment_attempt_failed',
       decline_code: null,
       doc_url: null,
@@ -572,5 +600,60 @@ export class CheckoutPaymentModule {
       source: null,
       type: 'invalid_request_error',
     });
+  }
+
+  /**
+   * Create the Charge that Stripe would create when a PaymentIntent is
+   * confirmed. No-ops when ChargeModule or a linked PaymentIntent is absent.
+   */
+  private async CreateCheckoutCharge(
+    session: CheckoutSession,
+    details: {
+      amount: number;
+      signature: string;
+      payerAddress: string | null;
+      outcome: 'succeeded' | 'failed';
+      failureMessage?: string;
+    }
+  ): Promise<Charge | null> {
+    if (!session.payment_intent || !this.chargeModule) return null;
+
+    const paymentIntent = this.paymentIntentModule
+      ? await this.paymentIntentModule.GetPaymentIntent(session.payment_intent)
+      : null;
+
+    return this.chargeModule.CreateFromPaymentAttempt(
+      session.platform_account,
+      {
+        amount: details.amount,
+        currency: session.currency ?? 'usdc',
+        payment_intent: session.payment_intent,
+        payment_method:
+          paymentIntent?.payment_method ?? details.payerAddress ?? null,
+        customer: session.customer,
+        description: paymentIntent?.description ?? session.id,
+        metadata: paymentIntent?.metadata ?? {},
+        receipt_email:
+          paymentIntent?.receipt_email ?? session.customer_email ?? null,
+        application_fee_amount: paymentIntent?.application_fee_amount ?? null,
+        transfer_data: paymentIntent?.transfer_data
+          ? {
+              amount: paymentIntent.transfer_data.amount,
+              destination: paymentIntent.transfer_data.destination,
+            }
+          : null,
+        transfer_group: paymentIntent?.transfer_group ?? null,
+        crypto: {
+          buyer_address: details.payerAddress,
+          transaction_hash: details.signature,
+        },
+        outcome: details.outcome,
+        failure_code:
+          details.outcome === 'failed'
+            ? 'payment_intent_payment_attempt_failed'
+            : null,
+        failure_message: details.failureMessage ?? null,
+      }
+    );
   }
 }

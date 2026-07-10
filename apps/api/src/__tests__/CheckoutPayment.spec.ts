@@ -1,5 +1,6 @@
 import { CheckoutPaymentModule } from '../modules/CheckoutPayment';
 import { CheckoutSessionModule } from '../modules/CheckoutSession';
+import { ChargeModule } from '../modules/Charge';
 import { Database } from '../modules/Database';
 import { EventService } from '../modules/EventService';
 import { ExternalWalletModule } from '../modules/ExternalWallet';
@@ -89,6 +90,7 @@ describe('CheckoutPaymentModule', () => {
   let eventService: jest.Mocked<EventService>;
   let checkoutSessionModule: CheckoutSessionModule;
   let paymentIntentModule: PaymentIntentModule;
+  let chargeModule: ChargeModule;
   let mockSolana: jest.Mocked<
     Pick<
       Solana,
@@ -125,6 +127,7 @@ describe('CheckoutPaymentModule', () => {
 
     const productModule = new ProductModule(mockDb);
     paymentIntentModule = new PaymentIntentModule(mockDb, eventService);
+    chargeModule = new ChargeModule(mockDb, eventService);
     checkoutSessionModule = new CheckoutSessionModule(
       mockDb,
       eventService,
@@ -155,6 +158,7 @@ describe('CheckoutPaymentModule', () => {
       mockExternalWalletModule as unknown as ExternalWalletModule,
       productModule,
       paymentIntentModule,
+      chargeModule,
       mockSolana as unknown as Solana
     );
   });
@@ -186,6 +190,7 @@ describe('CheckoutPaymentModule', () => {
       }),
       id: 'pi_z_1',
       status,
+      payment_method: 'PayerWallet111',
     };
   }
 
@@ -242,7 +247,7 @@ describe('CheckoutPaymentModule', () => {
   });
 
   describe('ConfirmPayment', () => {
-    it('should emit processing then succeeded before completing the session', async () => {
+    it('should emit charge.succeeded then payment_intent.succeeded before completing the session', async () => {
       const session = BuildOpenSession();
       const requiresConfirmation = BuildPaymentIntent('requires_confirmation');
       const processing = {
@@ -254,7 +259,7 @@ describe('CheckoutPaymentModule', () => {
         ...processing,
         status: 'succeeded' as const,
         amount_received: 1000,
-        latest_charge: 'sig_abc',
+        latest_charge: 'ch_z_test001',
       };
       const completedSession = {
         ...session,
@@ -288,10 +293,18 @@ describe('CheckoutPaymentModule', () => {
         .mockResolvedValueOnce(requiresConfirmation)
         .mockResolvedValueOnce(requiresConfirmation)
         .mockResolvedValueOnce(processing)
+        // CreateCheckoutCharge → GetPaymentIntent
+        .mockResolvedValueOnce(processing)
         // MarkSucceeded: idempotency check + ApplyStatusTransition x2
         .mockResolvedValueOnce(processing)
         .mockResolvedValueOnce(processing)
-        .mockResolvedValueOnce(succeeded);
+        .mockResolvedValueOnce(succeeded)
+        // AttachBalanceTransaction → RequireCharge
+        .mockResolvedValueOnce({
+          id: 'ch_z_test001',
+          object: 'charge',
+          balance_transaction: 'txn_z_test002',
+        });
       mockDb.Find2Custom = jest.fn().mockResolvedValue([
         {
           id: 'txn_existing',
@@ -311,8 +324,35 @@ describe('CheckoutPaymentModule', () => {
 
       expect(eventService.Emit.mock.calls.map((call) => call[0])).toEqual([
         'payment_intent.processing',
+        'charge.succeeded',
         'payment_intent.succeeded',
       ]);
+      expect(mockDb.Set).toHaveBeenCalledWith(
+        'Charges',
+        expect.stringMatching(/^ch_z_/),
+        expect.objectContaining({
+          object: 'charge',
+          payment_intent: 'pi_z_1',
+          status: 'succeeded',
+          payment_method_details: expect.objectContaining({
+            type: 'crypto',
+            crypto: expect.objectContaining({
+              buyer_address: 'PayerWallet111',
+              transaction_hash: 'sig_abc',
+              network: 'solana',
+              token_currency: 'usdc',
+            }),
+          }),
+        })
+      );
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'PaymentIntents',
+        'pi_z_1',
+        expect.objectContaining({
+          status: 'succeeded',
+          latest_charge: expect.stringMatching(/^ch_z_/),
+        })
+      );
       expect(
         checkoutSessionModule.CompleteCheckoutSession
       ).toHaveBeenCalledWith(session.id, {
@@ -322,7 +362,7 @@ describe('CheckoutPaymentModule', () => {
       expect(result.status).toBe('complete');
     });
 
-    it('should emit payment_failed when on-chain verification fails', async () => {
+    it('should emit charge.failed then payment_failed when on-chain verification fails', async () => {
       const session = BuildOpenSession();
       const requiresConfirmation = BuildPaymentIntent('requires_confirmation');
       const processing = {
@@ -335,6 +375,7 @@ describe('CheckoutPaymentModule', () => {
         status: 'requires_payment_method' as const,
         last_payment_error: {
           message: 'Amount mismatch',
+          charge: 'ch_z_test001',
         },
       };
 
@@ -354,7 +395,9 @@ describe('CheckoutPaymentModule', () => {
         .mockResolvedValueOnce(requiresConfirmation)
         .mockResolvedValueOnce(requiresConfirmation)
         .mockResolvedValueOnce(processing)
-        // MarkPaymentFailed (ApplyStatusTransition only)
+        // CreateCheckoutCharge → GetPaymentIntent
+        .mockResolvedValueOnce(processing)
+        // MarkPaymentFailed (ApplyStatusTransition)
         .mockResolvedValueOnce(processing)
         .mockResolvedValueOnce(failed);
 
@@ -371,8 +414,28 @@ describe('CheckoutPaymentModule', () => {
 
       expect(eventService.Emit.mock.calls.map((call) => call[0])).toEqual([
         'payment_intent.processing',
+        'charge.failed',
         'payment_intent.payment_failed',
       ]);
+      expect(mockDb.Set).toHaveBeenCalledWith(
+        'Charges',
+        expect.stringMatching(/^ch_z_/),
+        expect.objectContaining({
+          status: 'failed',
+          paid: false,
+          payment_intent: 'pi_z_1',
+        })
+      );
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'PaymentIntents',
+        'pi_z_1',
+        expect.objectContaining({
+          last_payment_error: expect.objectContaining({
+            charge: expect.stringMatching(/^ch_z_/),
+            message: 'Amount mismatch',
+          }),
+        })
+      );
     });
   });
 });
