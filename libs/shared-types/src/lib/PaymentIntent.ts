@@ -39,6 +39,44 @@ export interface PaymentIntentAmountDetails {
 }
 
 /**
+ * Stripe-compatible PaymentIntent status values.
+ * @see https://docs.stripe.com/api/payment_intents/object#payment_intent_object-status
+ */
+export type PaymentIntentStatus =
+  | 'canceled'
+  | 'processing'
+  | 'requires_action'
+  | 'requires_capture'
+  | 'requires_confirmation'
+  | 'requires_payment_method'
+  | 'succeeded';
+
+/**
+ * Statuses Stripe's dashboard collapses to "Incomplete" in payment lists.
+ * Everything except succeeded and canceled.
+ */
+export const INCOMPLETE_PAYMENT_INTENT_STATUSES: readonly PaymentIntentStatus[] =
+  [
+    'processing',
+    'requires_action',
+    'requires_capture',
+    'requires_confirmation',
+    'requires_payment_method',
+  ] as const;
+
+/**
+ * Maps a PaymentIntent status to the Stripe list-display badge:
+ * Succeeded, Canceled, or Incomplete.
+ */
+export function GetPaymentIntentListStatus(
+  status: PaymentIntentStatus
+): 'succeeded' | 'canceled' | 'incomplete' {
+  if (status === 'succeeded') return 'succeeded';
+  if (status === 'canceled') return 'canceled';
+  return 'incomplete';
+}
+
+/**
  * Stripe-compatible Payment Intent object for Zoneless.
  * Represents a payment intent.
  *
@@ -111,14 +149,7 @@ export interface PaymentIntent {
   } | null;
   statement_descriptor: string | null;
   statement_descriptor_suffix: string | null;
-  status:
-    | 'canceled'
-    | 'processing'
-    | 'requires_action'
-    | 'requires_capture'
-    | 'requires_confirmation'
-    | 'requires_payment_method'
-    | 'succeeded';
+  status: PaymentIntentStatus;
   object: 'payment_intent';
   amount_capturable: number;
   amount_details: PaymentIntentAmountDetails | null;

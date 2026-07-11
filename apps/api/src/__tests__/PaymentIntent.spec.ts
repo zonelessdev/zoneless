@@ -8,6 +8,8 @@ import { ListHelper } from '../utils/ListHelper';
 import {
   PaymentIntent,
   PaymentIntentAmountDetailsLineItem,
+  QueryOperators,
+  INCOMPLETE_PAYMENT_INTENT_STATUSES,
 } from '@zoneless/shared-types';
 import {
   CreateMockDatabase,
@@ -654,6 +656,7 @@ describe('PaymentIntentModule', () => {
         limit: 25,
         customer: 'cus_z_1',
         customer_account: 'acct_z_customer',
+        status: 'succeeded',
       });
 
       expect(listSpy).toHaveBeenCalledWith(
@@ -663,6 +666,35 @@ describe('PaymentIntentModule', () => {
           filters: expect.objectContaining({
             customer: 'cus_z_1',
             customer_account: 'acct_z_customer',
+            status: 'succeeded',
+          }),
+        })
+      );
+      listSpy.mockRestore();
+    });
+
+    it('should expand incomplete status into an in-filter', async () => {
+      const listSpy = jest
+        .spyOn(ListHelper.prototype, 'List')
+        .mockResolvedValue({
+          object: 'list',
+          data: [],
+          has_more: false,
+          url: '/v1/payment_intents',
+        });
+
+      await module.ListPaymentIntents({
+        account: 'acct_z_platform',
+        status: 'incomplete',
+      });
+
+      expect(listSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filters: expect.objectContaining({
+            status: {
+              operator: QueryOperators['in'],
+              value: INCOMPLETE_PAYMENT_INTENT_STATUSES,
+            },
           }),
         })
       );

@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import type { Customer, PaymentIntent } from '@zoneless/shared-types';
+import { GetPaymentIntentListStatus } from '@zoneless/shared-types';
 import { CustomerService } from '../../../../../data';
 import { CustomerActionsService } from '../../services/customer-actions.service';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -107,11 +108,14 @@ export class CustomerDetailComponent implements OnInit, OnDestroy {
         header: 'Status',
         field: 'status',
         type: 'status',
+        formatter: (item: unknown) =>
+          GetPaymentIntentListStatus((item as PaymentIntent).status),
       },
       {
         header: 'Description',
         field: 'description',
         type: 'text',
+        dimmed: true,
         formatter: (item: unknown) => {
           const paymentIntent = item as PaymentIntent;
           return paymentIntent.description ?? '—';
@@ -121,6 +125,7 @@ export class CustomerDetailComponent implements OnInit, OnDestroy {
         header: 'Date',
         field: 'created',
         type: 'date',
+        dimmed: true,
       },
     ];
     this.paymentQueryParams.set({ customer: customerId });

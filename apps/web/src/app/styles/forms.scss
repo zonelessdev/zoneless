@@ -376,6 +376,7 @@ input[type='range'] {
 .field-pill-option-selected {
   border: 1px solid $base-color;
   color: $base-color;
+  opacity: 1;
 }
 
 .field-pill-option img {

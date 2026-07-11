@@ -301,6 +301,22 @@ export type RetrievePaymentIntentInput = z.infer<
  * Schema for listing PaymentIntents.
  * @see https://docs.stripe.com/api/payment_intents/list
  */
+/**
+ * PaymentIntent statuses accepted by the list API.
+ * `incomplete` is a dashboard convenience filter matching Stripe's list UI —
+ * it expands to every non-succeeded, non-canceled status.
+ */
+export const ListPaymentIntentStatusSchema = z.enum([
+  'canceled',
+  'processing',
+  'requires_action',
+  'requires_capture',
+  'requires_confirmation',
+  'requires_payment_method',
+  'succeeded',
+  'incomplete',
+]);
+
 export const ListPaymentIntentsSchema = z
   .object({
     created: z
@@ -316,6 +332,7 @@ export const ListPaymentIntentsSchema = z
     ending_before: z.string().optional(),
     limit: z.number().int().min(1).max(100).optional(),
     starting_after: z.string().optional(),
+    status: ListPaymentIntentStatusSchema.optional(),
   })
   .merge(ExpandableSchema);
 
@@ -324,6 +341,7 @@ export type ListPaymentIntentsInput = z.infer<typeof ListPaymentIntentsSchema>;
 export const ListPaymentIntentsFiltersSchema = z.object({
   customer: z.string().optional(),
   customer_account: z.string().optional(),
+  status: ListPaymentIntentStatusSchema.optional(),
 });
 export type ListPaymentIntentsFiltersInput = z.infer<
   typeof ListPaymentIntentsFiltersSchema

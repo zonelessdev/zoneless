@@ -1,13 +1,142 @@
 <div class="header-wrapper">
   <h1>Transactions</h1>
 </div>
+
+<div class="tab-bar">
+  <button
+    type="button"
+    class="tab-button"
+    [class.tab-active]="transactionsTab() === 'payments'"
+    (click)="SetTransactionsTab('payments')"
+  >
+    Payments
+  </button>
+  <button
+    type="button"
+    class="tab-button"
+    [class.tab-active]="transactionsTab() === 'payouts'"
+    (click)="SetTransactionsTab('payouts')"
+  >
+    Payouts
+  </button>
+  <button
+    type="button"
+    class="tab-button"
+    [class.tab-active]="transactionsTab() === 'topups'"
+    (click)="SetTransactionsTab('topups')"
+  >
+    Top-ups
+  </button>
+  <button
+    type="button"
+    class="tab-button"
+    [class.tab-active]="transactionsTab() === 'transfers'"
+    (click)="SetTransactionsTab('transfers')"
+  >
+    Transfers
+  </button>
+  <button
+    type="button"
+    class="tab-button"
+    [class.tab-active]="transactionsTab() === 'all'"
+    (click)="SetTransactionsTab('all')"
+  >
+    All activity
+  </button>
+</div>
+
+@if (transactionsTab() === 'payments') {
+<div class="field">
+  <div class="field-pill">
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="paymentsStatusTab() === 'all'"
+      (click)="SetPaymentsStatusTab('all')"
+      (keydown.enter)="SetPaymentsStatusTab('all')"
+      (keydown.space)="SetPaymentsStatusTab('all')"
+    >
+      <span>All</span>
+    </div>
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="paymentsStatusTab() === 'succeeded'"
+      (click)="SetPaymentsStatusTab('succeeded')"
+      (keydown.enter)="SetPaymentsStatusTab('succeeded')"
+      (keydown.space)="SetPaymentsStatusTab('succeeded')"
+    >
+      <span>Succeeded</span>
+    </div>
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="paymentsStatusTab() === 'incomplete'"
+      (click)="SetPaymentsStatusTab('incomplete')"
+      (keydown.enter)="SetPaymentsStatusTab('incomplete')"
+      (keydown.space)="SetPaymentsStatusTab('incomplete')"
+    >
+      <span>Incomplete</span>
+    </div>
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="paymentsStatusTab() === 'canceled'"
+      (click)="SetPaymentsStatusTab('canceled')"
+      (keydown.enter)="SetPaymentsStatusTab('canceled')"
+      (keydown.space)="SetPaymentsStatusTab('canceled')"
+    >
+      <span>Canceled</span>
+    </div>
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="paymentsStatusTab() === 'uncaptured'"
+      (click)="SetPaymentsStatusTab('uncaptured')"
+      (keydown.enter)="SetPaymentsStatusTab('uncaptured')"
+      (keydown.space)="SetPaymentsStatusTab('uncaptured')"
+    >
+      <span>Uncaptured</span>
+    </div>
+  </div>
+</div>
+
 <app-paginated-list
   endpoint="payment_intents"
   [columns]="paymentIntentColumns"
-  [limit]="10"
+  [limit]="20"
   [queryParams]="paymentIntentsQueryParams()"
   [expand]="paymentIntentsExpand()"
   (rowClick)="OnPaymentIntentClick($event)"
 ></app-paginated-list>
+} @if (transactionsTab() === 'payouts') {
+<app-transaction-list
+  [transactionColumns]="activityColumns"
+  [limit]="20"
+  [queryParams]="payoutQueryParams"
+></app-transaction-list>
+} @if (transactionsTab() === 'topups') {
+<app-transaction-list
+  [transactionColumns]="activityColumns"
+  [limit]="20"
+  [queryParams]="topupQueryParams"
+></app-transaction-list>
+} @if (transactionsTab() === 'transfers') {
+<app-transaction-list
+  [transactionColumns]="activityColumns"
+  [limit]="20"
+  [queryParams]="transferQueryParams"
+></app-transaction-list>
+} @if (transactionsTab() === 'all') {
+<app-transaction-list
+  [transactionColumns]="activityColumns"
+  [limit]="20"
+></app-transaction-list>
+}
 
 <app-payment-intent-actions-host></app-payment-intent-actions-host>

@@ -12,12 +12,26 @@ import {
 } from '../../../../../shared';
 import { Router, ActivatedRoute } from '@angular/router';
 import type { Customer, PaymentIntent } from '@zoneless/shared-types';
+import { GetPaymentIntentListStatus } from '@zoneless/shared-types';
 import { MetaService } from '../../../../../core';
 import { PaymentIntentActionsHostComponent } from '../../components/payment-intent-actions-host/payment-intent-actions-host.component';
+import { TransactionListComponent } from '../../../components';
+
+type TransactionsTab = 'payments' | 'payouts' | 'topups' | 'transfers' | 'all';
+type PaymentsStatusTab =
+  | 'all'
+  | 'succeeded'
+  | 'incomplete'
+  | 'canceled'
+  | 'uncaptured';
 
 @Component({
   selector: 'app-payment-intent-list',
-  imports: [PaginatedListComponent, PaymentIntentActionsHostComponent],
+  imports: [
+    PaginatedListComponent,
+    PaymentIntentActionsHostComponent,
+    TransactionListComponent,
+  ],
   templateUrl: './payment-intent-list.component.html',
   styleUrl: './payment-intent-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -26,6 +40,9 @@ export class PaymentIntentListComponent implements OnInit {
   readonly router = inject(Router);
   readonly route = inject(ActivatedRoute);
   private readonly metaService = inject(MetaService);
+
+  transactionsTab: WritableSignal<TransactionsTab> = signal('payments');
+  paymentsStatusTab: WritableSignal<PaymentsStatusTab> = signal('all');
 
   paymentIntentColumns: PaginatedListColumn[] = [
     {
@@ -38,6 +55,8 @@ export class PaymentIntentListComponent implements OnInit {
       header: '',
       field: 'status',
       type: 'status',
+      formatter: (item: unknown) =>
+        GetPaymentIntentListStatus((item as PaymentIntent).status),
     },
     {
       header: 'Payment method',
@@ -50,6 +69,7 @@ export class PaymentIntentListComponent implements OnInit {
       header: 'Description',
       field: 'description',
       type: 'text',
+      dimmed: true,
       formatter: (item: unknown) => {
         const paymentIntent = item as PaymentIntent;
         return paymentIntent.description ?? paymentIntent.id;
@@ -59,27 +79,14 @@ export class PaymentIntentListComponent implements OnInit {
       header: 'Customer',
       field: 'customer',
       type: 'text',
+      dimmed: true,
       formatter: (item: unknown) => this.FormatCustomer(item as PaymentIntent),
     },
     {
       header: 'Date',
       field: 'created',
       type: 'date',
-    },
-    {
-      header: 'Refunded date',
-      field: 'refunded_date',
-      type: 'text',
-      formatter: () => '—',
-    },
-    {
-      header: 'Decline reason',
-      field: 'last_payment_error',
-      type: 'text',
-      formatter: (item: unknown) => {
-        const paymentIntent = item as PaymentIntent;
-        return paymentIntent.last_payment_error?.message ?? '—';
-      },
+      dimmed: true,
     },
     {
       header: '',
@@ -94,21 +101,106 @@ export class PaymentIntentListComponent implements OnInit {
     },
   ];
 
+  activityColumns: PaginatedListColumn[] = [
+    {
+      header: 'Amount',
+      field: 'amount',
+      type: 'currency-with-code',
+      currencyField: 'currency',
+      bolded: true,
+    },
+    {
+      header: '',
+      field: 'status',
+      type: 'status',
+    },
+    {
+      header: 'Type',
+      field: 'type',
+      type: 'text',
+      capitalize: true,
+      dimmed: true,
+    },
+    {
+      header: 'Description',
+      field: 'description',
+      type: 'text',
+      dimmed: true,
+      formatter: (item: unknown) => {
+        const tx = item as { description?: string | null; id: string };
+        return tx.description ?? tx.id;
+      },
+    },
+    {
+      header: 'Date',
+      field: 'created',
+      type: 'date',
+      dimmed: true,
+    },
+    {
+      header: 'Net',
+      field: 'net',
+      type: 'currency-with-code',
+      currencyField: 'currency',
+      dimmed: true,
+    },
+  ];
+
   paymentIntentsQueryParams: WritableSignal<Record<string, string>> = signal(
     {}
   );
   paymentIntentsExpand: WritableSignal<string[]> = signal(['customer']);
 
+  payoutQueryParams = { type: 'payout' };
+  topupQueryParams = { type: 'topup' };
+  transferQueryParams = { type: 'transfer' };
+
+  private customerFilter: string | null = null;
+
   ngOnInit(): void {
     this.metaService.SetMetaTitle('Transactions');
-    const customerId = this.route.snapshot.queryParamMap.get('customer');
-    if (customerId) {
-      this.paymentIntentsQueryParams.set({ customer: customerId });
-    }
+    this.customerFilter = this.route.snapshot.queryParamMap.get('customer');
+    this.SyncPaymentIntentsQueryParams();
+  }
+
+  SetTransactionsTab(tab: TransactionsTab): void {
+    this.transactionsTab.set(tab);
+  }
+
+  SetPaymentsStatusTab(tab: PaymentsStatusTab): void {
+    this.paymentsStatusTab.set(tab);
+    this.SyncPaymentIntentsQueryParams();
   }
 
   OnPaymentIntentClick(paymentIntent: PaymentIntent): void {
     this.router.navigate(['/account/payments', paymentIntent.id]);
+  }
+
+  private SyncPaymentIntentsQueryParams(): void {
+    const params: Record<string, string> = {};
+    if (this.customerFilter) {
+      params['customer'] = this.customerFilter;
+    }
+
+    switch (this.paymentsStatusTab()) {
+      case 'succeeded':
+        params['status'] = 'succeeded';
+        break;
+      case 'incomplete':
+        params['status'] = 'incomplete';
+        break;
+      case 'canceled':
+        params['status'] = 'canceled';
+        break;
+      case 'uncaptured':
+        params['status'] = 'requires_capture';
+        break;
+      case 'all':
+      default:
+        break;
+    }
+
+    this.paymentIntentsQueryParams.set(params);
   }
 
   private FormatPaymentMethod(paymentIntent: PaymentIntent): string {
