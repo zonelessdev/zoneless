@@ -99,7 +99,7 @@ export class MetricChartCardComponent {
   readonly series = input<MetricSeries | null>(null);
   readonly interval = input<MetricInterval>('day');
   readonly loading = input(false);
-  readonly chartHeight = input(160);
+  readonly chartHeight = input(240);
   readonly updatedLabel = input('Updated just now');
   readonly moreDetailsHref = input<string | null>(null);
 

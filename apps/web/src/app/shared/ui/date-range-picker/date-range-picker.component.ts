@@ -160,6 +160,7 @@ export function ResolveDateRangePreset(
 })
 export class DateRangePickerComponent {
   readonly value = input.required<DateRangeValue>();
+  readonly label = input<string>('');
   readonly valueChange = output<DateRangeValue>();
 
   readonly open: WritableSignal<boolean> = signal(false);

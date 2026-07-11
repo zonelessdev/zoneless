@@ -1,39 +1,10 @@
 @use '../../../styles/base.scss' as *;
 @use '../../../styles/buttons.scss' as *;
+@use '../../../styles/filter-pills.scss' as *;
 
 .date-range-picker {
   position: relative;
   display: inline-block;
-}
-
-.range-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-extra-small;
-  padding: 3px $spacing-snug;
-  min-height: 28px;
-  background: $background-color;
-  border: 1px solid $darkest-background-color;
-  border-radius: $border-radius-small;
-  font-size: $font-size-small;
-  font-family: $text-font;
-  color: $base-color;
-  cursor: pointer;
-  transition: background-color $transition-fast, border-color $transition-fast;
-
-  &:hover {
-    background: $mid-background-color;
-  }
-}
-
-.trigger-label {
-  font-weight: $medium-weight;
-}
-
-.trigger-chevron {
-  width: 12px;
-  height: 12px;
-  filter: $base-filter;
 }
 
 .range-popover {

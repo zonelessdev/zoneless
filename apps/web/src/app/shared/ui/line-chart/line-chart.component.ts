@@ -39,6 +39,8 @@ export class LineChartComponent implements OnDestroy {
   readonly height = input(180);
   /** Show horizontal grid + right-side Y labels. */
   readonly showGrid = input(true);
+  /** Solid baseline along the bottom of the plot (Today chart X-axis). */
+  readonly showBaseline = input(false);
   /** Soft fill under the current line (Today chart). */
   readonly showFill = input(false);
   /** Use integer Y-axis ticks (count metrics). Avoids duplicate labels like 1,1,1. */
@@ -71,15 +73,22 @@ export class LineChartComponent implements OnDestroy {
   /** Measured host width so SVG viewBox matches CSS pixels 1:1 (no letterboxing/warping). */
   readonly measuredWidth: WritableSignal<number> = signal(0);
 
-  readonly padding = { top: 12, right: 48, bottom: 24, left: 4 };
+  readonly padding = computed(() => ({
+    top: 12,
+    right: this.showGrid() ? 48 : 4,
+    bottom: 24,
+    left: 4,
+  }));
 
-  readonly plotWidth = computed(() =>
-    Math.max(this.measuredWidth() - this.padding.left - this.padding.right, 10)
-  );
+  readonly plotWidth = computed(() => {
+    const padding = this.padding();
+    return Math.max(this.measuredWidth() - padding.left - padding.right, 10);
+  });
 
-  readonly plotHeight = computed(
-    () => this.height() - this.padding.top - this.padding.bottom
-  );
+  readonly plotHeight = computed(() => {
+    const padding = this.padding();
+    return this.height() - padding.top - padding.bottom;
+  });
 
   /**
    * Number of x slots. Current and previous share one domain so a partial
@@ -152,7 +161,7 @@ export class LineChartComponent implements OnDestroy {
     const line = this.BuildLinePath(points);
     const lastX = this.GetX(points.length - 1);
     const firstX = this.GetX(0);
-    const baseline = this.padding.top + this.plotHeight();
+    const baseline = this.padding().top + this.plotHeight();
     return `${line} L ${lastX} ${baseline} L ${firstX} ${baseline} Z`;
   });
 
@@ -295,7 +304,7 @@ export class LineChartComponent implements OnDestroy {
     point.y = event.clientY;
     const cursor = point.matrixTransform(ctm.inverse());
 
-    const plotX = cursor.x - this.padding.left;
+    const plotX = cursor.x - this.padding().left;
     const ratio = Math.max(0, Math.min(1, plotX / this.plotWidth()));
     const index = Math.round(ratio * Math.max(count - 1, 0));
     this.hoverIndex.set(index);
@@ -342,13 +351,13 @@ export class LineChartComponent implements OnDestroy {
   private GetX(index: number): number {
     const count = this.domainCount();
     if (count <= 1) {
-      return this.padding.left + this.plotWidth() / 2;
+      return this.padding().left + this.plotWidth() / 2;
     }
-    return this.padding.left + (index / (count - 1)) * this.plotWidth();
+    return this.padding().left + (index / (count - 1)) * this.plotWidth();
   }
 
   private GetY(value: number): number {
     const ratio = value / this.maxY();
-    return this.padding.top + this.plotHeight() * (1 - ratio);
+    return this.padding().top + this.plotHeight() * (1 - ratio);
   }
 }

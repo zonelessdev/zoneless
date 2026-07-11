@@ -12,19 +12,27 @@
     @if (showGrid()) { @for (tick of yTicks(); track tick) {
     <line
       class="grid-line"
-      [attr.x1]="padding.left"
-      [attr.x2]="measuredWidth() - padding.right"
+      [attr.x1]="padding().left"
+      [attr.x2]="measuredWidth() - padding().right"
       [attr.y1]="GetYTickY(tick)"
       [attr.y2]="GetYTickY(tick)"
     />
     <text
       class="y-label"
-      [attr.x]="measuredWidth() - padding.right + 8"
+      [attr.x]="measuredWidth() - padding().right + 8"
       [attr.y]="GetYTickY(tick) + 4"
     >
       {{ FormatYTick(tick) }}
     </text>
-    } } @if (showFill() && fillPath()) {
+    } } @if (showBaseline()) {
+    <line
+      class="baseline"
+      [attr.x1]="padding().left"
+      [attr.x2]="measuredWidth() - padding().right"
+      [attr.y1]="padding().top + plotHeight()"
+      [attr.y2]="padding().top + plotHeight()"
+    />
+    } @if (showFill() && fillPath()) {
     <path class="fill-path" [attr.d]="fillPath()" />
     } @if (previousPath()) {
     <path class="previous-path" [attr.d]="previousPath()" fill="none" />
@@ -44,8 +52,8 @@
       class="crosshair"
       [attr.x1]="hoverX()"
       [attr.x2]="hoverX()"
-      [attr.y1]="padding.top"
-      [attr.y2]="padding.top + plotHeight()"
+      [attr.y1]="padding().top"
+      [attr.y2]="padding().top + plotHeight()"
     />
     } @if (hoverPreviousPoint(); as prev) {
     <circle

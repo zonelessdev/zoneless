@@ -32,8 +32,9 @@
         <app-line-chart
           [current]="cumulative.current"
           [previous]="cumulative.previous"
-          [height]="200"
+          [height]="150"
           [showGrid]="false"
+          [showBaseline]="true"
           metricLabel="Gross volume"
           [formatValue]="formatTodayValue"
           [formatTooltipValue]="formatTodayTooltipValue"
@@ -46,30 +47,33 @@
 
     <div class="today-secondary">
       <div class="summary-card">
-        <div class="metric-label">USDC balance</div>
-        <div class="summary-value">
-          ${{ GetTotalBalance() | number : '1.2-2' }}
+        <div class="summary-card-header">
+          <div class="summary-card-label">Available now</div>
+          <button
+            type="button"
+            class="text-link"
+            (click)="OnBalanceDetailClick()"
+          >
+            View
+          </button>
         </div>
-        <div class="metric-sub compact">
-          Available ${{ GetAvailableBalance() | number : '1.2-2' }}
-          @if (GetPendingBalance() > 0) {
-          <span> · Pending ${{ GetPendingBalance() | number : '1.2-2' }} </span>
-          }
-        </div>
-        <button
-          type="button"
-          class="text-link"
-          (click)="OnBalanceDetailClick()"
-        >
-          View
-        </button>
-      </div>
-      <div class="summary-card">
-        <div class="metric-label">Available to pay out</div>
         <div class="summary-value">
           ${{ GetAvailableBalance() | number : '1.2-2' }}
         </div>
-        <a class="text-link" routerLink="/account/balance">See details</a>
+        @if (GetPendingBalance() > 0) {
+        <div class="summary-card-sub">
+          Pending ${{ GetPendingBalance() | number : '1.2-2' }}
+        </div>
+        }
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-header">
+          <div class="summary-card-label">Available to pay out</div>
+          <a class="text-link" routerLink="/account/balance">View</a>
+        </div>
+        <div class="summary-value">
+          ${{ GetAvailableBalance() | number : '1.2-2' }}
+        </div>
       </div>
     </div>
   </div>
@@ -81,14 +85,14 @@
   </div>
 
   <div class="overview-toolbar">
-    <span class="toolbar-label">Date range</span>
     <app-date-range-picker
+      label="Date range"
       [value]="dateRange()"
       (valueChange)="OnDateRangeChange($event)"
     ></app-date-range-picker>
 
     <select
-      class="toolbar-select"
+      class="filter-pill filter-pill-select"
       [value]="interval()"
       (change)="OnIntervalChange($event)"
       aria-label="Interval"
@@ -98,25 +102,36 @@
       }
     </select>
 
+    @if (compare() !== 'none') {
+    <div class="filter-pill">
+      <button
+        type="button"
+        class="filter-pill-clear"
+        (click)="ToggleCompare()"
+        aria-label="Disable comparison"
+      >
+        <img src="assets/icons/cancel.svg" alt="" />
+      </button>
+      <span class="filter-pill-label">Compare</span>
+      <span class="filter-pill-divider" aria-hidden="true"></span>
+      <select
+        class="filter-pill-inline-select"
+        [value]="compare()"
+        (change)="OnCompareChange($event)"
+        aria-label="Comparison period"
+      >
+        <option value="previous_period">Previous period</option>
+      </select>
+    </div>
+    } @else {
     <button
       type="button"
-      class="toolbar-compare-toggle"
+      class="filter-pill"
       (click)="ToggleCompare()"
-      [attr.aria-pressed]="compare() !== 'none'"
+      aria-pressed="false"
     >
-      <img src="assets/icons/close.svg" alt="" class="compare-icon" />
-      <span>Compare</span>
+      <span class="filter-pill-label">Compare</span>
     </button>
-
-    @if (compare() !== 'none') {
-    <select
-      class="toolbar-select"
-      [value]="compare()"
-      (change)="OnCompareChange($event)"
-      aria-label="Comparison period"
-    >
-      <option value="previous_period">Previous period</option>
-    </select>
     }
   </div>
 

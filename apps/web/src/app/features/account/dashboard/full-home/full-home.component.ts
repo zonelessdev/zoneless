@@ -284,12 +284,6 @@ export class FullHomeComponent implements OnInit {
     void this.LoadOverview();
   }
 
-  GetTotalBalance(): number {
-    const available = this.balanceService.GetAvailableBalance('usdc') / 100;
-    const pending = this.balanceService.GetPendingBalance('usdc') / 100;
-    return available + pending;
-  }
-
   GetAvailableBalance(): number {
     return this.balanceService.GetAvailableBalance('usdc') / 100;
   }
