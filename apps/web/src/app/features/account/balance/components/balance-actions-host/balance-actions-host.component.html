@@ -1,0 +1,23 @@
+<app-slide-panel
+  [isOpen]="actions.addFundsOpen()"
+  title="Add funds"
+  [viewOnly]="true"
+  (closed)="actions.CloseAddFunds()"
+>
+  <app-add-funds-panel
+    [isOpen]="actions.addFundsOpen()"
+    (depositCompleted)="actions.OnDepositCompleted($event)"
+  ></app-add-funds-panel>
+</app-slide-panel>
+
+<app-slide-panel
+  [isOpen]="actions.balanceDetailOpen()"
+  title="Balance details"
+  [viewOnly]="true"
+  (closed)="actions.CloseBalanceDetail()"
+>
+  <app-balance-detail
+    [isOpen]="actions.balanceDetailOpen()"
+    (synced)="actions.OnSynced()"
+  ></app-balance-detail>
+</app-slide-panel>

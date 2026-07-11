@@ -14,8 +14,8 @@ import {
 } from '@angular/core';
 import { DecimalPipe, DatePipe } from '@angular/common';
 
-import { TopupService, ConfigService } from '../../../../data';
-import { LoaderComponent, StatusChipComponent } from '../../../../shared';
+import { TopupService, ConfigService } from '../../../../../data';
+import { LoaderComponent, StatusChipComponent } from '../../../../../shared';
 import { DepositInfo, TopUp } from '@zoneless/shared-types';
 
 type PanelState = 'loading' | 'info' | 'waiting' | 'success';
