@@ -10,8 +10,8 @@ export const accountRoutes: Routes = [
   },
   {
     path: 'balance',
-    loadComponent: () =>
-      import('./balance/balance.component').then((m) => m.BalanceComponent),
+    loadChildren: () =>
+      import('./balance/balance.routes').then((m) => m.balanceRoutes),
   },
   {
     path: 'customers',

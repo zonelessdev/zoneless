@@ -13,8 +13,8 @@ import {
 import { DecimalPipe } from '@angular/common';
 
 import { BalanceDetails } from '@zoneless/shared-types';
-import { BalanceService } from '../../../../data';
-import { LoaderComponent } from '../../../../shared';
+import { BalanceService } from '../../../../../data';
+import { LoaderComponent } from '../../../../../shared';
 
 @Component({
   selector: 'app-balance-detail',

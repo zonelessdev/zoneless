@@ -1,0 +1,223 @@
+@use '../../../../../styles/base.scss' as *;
+@use '../../../../../styles/buttons.scss' as *;
+@use '../../../../../styles/account.scss' as *;
+@use '../../../../../styles/align.scss' as *;
+
+.balances-header-section {
+  margin-bottom: $spacing-extra-large;
+}
+
+.balances-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-snug;
+  margin-bottom: $spacing;
+}
+
+.balances-title-row h1 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+}
+
+.balances-total {
+  font-size: 28px;
+  font-weight: $text-weight;
+  font-family: $title-font;
+  color: $text-color;
+  opacity: $dimmed;
+  letter-spacing: -0.02em;
+}
+
+.balances-info-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  opacity: $dimmed-extra;
+  transition: opacity $transition-fast;
+  align-self: center;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  img {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
+}
+
+.balances-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-small;
+  margin-bottom: $spacing-large;
+}
+
+.action-icon {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) saturate(100%);
+  opacity: 0.7;
+}
+
+.currency-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-small;
+}
+
+.currency-card {
+  min-width: 140px;
+  padding: $spacing-snug $spacing;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  background-color: $background-color;
+}
+
+.currency-card-active {
+  border-color: $base-color;
+}
+
+.currency-card-code {
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed-extra;
+  margin-bottom: $spacing-extra-small;
+  line-height: 1.2;
+}
+
+.currency-card-amount {
+  font-size: $font-size-med;
+  font-weight: $medium-weight;
+  font-family: $title-font;
+  color: $text-color;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.currency-card-active .currency-card-amount {
+  color: $base-color;
+}
+
+.balance-summary-bar {
+  display: flex;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background-color: $darker-background-color;
+  margin-bottom: $spacing;
+}
+
+.balance-summary-segment {
+  height: 100%;
+  min-width: 0;
+}
+
+.balance-summary-available {
+  background-color: $base-color;
+}
+
+.balance-summary-pending {
+  background-color: $darkest-background-color;
+}
+
+.balance-summary-rows {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-snug;
+  padding-bottom: $spacing-large;
+  border-bottom: 1px solid $darkest-background-color;
+}
+
+.balance-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing;
+}
+
+.balance-summary-label {
+  display: flex;
+  align-items: center;
+  gap: $spacing-snug;
+  font-size: $font-size;
+  color: $text-color;
+}
+
+.balance-summary-amount {
+  font-size: $font-size;
+  font-weight: $medium-weight;
+  color: $text-color;
+}
+
+.balance-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.balance-dot-available {
+  background-color: $base-color;
+}
+
+.balance-dot-pending {
+  background-color: $darkest-background-color;
+}
+
+.balance-side-card {
+  background-color: $mid-background-color;
+  border-radius: $border-radius-small;
+  padding: $spacing;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-extra-small;
+}
+
+.balance-side-card-label {
+  font-size: $font-size;
+  color: $text-color;
+  opacity: $dimmed;
+  line-height: 1.3;
+}
+
+.balance-side-card-amount {
+  font-size: $font-size-large;
+  font-weight: $title-weight;
+  font-family: $title-font;
+  color: $text-color;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  margin-bottom: $spacing-extra-small;
+}
+
+.balance-side-placeholder {
+  min-height: 88px;
+}
+
+.view-left-panel {
+  .section-title {
+    font-size: $font-size-med;
+    margin-bottom: $spacing;
+  }
+}
+
+@media only screen and (max-width: 1000px) {
+  .balances-title-row {
+    flex-wrap: wrap;
+    gap: $spacing-small;
+  }
+
+  .balances-total {
+    font-size: 24px;
+  }
+}

@@ -1,0 +1,160 @@
+<div class="view-section balances-header-section">
+  <div class="balances-title-row">
+    <h1>Balances</h1>
+    <span class="balances-total">${{ totalBalance() | number : '1.2-2' }}</span>
+    <button
+      type="button"
+      class="balances-info-button"
+      aria-label="Balance details"
+      (click)="actions.OpenBalanceDetail()"
+    >
+      <img src="assets/icons/info.svg" alt="" />
+    </button>
+  </div>
+
+  <div class="balances-actions">
+    <button
+      type="button"
+      class="action-button action-button-dainty outline"
+      (click)="actions.OpenAddFunds()"
+    >
+      <img class="action-icon" src="assets/icons/add.svg" alt="" />
+      <span>Add funds</span>
+    </button>
+  </div>
+
+  <div class="currency-cards">
+    <div class="currency-card currency-card-active" aria-current="true">
+      <div class="currency-card-code">USDC</div>
+      <div class="currency-card-amount">
+        ${{ availableBalance() | number : '1.2-2' }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flex gap-extra-large view-panels">
+  <div class="view-left-panel">
+    <div class="view-section">
+      <h2 class="section-title">Balance summary</h2>
+
+      <div class="balance-summary-bar" aria-hidden="true">
+        @if (pendingPercent() > 0) {
+        <div
+          class="balance-summary-segment balance-summary-pending"
+          [style.width.%]="pendingPercent()"
+        ></div>
+        } @if (availablePercent() > 0) {
+        <div
+          class="balance-summary-segment balance-summary-available"
+          [style.width.%]="availablePercent()"
+        ></div>
+        }
+      </div>
+
+      <div class="balance-summary-rows">
+        <div class="balance-summary-row">
+          <div class="balance-summary-label">
+            <span class="balance-dot balance-dot-pending"></span>
+            <span>Incoming</span>
+          </div>
+          <div class="balance-summary-amount">
+            ${{ pendingBalance() | number : '1.2-2' }}
+          </div>
+        </div>
+        <div class="balance-summary-row">
+          <div class="balance-summary-label">
+            <span class="balance-dot balance-dot-available"></span>
+            <span>Available</span>
+          </div>
+          <div class="balance-summary-amount">
+            ${{ availableBalance() | number : '1.2-2' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view-section">
+      <h2 class="section-title">Recent activity</h2>
+
+      <div class="tab-bar">
+        <button
+          type="button"
+          class="tab-button"
+          [class.tab-active]="activityTab() === 'payouts'"
+          (click)="SetActivityTab('payouts')"
+        >
+          Payouts
+        </button>
+        <button
+          type="button"
+          class="tab-button"
+          [class.tab-active]="activityTab() === 'topups'"
+          (click)="SetActivityTab('topups')"
+        >
+          Top-ups
+        </button>
+        <button
+          type="button"
+          class="tab-button"
+          [class.tab-active]="activityTab() === 'all'"
+          (click)="SetActivityTab('all')"
+        >
+          All activity
+        </button>
+      </div>
+
+      @if (activityTab() === 'all') {
+      <app-transaction-list
+        [transactionColumns]="activityColumns"
+        [limit]="10"
+      ></app-transaction-list>
+      } @if (activityTab() === 'payouts') {
+      <app-transaction-list
+        [transactionColumns]="activityColumns"
+        [limit]="10"
+        [queryParams]="payoutQueryParams"
+      ></app-transaction-list>
+      } @if (activityTab() === 'topups') {
+      <app-transaction-list
+        [transactionColumns]="activityColumns"
+        [limit]="10"
+        [queryParams]="topupQueryParams"
+      ></app-transaction-list>
+      }
+    </div>
+  </div>
+
+  <div class="view-right-panel">
+    <div class="view-section">
+      <div class="balance-side-card">
+        <div class="balance-side-card-label">Available to pay out</div>
+        <div class="balance-side-card-amount">
+          ${{ availableBalance() | number : '1.2-2' }}
+        </div>
+        <button
+          type="button"
+          class="text-link"
+          (click)="actions.OpenBalanceDetail()"
+        >
+          View details
+        </button>
+      </div>
+    </div>
+
+    <div class="view-section">
+      <div class="dashed-placeholder balance-side-placeholder">
+        <button
+          type="button"
+          class="action-button action-button-dainty outline"
+          (click)="actions.OpenAddFunds()"
+        >
+          <img class="action-icon" src="assets/icons/add.svg" alt="" />
+          <span>Add funds</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-balance-actions-host></app-balance-actions-host>
