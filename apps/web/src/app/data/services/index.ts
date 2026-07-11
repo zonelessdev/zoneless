@@ -10,6 +10,7 @@ export * from './payment-intent.service';
 export * from './person.service';
 export * from './price.service';
 export * from './product.service';
+export * from './reporting.service';
 export * from './setup.service';
 export * from './topup.service';
 export * from './transaction.service';

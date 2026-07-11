@@ -1,0 +1,95 @@
+<div class="line-chart" [style.height.px]="height()">
+  @if (measuredWidth() > 0) {
+  <svg
+    class="line-chart-svg"
+    [attr.viewBox]="'0 0 ' + measuredWidth() + ' ' + height()"
+    preserveAspectRatio="xMidYMid meet"
+    (pointermove)="OnPointerMove($event)"
+    (pointerleave)="OnPointerLeave()"
+    role="img"
+    [attr.aria-label]="metricLabel() + ' chart'"
+  >
+    @if (showGrid()) { @for (tick of yTicks(); track tick) {
+    <line
+      class="grid-line"
+      [attr.x1]="padding.left"
+      [attr.x2]="measuredWidth() - padding.right"
+      [attr.y1]="GetYTickY(tick)"
+      [attr.y2]="GetYTickY(tick)"
+    />
+    <text
+      class="y-label"
+      [attr.x]="measuredWidth() - padding.right + 8"
+      [attr.y]="GetYTickY(tick) + 4"
+    >
+      {{ FormatYTick(tick) }}
+    </text>
+    } } @if (showFill() && fillPath()) {
+    <path class="fill-path" [attr.d]="fillPath()" />
+    } @if (previousPath()) {
+    <path class="previous-path" [attr.d]="previousPath()" fill="none" />
+    } @if (currentPath()) {
+    <path class="current-path" [attr.d]="currentPath()" fill="none" />
+    } @for (label of xLabels(); track label.x) {
+    <text
+      class="x-label"
+      [attr.x]="label.x"
+      [attr.y]="height() - 6"
+      [attr.text-anchor]="label.anchor"
+    >
+      {{ label.text }}
+    </text>
+    } @if (hoverX() !== null) {
+    <line
+      class="crosshair"
+      [attr.x1]="hoverX()"
+      [attr.x2]="hoverX()"
+      [attr.y1]="padding.top"
+      [attr.y2]="padding.top + plotHeight()"
+    />
+    } @if (hoverPreviousPoint(); as prev) {
+    <circle
+      class="marker marker-previous"
+      [attr.cx]="prev.x"
+      [attr.cy]="prev.y"
+      r="4"
+    />
+    } @if (hoverCurrentPoint(); as curr) {
+    <circle
+      class="marker marker-current"
+      [attr.cx]="curr.x"
+      [attr.cy]="curr.y"
+      r="4.5"
+    />
+    }
+  </svg>
+  } @if (hoverIndex() !== null && tooltipRows().length > 0) {
+  <div
+    class="chart-tooltip"
+    [style.display]="tooltipStyle()['display']"
+    [style.left]="tooltipStyle()['left']"
+    [style.top]="tooltipStyle()['top']"
+    [style.transform]="tooltipStyle()['transform']"
+  >
+    <div class="tooltip-header">
+      <span class="tooltip-title">{{ metricLabel() }}</span>
+      @if (tooltipChangePercent(); as change) {
+      <span
+        class="tooltip-change"
+        [class.positive]="change > 0"
+        [class.negative]="change < 0"
+      >
+        {{ FormatChangePercent(change) }}
+      </span>
+      }
+    </div>
+    @for (row of tooltipRows(); track row.color) {
+    <div class="tooltip-row">
+      <span class="swatch" [style.background]="row.color"></span>
+      <span class="tooltip-date">{{ row.label }}</span>
+      <span class="tooltip-value">{{ row.value }}</span>
+    </div>
+    }
+  </div>
+  }
+</div>
