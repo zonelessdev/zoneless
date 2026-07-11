@@ -1,0 +1,51 @@
+<div class="metric-chart-card" [class.loading]="loading()">
+  <div class="card-header">
+    <div class="card-title-row">
+      <span class="card-title">{{ title() }}</span>
+      @if (infoText()) {
+      <app-more-info-hover [text]="infoText()"></app-more-info-hover>
+      }
+    </div>
+  </div>
+
+  <div class="card-metrics">
+    <div class="primary-row">
+      <span class="primary-value">{{ displayTotal() }}</span>
+      @if (changePercent(); as change) {
+      <span
+        class="change-badge"
+        [class.positive]="change > 0"
+        [class.negative]="change < 0"
+      >
+        {{ FormatChange(change) }}
+      </span>
+      }
+    </div>
+    @if (previousLabel(); as previous) {
+    <div class="previous-label">{{ previous }}</div>
+    }
+  </div>
+
+  <div class="card-chart">
+    @if (series(); as s) {
+    <app-line-chart
+      [current]="s.data"
+      [previous]="s.previous_data"
+      [height]="chartHeight()"
+      [metricLabel]="title()"
+      [integerTicks]="s.unit === 'count'"
+      [formatValue]="formatValue()"
+      [formatTooltipValue]="formatTooltipValue()"
+      [formatTooltipDate]="formatTooltipDate()"
+      [formatX]="formatX()"
+    ></app-line-chart>
+    }
+  </div>
+
+  <div class="card-footer">
+    <span class="updated-label">{{ updatedLabel() }}</span>
+    @if (moreDetailsHref(); as href) {
+    <a class="more-details" [routerLink]="href">More details</a>
+    }
+  </div>
+</div>

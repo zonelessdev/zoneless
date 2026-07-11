@@ -28,6 +28,7 @@ import checkoutSessionsRouter from './checkoutSessions.routes';
 import paymentPagesRouter from './paymentPages.routes';
 import paymentIntentsRouter from './paymentIntents.routes';
 import chargesRouter from './charges.routes';
+import reportingRouter from './reporting.routes';
 
 const router = express.Router();
 
@@ -75,4 +76,5 @@ router.use('/customers', customersRouter);
 router.use('/checkout/sessions', checkoutSessionsRouter);
 router.use('/payment_intents', paymentIntentsRouter);
 router.use('/charges', chargesRouter);
+router.use('/reporting', reportingRouter);
 export default router;

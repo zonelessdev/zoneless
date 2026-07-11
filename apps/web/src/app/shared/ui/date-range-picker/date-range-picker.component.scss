@@ -1,0 +1,257 @@
+@use '../../../styles/base.scss' as *;
+@use '../../../styles/buttons.scss' as *;
+
+.date-range-picker {
+  position: relative;
+  display: inline-block;
+}
+
+.range-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-extra-small;
+  padding: 3px $spacing-snug;
+  min-height: 28px;
+  background: $background-color;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  font-size: $font-size-small;
+  font-family: $text-font;
+  color: $base-color;
+  cursor: pointer;
+  transition: background-color $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    background: $mid-background-color;
+  }
+}
+
+.trigger-label {
+  font-weight: $medium-weight;
+}
+
+.trigger-chevron {
+  width: 12px;
+  height: 12px;
+  filter: $base-filter;
+}
+
+.range-popover {
+  position: absolute;
+  top: calc(100% + #{$spacing-extra-small});
+  left: 0;
+  z-index: 30;
+  width: min(720px, calc(100vw - 32px));
+  background: $background-color;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius;
+  box-shadow: 0 12px 32px rgba(30, 41, 59, 0.14),
+    0 2px 8px rgba(30, 41, 59, 0.08);
+  overflow: hidden;
+}
+
+.popover-body {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  min-height: 320px;
+}
+
+.preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: $spacing-small;
+  border-right: 1px solid $darker-background-color;
+  background: $mid-background-color;
+}
+
+.preset-item {
+  text-align: left;
+  padding: $spacing-small $spacing-snug;
+  border: none;
+  border-radius: $border-radius-small;
+  background: transparent;
+  color: $text-color;
+  font-size: $font-size;
+  font-family: $text-font;
+  cursor: pointer;
+
+  &:hover {
+    background: $darker-background-color;
+  }
+
+  &.active {
+    background: rgba($base-color, 0.12);
+    color: $base-color;
+    font-weight: $medium-weight;
+  }
+}
+
+.calendar-panel {
+  padding: $spacing;
+}
+
+.date-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing;
+  margin-bottom: $spacing;
+}
+
+.date-field {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-extra-small;
+}
+
+.date-field-label {
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed-extra;
+}
+
+.date-field input {
+  padding: $spacing-small $spacing-snug;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  font-size: $font-size;
+  font-family: $text-font;
+  color: $text-color;
+  outline: none;
+
+  &:focus {
+    border-color: $base-color;
+    box-shadow: 0 0 0 3px rgba($base-color, 0.15);
+  }
+}
+
+.calendars {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-small;
+}
+
+.month-title {
+  font-size: $font-size;
+  font-weight: $medium-weight;
+}
+
+.nav-button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  background: $background-color;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  color: $text-color;
+
+  &:hover {
+    background: $mid-background-color;
+  }
+}
+
+.nav-spacer {
+  width: 28px;
+}
+
+.weekday-row,
+.day-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+}
+
+.weekday-row {
+  margin-bottom: $spacing-extra-small;
+
+  span {
+    font-size: $font-size-small;
+    color: $text-color;
+    opacity: $dimmed-extra;
+    padding: $spacing-extra-small 0;
+  }
+}
+
+.day-cell {
+  position: relative;
+  height: 32px;
+  border: none;
+  background: transparent;
+  font-size: $font-size-small;
+  font-family: $text-font;
+  color: $text-color;
+  cursor: pointer;
+  border-radius: 0;
+
+  &.outside {
+    opacity: 0.35;
+  }
+
+  &.in-range {
+    background: rgba($base-color, 0.12);
+  }
+
+  &.range-start,
+  &.range-end {
+    background: $base-color;
+    color: $background-color;
+    border-radius: 50%;
+    font-weight: $medium-weight;
+  }
+
+  &.range-start.in-range {
+    border-radius: 50% 0 0 50%;
+  }
+
+  &.range-end.in-range {
+    border-radius: 0 50% 50% 0;
+  }
+
+  &.range-start.range-end {
+    border-radius: 50%;
+  }
+
+  &:hover:not(.range-start):not(.range-end) {
+    background: $darker-background-color;
+    border-radius: 50%;
+  }
+}
+
+.popover-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-small;
+  padding: $spacing-snug $spacing;
+  border-top: 1px solid $darker-background-color;
+}
+
+.popover-footer .action-button {
+  font-size: $font-size;
+  padding: $spacing-extra-small $spacing;
+}
+
+@media only screen and (max-width: 700px) {
+  .popover-body {
+    grid-template-columns: 1fr;
+  }
+
+  .preset-list {
+    border-right: none;
+    border-bottom: 1px solid $darker-background-color;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .calendars {
+    grid-template-columns: 1fr;
+  }
+}

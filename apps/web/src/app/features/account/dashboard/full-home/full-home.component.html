@@ -12,23 +12,58 @@
   </div>
 
   <div class="today-grid">
-    <div class="today-primary">
-      <div class="metric-label">USDC balance</div>
-      <div class="metric-value">
-        ${{ GetTotalBalance() | number : '1.2-2' }}
+    <div class="today-primary" [class.loading]="todayLoading()">
+      <div class="today-stats">
+        <div class="today-stat">
+          <div class="metric-label">Gross volume</div>
+          <div class="today-stat-value">{{ todayVolumeLabel() }}</div>
+          <div class="today-stat-sub">{{ todayAsOfLabel }}</div>
+        </div>
+        <div class="today-stat">
+          <div class="metric-label">Yesterday</div>
+          <div class="today-stat-value today-stat-value-muted">
+            {{ yesterdayVolumeLabel() }}
+          </div>
+        </div>
       </div>
-      <div class="metric-sub">
-        Available ${{ GetAvailableBalance() | number : '1.2-2' }}
-        @if (GetPendingBalance() > 0) {
-        <span> · Pending ${{ GetPendingBalance() | number : '1.2-2' }} </span>
+
+      <div class="today-chart">
+        @if (todayCumulative(); as cumulative) {
+        <app-line-chart
+          [current]="cumulative.current"
+          [previous]="cumulative.previous"
+          [height]="200"
+          [showGrid]="false"
+          metricLabel="Gross volume"
+          [formatValue]="formatTodayValue"
+          [formatTooltipValue]="formatTodayTooltipValue"
+          [formatX]="formatTodayX"
+          [formatTooltipDate]="formatTodayTooltipDate"
+        ></app-line-chart>
         }
       </div>
-      <button type="button" class="text-link" (click)="OnBalanceDetailClick()">
-        View
-      </button>
     </div>
 
     <div class="today-secondary">
+      <div class="summary-card">
+        <div class="metric-label">USDC balance</div>
+        <div class="summary-value">
+          ${{ GetTotalBalance() | number : '1.2-2' }}
+        </div>
+        <div class="metric-sub compact">
+          Available ${{ GetAvailableBalance() | number : '1.2-2' }}
+          @if (GetPendingBalance() > 0) {
+          <span> · Pending ${{ GetPendingBalance() | number : '1.2-2' }} </span>
+          }
+        </div>
+        <button
+          type="button"
+          class="text-link"
+          (click)="OnBalanceDetailClick()"
+        >
+          View
+        </button>
+      </div>
       <div class="summary-card">
         <div class="metric-label">Available to pay out</div>
         <div class="summary-value">
@@ -36,51 +71,82 @@
         </div>
         <a class="text-link" routerLink="/account/balance">See details</a>
       </div>
-      <div class="summary-card">
-        <div class="metric-label">Account</div>
-        <div class="summary-value summary-value-small">
-          {{
-            GetAccount()?.business_profile?.name || GetAccount()?.email || '—'
-          }}
-        </div>
-        <a class="text-link" routerLink="/account/settings">Settings</a>
-      </div>
     </div>
   </div>
 </div>
 
-<div class="view-section">
-  <div class="section-header">
+<div class="view-section overview-section">
+  <div class="section-header overview-header">
     <h2 class="section-title">Your overview</h2>
-    <div class="overview-meta">
-      @if (GetAccount()?.created) { Account created
-      {{ GetAccount()!.created * 1000 | date : 'mediumDate' }}
-      }
-    </div>
   </div>
 
-  <div class="overview-grid">
-    <div class="overview-card">
-      <div class="metric-label">Total balance</div>
-      <div class="overview-value">
-        ${{ GetTotalBalance() | number : '1.2-2' }}
-      </div>
-      <div class="overview-hint">USDC across available and pending</div>
-    </div>
-    <div class="overview-card">
-      <div class="metric-label">Available</div>
-      <div class="overview-value">
-        ${{ GetAvailableBalance() | number : '1.2-2' }}
-      </div>
-      <div class="overview-hint">Ready to pay out</div>
-    </div>
-    <div class="overview-card">
-      <div class="metric-label">Pending</div>
-      <div class="overview-value">
-        ${{ GetPendingBalance() | number : '1.2-2' }}
-      </div>
-      <div class="overview-hint">Settling to available</div>
-    </div>
+  <div class="overview-toolbar">
+    <span class="toolbar-label">Date range</span>
+    <app-date-range-picker
+      [value]="dateRange()"
+      (valueChange)="OnDateRangeChange($event)"
+    ></app-date-range-picker>
+
+    <select
+      class="toolbar-select"
+      [value]="interval()"
+      (change)="OnIntervalChange($event)"
+      aria-label="Interval"
+    >
+      @for (option of availableIntervals(); track option.id) {
+      <option [value]="option.id">{{ option.label }}</option>
+      }
+    </select>
+
+    <button
+      type="button"
+      class="toolbar-compare-toggle"
+      (click)="ToggleCompare()"
+      [attr.aria-pressed]="compare() !== 'none'"
+    >
+      <img src="assets/icons/close.svg" alt="" class="compare-icon" />
+      <span>Compare</span>
+    </button>
+
+    @if (compare() !== 'none') {
+    <select
+      class="toolbar-select"
+      [value]="compare()"
+      (change)="OnCompareChange($event)"
+      aria-label="Comparison period"
+    >
+      <option value="previous_period">Previous period</option>
+    </select>
+    }
+  </div>
+
+  <div class="overview-grid" [class.loading]="overviewLoading()">
+    <app-metric-chart-card
+      title="Gross volume"
+      infoText="Total amount of successful payments in the selected period."
+      [series]="overviewGross()"
+      [interval]="interval()"
+      [loading]="overviewLoading()"
+      moreDetailsHref="/account/payments"
+    ></app-metric-chart-card>
+
+    <app-metric-chart-card
+      title="Net volume"
+      infoText="Gross volume minus fees. Currently equal to gross volume."
+      [series]="overviewNet()"
+      [interval]="interval()"
+      [loading]="overviewLoading()"
+      moreDetailsHref="/account/payments"
+    ></app-metric-chart-card>
+
+    <app-metric-chart-card
+      title="New customers"
+      infoText="Customers created in the selected period."
+      [series]="overviewCustomers()"
+      [interval]="interval()"
+      [loading]="overviewLoading()"
+      moreDetailsHref="/account/customers"
+    ></app-metric-chart-card>
   </div>
 </div>
 

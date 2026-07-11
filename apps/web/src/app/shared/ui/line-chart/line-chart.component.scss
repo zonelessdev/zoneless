@@ -1,0 +1,146 @@
+@use '../../../styles/base.scss' as *;
+
+.line-chart {
+  --chart-current: #{$base-color};
+  --chart-previous: #94a3b8;
+  position: relative;
+  width: 100%;
+}
+
+.line-chart-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  overflow: visible;
+}
+
+.grid-line {
+  stroke: $darkest-background-color;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.y-label,
+.x-label {
+  fill: $text-color;
+  opacity: $dimmed-extra;
+  font-size: 10px;
+  font-family: $text-font;
+}
+
+.current-path {
+  stroke: var(--chart-current);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.previous-path {
+  stroke: var(--chart-previous);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.fill-path {
+  fill: var(--chart-current);
+  opacity: 0.08;
+}
+
+.crosshair {
+  stroke: $darkest-background-color;
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.marker {
+  pointer-events: none;
+}
+
+.marker-current {
+  fill: var(--chart-current);
+  stroke: $background-color;
+  stroke-width: 2;
+}
+
+.marker-previous {
+  fill: var(--chart-previous);
+  stroke: $background-color;
+  stroke-width: 2;
+}
+
+.chart-tooltip {
+  position: absolute;
+  z-index: 5;
+  min-width: 180px;
+  padding: $spacing-small $spacing-snug;
+  background: $background-color;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  box-shadow: 0 8px 24px rgba(30, 41, 59, 0.12),
+    0 2px 6px rgba(30, 41, 59, 0.08);
+  pointer-events: none;
+}
+
+.tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-small;
+  margin-bottom: $spacing-small;
+}
+
+.tooltip-title {
+  font-size: $font-size-small;
+  font-weight: $medium-weight;
+  color: $text-color;
+}
+
+.tooltip-change {
+  font-size: $font-size-small;
+  font-weight: $medium-weight;
+  color: $text-color;
+  opacity: $dimmed;
+
+  &.positive {
+    color: $success-green;
+    opacity: 1;
+  }
+
+  &.negative {
+    color: #dc2626;
+    opacity: 1;
+  }
+}
+
+.tooltip-row {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: $spacing-small;
+  margin-top: $spacing-extra-small;
+}
+
+.swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.tooltip-date {
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed;
+}
+
+.tooltip-value {
+  font-size: $font-size-small;
+  font-weight: $medium-weight;
+  color: $text-color;
+}

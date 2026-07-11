@@ -21,6 +21,7 @@ export * from './Person';
 export * from './Price';
 export * from './Product';
 export * from './QueryParameters';
+export * from './Reporting';
 export * from './TopUp';
 export * from './Transfer';
 export * from './WebhookEndpoint';

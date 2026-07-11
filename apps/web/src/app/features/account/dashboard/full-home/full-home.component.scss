@@ -4,7 +4,7 @@
 
 .today-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(240px, 0.8fr);
+  grid-template-columns: minmax(0, 1.6fr) minmax(240px, 0.7fr);
   gap: $spacing-large;
   margin-top: $spacing;
 }
@@ -14,6 +14,40 @@
   background-color: $mid-background-color;
   border-radius: $border-radius;
   border: 1px solid $darker-background-color;
+
+  &.loading {
+    opacity: 0.7;
+  }
+}
+
+.today-stats {
+  display: flex;
+  gap: $spacing-extra-large;
+}
+
+.today-stat-value {
+  font-size: $font-size-extra-large;
+  font-weight: $title-weight;
+  font-family: $title-font;
+  line-height: 1.2;
+}
+
+.today-stat-value-muted {
+  color: $text-color;
+  opacity: $dimmed-extra;
+  font-weight: $medium-weight;
+}
+
+.today-stat-sub {
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed-extra;
+  margin-top: $spacing-extra-small;
+}
+
+.today-chart {
+  margin-top: $spacing;
+  min-height: 200px;
 }
 
 .today-secondary {
@@ -42,26 +76,25 @@
   font-weight: $title-weight;
   font-family: $title-font;
   line-height: 1.1;
-  margin-bottom: $spacing-small;
+  margin-bottom: $spacing-extra-small;
 }
 
 .metric-sub {
   font-size: $font-size;
   color: $text-color;
   opacity: $dimmed;
-  margin-bottom: $spacing;
+  margin-bottom: $spacing-small;
+
+  &.compact {
+    margin-bottom: $spacing-snug;
+    font-size: $font-size-small;
+  }
 }
 
 .summary-value {
   font-size: $font-size-large;
   font-weight: $title-weight;
   margin-bottom: $spacing-small;
-}
-
-.summary-value-small {
-  font-size: $font-size;
-  font-weight: $medium-weight;
-  word-break: break-word;
 }
 
 .text-link {
@@ -80,41 +113,94 @@
   text-decoration: underline;
 }
 
-.overview-meta {
+.overview-section {
+  background: $mid-background-color;
+  padding: $spacing-medium;
+  border-radius: $border-radius;
+}
+
+.overview-header {
+  margin-bottom: $spacing;
+}
+
+.overview-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-small;
+  margin-bottom: $spacing;
+}
+
+.toolbar-label {
   font-size: $font-size-small;
+  font-weight: $medium-weight;
   color: $text-color;
-  opacity: $dimmed-extra;
+}
+
+.toolbar-select {
+  appearance: none;
+  padding: 3px 22px 3px $spacing-snug;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  background: $background-color
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230055ff' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
+    no-repeat right 8px center;
+  font-size: $font-size-small;
+  font-weight: $medium-weight;
+  font-family: $text-font;
+  color: $base-color;
+  cursor: pointer;
+  min-height: 28px;
+
+  &:hover {
+    background-color: $mid-background-color;
+  }
+}
+
+.toolbar-compare-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-extra-small;
+  padding: 3px $spacing-snug;
+  min-height: 28px;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  background: $background-color;
+  font-size: $font-size-small;
+  font-weight: $medium-weight;
+  font-family: $text-font;
+  color: $text-color;
+  cursor: pointer;
+
+  .compare-icon {
+    width: 12px;
+    height: 12px;
+    opacity: $dimmed-extra;
+  }
+
+  &:hover {
+    background: $mid-background-color;
+  }
 }
 
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: $spacing;
+
+  &.loading {
+    opacity: 0.85;
+  }
 }
 
-.overview-card {
-  padding: $spacing;
-  border: 1px solid $darker-background-color;
-  border-radius: $border-radius;
-  background-color: $background-color;
-}
-
-.overview-value {
-  font-size: $font-size-extra-large;
-  font-weight: $title-weight;
-  font-family: $title-font;
-  margin-bottom: $spacing-extra-small;
-}
-
-.overview-hint {
-  font-size: $font-size-small;
-  color: $text-color;
-  opacity: $dimmed-extra;
+@media only screen and (max-width: 1100px) {
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media only screen and (max-width: 900px) {
-  .today-grid,
-  .overview-grid {
+  .today-grid {
     grid-template-columns: 1fr;
   }
 }

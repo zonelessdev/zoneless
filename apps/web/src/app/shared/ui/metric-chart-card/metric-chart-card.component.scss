@@ -1,0 +1,109 @@
+@use '../../../styles/base.scss' as *;
+
+.metric-chart-card {
+  display: flex;
+  flex-direction: column;
+  padding: $spacing;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius;
+  background: $background-color;
+  min-height: 280px;
+}
+
+.metric-chart-card.loading {
+  opacity: 0.65;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-small;
+}
+
+.card-title-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-extra-small;
+}
+
+.card-title {
+  font-size: $font-size;
+  font-weight: $medium-weight;
+  color: $text-color;
+}
+
+.card-metrics {
+  margin-bottom: $spacing-snug;
+}
+
+.primary-row {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-small;
+}
+
+.primary-value {
+  font-size: 28px;
+  font-weight: $title-weight;
+  font-family: $title-font;
+  line-height: 1.1;
+  color: $text-color;
+}
+
+.change-badge {
+  font-size: $font-size-small;
+  font-weight: $medium-weight;
+  color: $text-color;
+  opacity: $dimmed;
+
+  &.positive {
+    color: $success-green;
+    opacity: 1;
+  }
+
+  &.negative {
+    color: #dc2626;
+    opacity: 1;
+  }
+}
+
+.previous-label {
+  margin-top: $spacing-extra-small;
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed-extra;
+}
+
+.card-chart {
+  flex: 1;
+  min-height: 140px;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: $spacing-snug;
+  padding-top: $spacing-small;
+  border-top: 1px solid $darker-background-color;
+}
+
+.updated-label {
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed-extra;
+}
+
+.more-details {
+  font-size: $font-size-small;
+  font-weight: $medium-weight;
+  color: $text-color;
+  opacity: $dimmed;
+  text-decoration: none;
+
+  &:hover {
+    opacity: 1;
+    text-decoration: underline;
+  }
+}

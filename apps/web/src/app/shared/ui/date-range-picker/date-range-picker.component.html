@@ -1,0 +1,143 @@
+<div class="date-range-picker">
+  <button
+    type="button"
+    class="range-trigger"
+    (click)="Toggle($event)"
+    [attr.aria-expanded]="open()"
+  >
+    <span class="trigger-label">{{ triggerLabel() }}</span>
+    <img class="trigger-chevron" src="assets/icons/chevron_down.svg" alt="" />
+  </button>
+
+  @if (open()) {
+  <div
+    class="range-popover"
+    role="dialog"
+    aria-label="Date range"
+    (click)="$event.stopPropagation()"
+    (keydown)="$event.stopPropagation()"
+  >
+    <div class="popover-body">
+      <div class="preset-list">
+        @for (preset of presets; track preset.id) {
+        <button
+          type="button"
+          class="preset-item"
+          [class.active]="draftPreset() === preset.id"
+          (click)="OnPresetClick(preset)"
+        >
+          {{ preset.label }}
+        </button>
+        }
+      </div>
+
+      <div class="calendar-panel">
+        <div class="date-inputs">
+          <label class="date-field">
+            <span class="date-field-label">Start</span>
+            <input
+              type="text"
+              [value]="draftStart()"
+              (input)="OnStartInput($event)"
+              placeholder="MM / DD / YYYY"
+            />
+          </label>
+          <label class="date-field">
+            <span class="date-field-label">End</span>
+            <input
+              type="text"
+              [value]="draftEnd()"
+              (input)="OnEndInput($event)"
+              placeholder="MM / DD / YYYY"
+            />
+          </label>
+        </div>
+
+        <div class="calendars">
+          <div class="calendar">
+            <div class="calendar-header">
+              <button
+                type="button"
+                class="nav-button"
+                (click)="ShiftMonths(-1)"
+                aria-label="Previous month"
+              >
+                ‹
+              </button>
+              <span class="month-title">{{ MonthTitle(leftMonth()) }}</span>
+              <span class="nav-spacer"></span>
+            </div>
+            <div class="weekday-row">
+              @for (day of ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']; track
+              day) {
+              <span>{{ day }}</span>
+              }
+            </div>
+            <div class="day-grid">
+              @for (day of GetMonthDays(leftMonth()); track day.toISOString()) {
+              <button
+                type="button"
+                class="day-cell"
+                [class.outside]="IsOutsideMonth(day, leftMonth())"
+                [class.in-range]="IsInRange(day)"
+                [class.range-start]="IsRangeStart(day)"
+                [class.range-end]="IsRangeEnd(day)"
+                (click)="OnDayClick(day)"
+              >
+                {{ day.getDate() }}
+              </button>
+              }
+            </div>
+          </div>
+
+          <div class="calendar">
+            <div class="calendar-header">
+              <span class="nav-spacer"></span>
+              <span class="month-title">{{ MonthTitle(rightMonth()) }}</span>
+              <button
+                type="button"
+                class="nav-button"
+                (click)="ShiftMonths(1)"
+                aria-label="Next month"
+              >
+                ›
+              </button>
+            </div>
+            <div class="weekday-row">
+              @for (day of ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']; track
+              day) {
+              <span>{{ day }}</span>
+              }
+            </div>
+            <div class="day-grid">
+              @for (day of GetMonthDays(rightMonth()); track day.toISOString())
+              {
+              <button
+                type="button"
+                class="day-cell"
+                [class.outside]="IsOutsideMonth(day, rightMonth())"
+                [class.in-range]="IsInRange(day)"
+                [class.range-start]="IsRangeStart(day)"
+                [class.range-end]="IsRangeEnd(day)"
+                (click)="OnDayClick(day)"
+              >
+                {{ day.getDate() }}
+              </button>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="popover-footer">
+      <button type="button" class="action-button outline" (click)="Clear()">
+        Clear
+      </button>
+      <button type="button" class="action-button" (click)="Apply()">
+        Apply
+      </button>
+    </div>
+  </div>
+  }
+</div>
