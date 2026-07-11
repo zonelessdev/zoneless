@@ -158,6 +158,10 @@ a {
   color: $base-color;
 }
 
+.variant-full .menu-icon-selected {
+  filter: $base-filter;
+}
+
 .line {
   margin: 0;
 }

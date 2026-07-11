@@ -38,6 +38,24 @@ h2.section-title {
   margin-bottom: $spacing;
 }
 
+.text-link {
+  display: inline-block;
+  font-size: $font-size;
+  font-weight: $medium-weight;
+  color: $base-color;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+  line-height: 1.2;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .settings-section-title {
   font-size: $font-size-med;
   font-weight: $title-weight;

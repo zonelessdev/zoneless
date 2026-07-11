@@ -1,12 +1,23 @@
 <div class="date-range-picker">
   <button
     type="button"
-    class="range-trigger"
+    class="range-trigger filter-pill"
     (click)="Toggle($event)"
     [attr.aria-expanded]="open()"
+    [attr.aria-label]="
+      label() ? label() + ': ' + triggerLabel() : triggerLabel()
+    "
   >
-    <span class="trigger-label">{{ triggerLabel() }}</span>
-    <img class="trigger-chevron" src="assets/icons/chevron_down.svg" alt="" />
+    @if (label(); as pillLabel) {
+    <span class="filter-pill-label">{{ pillLabel }}</span>
+    <span class="filter-pill-divider" aria-hidden="true"></span>
+    }
+    <span class="filter-pill-value">{{ triggerLabel() }}</span>
+    <img
+      class="filter-pill-chevron"
+      src="assets/icons/chevron_down.svg"
+      alt=""
+    />
   </button>
 
   @if (open()) {

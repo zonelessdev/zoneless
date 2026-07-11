@@ -16,6 +16,12 @@
 }
 
 .grid-line {
+  stroke: $darker-background-color;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.baseline {
   stroke: $darkest-background-color;
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
@@ -39,9 +45,9 @@
 
 .previous-path {
   stroke: var(--chart-previous);
-  stroke-width: 2;
-  stroke-dasharray: 4 4;
-  stroke-linecap: round;
+  stroke-width: 1.5;
+  stroke-dasharray: 2.5 3.5;
+  stroke-linecap: butt;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }

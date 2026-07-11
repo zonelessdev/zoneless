@@ -3,11 +3,11 @@
 .metric-chart-card {
   display: flex;
   flex-direction: column;
-  padding: $spacing;
+  padding: $spacing-medium $spacing-plus $spacing-plus;
   border: 1px solid $darkest-background-color;
   border-radius: $border-radius;
   background: $background-color;
-  min-height: 280px;
+  min-height: 300px;
 }
 
 .metric-chart-card.loading {
@@ -18,7 +18,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: $spacing-small;
+  margin-bottom: $spacing-extra-small;
 }
 
 .card-title-row {
@@ -44,10 +44,11 @@
 }
 
 .primary-value {
-  font-size: 28px;
+  font-size: $font-size-extra-large;
   font-weight: $title-weight;
   font-family: $title-font;
-  line-height: 1.1;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
   color: $text-color;
 }
 
@@ -84,8 +85,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: $spacing-snug;
-  padding-top: $spacing-small;
+  margin-top: $spacing;
+  padding-top: $spacing-snug;
   border-top: 1px solid $darker-background-color;
 }
 

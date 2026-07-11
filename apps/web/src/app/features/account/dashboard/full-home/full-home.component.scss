@@ -1,19 +1,33 @@
 @use '../../../../styles/base.scss' as *;
 @use '../../../../styles/buttons.scss' as *;
 @use '../../../../styles/account.scss' as *;
+@use '../../../../styles/filter-pills.scss' as *;
+
+.today-section {
+  .header-wrapper {
+    padding-bottom: $spacing;
+    margin-bottom: $spacing-medium;
+    border-bottom: 1px solid $darkest-background-color;
+  }
+
+  h1 {
+    font-size: 32px;
+    letter-spacing: -0.02em;
+  }
+}
 
 .today-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(240px, 0.7fr);
-  gap: $spacing-large;
-  margin-top: $spacing;
+  grid-template-columns: minmax(0, 1.7fr) minmax(220px, 0.55fr);
+  gap: $spacing-extra-large;
+  align-items: stretch;
+  max-height: 250px;
 }
 
 .today-primary {
-  padding: $spacing-medium;
-  background-color: $mid-background-color;
-  border-radius: $border-radius;
-  border: 1px solid $darker-background-color;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 
   &.loading {
     opacity: 0.7;
@@ -23,13 +37,15 @@
 .today-stats {
   display: flex;
   gap: $spacing-extra-large;
+  margin-bottom: $spacing-snug;
 }
 
 .today-stat-value {
   font-size: $font-size-extra-large;
   font-weight: $title-weight;
   font-family: $title-font;
-  line-height: 1.2;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
 }
 
 .today-stat-value-muted {
@@ -46,22 +62,58 @@
 }
 
 .today-chart {
-  margin-top: $spacing;
-  min-height: 200px;
+  flex: 1;
+  min-height: 150px;
 }
 
 .today-secondary {
   display: flex;
   flex-direction: column;
-  gap: $spacing;
+  justify-content: space-between;
+  // Match the chart's bottom padding so the payout value sits on the x-axis.
+  padding-bottom: 24px;
 }
 
 .summary-card {
-  flex: 1;
-  padding: $spacing;
-  border: 1px solid $darker-background-color;
-  border-radius: $border-radius;
-  background-color: $background-color;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 0;
+
+  & + & {
+    border-top: 1px solid $darkest-background-color;
+    padding-top: $spacing-plus;
+  }
+
+  .text-link {
+    font-size: $font-size;
+    font-weight: $text-weight;
+    line-height: 1.3;
+  }
+}
+
+.summary-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: $spacing-small;
+  margin-bottom: $spacing-small;
+}
+
+.summary-card-label {
+  font-size: $font-size;
+  font-weight: $medium-weight;
+  color: $text-color;
+  line-height: 1.3;
+}
+
+.summary-card-sub {
+  font-size: $font-size-small;
+  font-weight: $text-weight;
+  color: $text-color;
+  opacity: $dimmed-extra;
+  margin-top: $spacing-extra-small;
+  line-height: 1.3;
 }
 
 .metric-label {
@@ -71,52 +123,21 @@
   margin-bottom: $spacing-extra-small;
 }
 
-.metric-value {
-  font-size: 36px;
-  font-weight: $title-weight;
-  font-family: $title-font;
-  line-height: 1.1;
-  margin-bottom: $spacing-extra-small;
-}
-
-.metric-sub {
-  font-size: $font-size;
-  color: $text-color;
-  opacity: $dimmed;
-  margin-bottom: $spacing-small;
-
-  &.compact {
-    margin-bottom: $spacing-snug;
-    font-size: $font-size-small;
-  }
-}
-
 .summary-value {
-  font-size: $font-size-large;
-  font-weight: $title-weight;
-  margin-bottom: $spacing-small;
-}
-
-.text-link {
-  display: inline-block;
-  font-size: $font-size;
+  font-size: 22px;
   font-weight: $medium-weight;
-  color: $base-color;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.text-link:hover {
-  text-decoration: underline;
+  font-family: $title-font;
+  color: $text-color;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .overview-section {
-  background: $mid-background-color;
-  padding: $spacing-medium;
-  border-radius: $border-radius;
+  .section-title {
+    font-size: 24px;
+    letter-spacing: -0.02em;
+    margin-bottom: 0;
+  }
 }
 
 .overview-header {
@@ -128,65 +149,19 @@
   flex-wrap: wrap;
   align-items: center;
   gap: $spacing-small;
+  padding-bottom: $spacing;
   margin-bottom: $spacing;
-}
-
-.toolbar-label {
-  font-size: $font-size-small;
-  font-weight: $medium-weight;
-  color: $text-color;
-}
-
-.toolbar-select {
-  appearance: none;
-  padding: 3px 22px 3px $spacing-snug;
-  border: 1px solid $darkest-background-color;
-  border-radius: $border-radius-small;
-  background: $background-color
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230055ff' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
-    no-repeat right 8px center;
-  font-size: $font-size-small;
-  font-weight: $medium-weight;
-  font-family: $text-font;
-  color: $base-color;
-  cursor: pointer;
-  min-height: 28px;
-
-  &:hover {
-    background-color: $mid-background-color;
-  }
-}
-
-.toolbar-compare-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-extra-small;
-  padding: 3px $spacing-snug;
-  min-height: 28px;
-  border: 1px solid $darkest-background-color;
-  border-radius: $border-radius-small;
-  background: $background-color;
-  font-size: $font-size-small;
-  font-weight: $medium-weight;
-  font-family: $text-font;
-  color: $text-color;
-  cursor: pointer;
-
-  .compare-icon {
-    width: 12px;
-    height: 12px;
-    opacity: $dimmed-extra;
-  }
-
-  &:hover {
-    background: $mid-background-color;
-  }
+  border-bottom: 1px solid $darkest-background-color;
 }
 
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: $spacing;
+  padding: $spacing;
+  background: $mid-background-color;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius;
 
   &.loading {
     opacity: 0.85;
@@ -202,5 +177,18 @@
 @media only screen and (max-width: 900px) {
   .today-grid {
     grid-template-columns: 1fr;
+    gap: $spacing-large;
+    max-height: none;
+  }
+
+  .today-secondary {
+    border-top: 1px solid $darkest-background-color;
+    padding-top: $spacing;
+    padding-bottom: 0;
+    gap: $spacing;
+  }
+
+  .summary-card + .summary-card {
+    padding-top: $spacing;
   }
 }
