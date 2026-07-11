@@ -17,6 +17,7 @@ import {
   CreatePaymentIntentSchema,
   UpdatePaymentIntentSchema,
   CancelPaymentIntentSchema,
+  ListPaymentIntentsFiltersInput,
 } from '@zoneless/shared-schemas';
 import { PaymentIntent } from '@zoneless/shared-types';
 import { ApplyExpand, RegisterExpansions } from '../utils/Expand';
@@ -231,6 +232,9 @@ router.get(
 
     const customer = req.query.customer as string | undefined;
     const customerAccount = req.query.customer_account as string | undefined;
+    const status = req.query.status as
+      | ListPaymentIntentsFiltersInput['status']
+      | undefined;
 
     const result = await paymentIntentModule.ListPaymentIntents({
       account: platformAccountId,
@@ -240,6 +244,7 @@ router.get(
       created,
       customer,
       customer_account: customerAccount,
+      status,
     });
 
     Logger.info('PaymentIntents listed successfully', {

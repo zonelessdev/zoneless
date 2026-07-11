@@ -53,6 +53,7 @@ const STATUS_CHIP_MAP: Record<string, ChipType> = {
   refunded: 'grey',
   cancelled: 'grey',
   canceled: 'grey',
+  incomplete: 'grey',
   inactive: 'grey',
   timeout: 'grey',
   not_assessed: 'grey',

@@ -10,7 +10,7 @@ table {
 th,
 td {
   text-align: left;
-  padding: $spacing-small $spacing-small;
+  padding: $spacing-snug $spacing;
 }
 
 th:first-child,
@@ -43,8 +43,8 @@ th {
 }
 
 .row td {
-  padding-top: $spacing-small;
-  padding-bottom: $spacing-small;
+  padding-top: $spacing-snug;
+  padding-bottom: $spacing-snug;
 }
 
 .data-cell {
@@ -139,7 +139,7 @@ th {
 }
 
 .page-info {
-  font-size: $font-size;
+  font-size: $font-size-small;
   color: $text-color;
 }
 

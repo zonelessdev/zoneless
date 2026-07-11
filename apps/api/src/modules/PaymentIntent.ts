@@ -19,6 +19,7 @@ import {
   PaymentIntentAmountDetails,
   PaymentIntentAmountDetailsLineItem,
   QueryOperators,
+  INCOMPLETE_PAYMENT_INTENT_STATUSES,
 } from '@zoneless/shared-types';
 import { ValidateUpdate } from './Util';
 import { ExtractChangedFields } from './Event';
@@ -763,12 +764,20 @@ export class PaymentIntentModule {
   async ListPaymentIntents(
     options: ListOptions & ListPaymentIntentsFiltersInput
   ): Promise<ListResult<PaymentIntentType>> {
-    const { customer, customer_account, ...listOptions } = options;
+    const { customer, customer_account, status, ...listOptions } = options;
 
     const filters: Record<string, unknown> = {};
     if (customer !== undefined) filters.customer = customer;
     if (customer_account !== undefined) {
       filters.customer_account = customer_account;
+    }
+    if (status === 'incomplete') {
+      filters.status = {
+        operator: QueryOperators['in'],
+        value: INCOMPLETE_PAYMENT_INTENT_STATUSES,
+      };
+    } else if (status !== undefined) {
+      filters.status = status;
     }
 
     return this.listHelper.List({
