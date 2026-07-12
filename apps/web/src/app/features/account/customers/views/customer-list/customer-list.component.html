@@ -1,5 +1,13 @@
 <div class="header-wrapper">
   <h1>Customers</h1>
+  <button
+    type="button"
+    class="action-button action-button-dainty"
+    (click)="actions.OpenCreate()"
+  >
+    <img class="button-icon" src="assets/icons/add.svg" alt="" />
+    <span>Add customer</span>
+  </button>
 </div>
 <app-paginated-list
   #customersList

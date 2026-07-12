@@ -193,6 +193,31 @@ describe('CustomerModule', () => {
       expect(customer.test_clock).toBe('clock_z_1');
     });
 
+    it('should persist tax_id_data on create', () => {
+      const customer = module.CustomerObject('acct_z_platform', {
+        tax_id_data: [
+          { type: 'eu_vat', value: 'DE123456789' },
+          { type: 'gb_vat', value: 'GB123456789' },
+        ],
+      });
+
+      expect(customer.tax_ids.data).toHaveLength(2);
+      expect(customer.tax_ids.data[0]).toEqual(
+        expect.objectContaining({
+          object: 'tax_id',
+          type: 'eu_vat',
+          value: 'DE123456789',
+          customer: customer.id,
+        })
+      );
+      expect(customer.tax_ids.data[1]).toEqual(
+        expect.objectContaining({
+          type: 'gb_vat',
+          value: 'GB123456789',
+        })
+      );
+    });
+
     it('should respect an explicit cash_balance reconciliation_mode', () => {
       const customer = module.CustomerObject('acct_z_platform', {
         cash_balance: {
