@@ -1,20 +1,83 @@
 <h3>Account information</h3>
 
 <div class="field">
-  <div class="field-title">Name</div>
-  <p class="field-help">Customer display name; appears on invoices.</p>
+  <div class="field-title">Type</div>
+  <div class="field-value">
+    <select
+      [ngModel]="accountType()"
+      (ngModelChange)="OnAccountTypeChange($event)"
+    >
+      <option value="individual">Individual</option>
+      <option value="company">Company</option>
+    </select>
+  </div>
+</div>
+
+@if (accountType() === 'individual') {
+<div class="field">
+  <div class="field-double">
+    <div class="field field-nested">
+      <div class="field-title">First name</div>
+      <div class="field-value">
+        <input
+          [ngModel]="firstName()"
+          (ngModelChange)="OnFirstNameChange($event)"
+          type="text"
+          placeholder="Jenny"
+          [maxlength]="INDIVIDUAL_NAME_MAX_LENGTH"
+        />
+      </div>
+    </div>
+    <div class="field field-nested">
+      <div class="field-title">Last name</div>
+      <div class="field-value">
+        <input
+          [ngModel]="lastName()"
+          (ngModelChange)="OnLastNameChange($event)"
+          type="text"
+          placeholder="Rosen"
+          [maxlength]="INDIVIDUAL_NAME_MAX_LENGTH"
+        />
+      </div>
+    </div>
+  </div>
+  @if (showErrors && nameError()) {
+  <div class="error">{{ nameError() }}</div>
+  }
+</div>
+} @else {
+<div class="field">
+  <div class="field-title">Business name</div>
   <div class="field-value">
     <input
-      [ngModel]="name()"
-      (ngModelChange)="OnNameChange($event)"
+      [ngModel]="businessName()"
+      (ngModelChange)="OnBusinessNameChange($event)"
       type="text"
-      [maxlength]="NAME_MAX_LENGTH"
+      placeholder="Rosen Media"
+      [maxlength]="BUSINESS_NAME_MAX_LENGTH"
       [class.field-error]="showErrors && nameError()"
     />
   </div>
   @if (showErrors && nameError()) {
   <div class="error">{{ nameError() }}</div>
   }
+</div>
+}
+
+<div class="field">
+  <div class="field-title">Display name</div>
+  <div class="field-value">
+    <input
+      [ngModel]="name()"
+      (ngModelChange)="OnNameChange($event)"
+      type="text"
+      placeholder="Jenny Rosen"
+      [maxlength]="NAME_MAX_LENGTH"
+      [class.field-error]="
+        showErrors && nameError() && accountType() === 'individual'
+      "
+    />
+  </div>
 </div>
 
 <div class="field">
@@ -24,6 +87,7 @@
       [ngModel]="email()"
       (ngModelChange)="OnEmailChange($event)"
       type="email"
+      placeholder="jenny.rosen@example.com"
       [maxlength]="EMAIL_MAX_LENGTH"
       [class.field-error]="showErrors && emailError()"
     />
@@ -33,6 +97,399 @@
   }
 </div>
 
+<div class="line"></div>
+
+<div
+  class="collapsible-toggle section-toggle"
+  tabindex="0"
+  role="button"
+  (click)="ToggleBillingExpanded()"
+  (keydown.enter)="ToggleBillingExpanded()"
+  (keydown.space)="ToggleBillingExpanded(); $event.preventDefault()"
+>
+  <h3>Billing details</h3>
+  <img
+    src="assets/icons/chevron_down.svg"
+    class="collapsible-down-icon"
+    [class.expanded]="billingExpanded()"
+    alt=""
+  />
+</div>
+
+@if (billingExpanded()) { @if (billingAddress.visible()) {
+<div class="field">
+  <div class="field-top">
+    <div class="field-title">Address</div>
+    <div
+      class="remove-link"
+      role="button"
+      tabindex="0"
+      (click)="RemoveBillingAddress()"
+      (keydown.enter)="RemoveBillingAddress()"
+      (keydown.space)="RemoveBillingAddress(); $event.preventDefault()"
+    >
+      <span>Remove</span>
+      <img src="assets/icons/close.svg" class="icon" alt="" />
+    </div>
+  </div>
+
+  <div class="field">
+    <select
+      [ngModel]="billingAddress.country()"
+      (ngModelChange)="OnBillingCountryChange($event)"
+    >
+      <option value="" disabled>Select country</option>
+      @for (iso of ISO_CODES; track iso.code) {
+      <option [value]="iso.code">{{ iso.emoji }} {{ iso.country }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="field">
+    <input
+      [ngModel]="billingAddress.line1()"
+      (ngModelChange)="OnBillingLine1Change($event)"
+      type="text"
+      placeholder="Street address"
+    />
+  </div>
+
+  <div class="field">
+    <input
+      [ngModel]="billingAddress.line2()"
+      (ngModelChange)="OnBillingLine2Change($event)"
+      type="text"
+      placeholder="Apartment, unit, or other"
+    />
+  </div>
+
+  <div class="field">
+    <input
+      [ngModel]="billingAddress.city()"
+      (ngModelChange)="OnBillingCityChange($event)"
+      type="text"
+      placeholder="Town or city"
+    />
+  </div>
+
+  <div class="field">
+    <input
+      [ngModel]="billingAddress.postalCode()"
+      (ngModelChange)="OnBillingPostalCodeChange($event)"
+      type="text"
+      placeholder="Postal code"
+    />
+  </div>
+
+  <div class="field">
+    <input
+      [ngModel]="billingAddress.state()"
+      (ngModelChange)="OnBillingStateChange($event)"
+      type="text"
+      placeholder="State / Province"
+    />
+  </div>
+</div>
+} @else {
+<div class="field">
+  <div
+    class="flex align-vert gap-extra-small dimmed-hover"
+    tabindex="0"
+    role="button"
+    (click)="AddBillingAddress()"
+    (keydown.enter)="AddBillingAddress()"
+    (keydown.space)="AddBillingAddress(); $event.preventDefault()"
+  >
+    <img src="assets/icons/add.svg" class="icon" alt="" />
+    <span class="uline">Add address</span>
+  </div>
+</div>
+}
+
+<div class="field">
+  <div class="field-title">Phone number</div>
+  <div class="phone-input-wrapper">
+    <select
+      class="phone-country-select"
+      [ngModel]="billingPhone.countryCode()"
+      (ngModelChange)="OnBillingPhoneCountryChange($event)"
+    >
+      @for (country of ISO_CODES; track country.code) {
+      <option [value]="country.code">
+        {{ country.emoji }} {{ country.dialCode }}
+      </option>
+      }
+    </select>
+    <input
+      [ngModel]="billingPhone.number()"
+      (ngModelChange)="OnBillingPhoneNumberChange($event)"
+      class="phone-number-input"
+      type="tel"
+      [placeholder]="GetPhonePlaceholder(billingPhone)"
+      [class.field-error]="showErrors && billingPhone.error()"
+    />
+  </div>
+  @if (showErrors && billingPhone.error()) {
+  <div class="error">{{ billingPhone.error() }}</div>
+  }
+</div>
+}
+
+<div class="line"></div>
+
+<h3>Shipping details</h3>
+
+<div class="field">
+  <label class="custom-checkbox field-check">
+    <input
+      type="checkbox"
+      [checked]="shippingSameAsBilling()"
+      (change)="OnShippingSameAsBillingChange($any($event.target).checked)"
+    />
+    <span class="checkmark"></span>
+    <div>Same as billing details</div>
+  </label>
+</div>
+
+@if (!shippingSameAsBilling()) {
+<div class="field">
+  <div class="field-title">Name</div>
+  <div class="field-value">
+    <input
+      [ngModel]="shippingName()"
+      (ngModelChange)="OnShippingNameChange($event)"
+      type="text"
+      placeholder="Jenny Rosen"
+      [maxlength]="NAME_MAX_LENGTH"
+      [class.field-error]="showErrors && shippingNameError()"
+    />
+  </div>
+  @if (showErrors && shippingNameError()) {
+  <div class="error">{{ shippingNameError() }}</div>
+  }
+</div>
+
+@if (shippingAddress.visible()) {
+<div class="field">
+  <div class="field-top">
+    <div class="field-title">Address</div>
+    <div
+      class="remove-link"
+      role="button"
+      tabindex="0"
+      (click)="RemoveShippingAddress()"
+      (keydown.enter)="RemoveShippingAddress()"
+      (keydown.space)="RemoveShippingAddress(); $event.preventDefault()"
+    >
+      <span>Remove</span>
+      <img src="assets/icons/close.svg" class="icon" alt="" />
+    </div>
+  </div>
+
+  <div class="field">
+    <select
+      [ngModel]="shippingAddress.country()"
+      (ngModelChange)="OnShippingCountryChange($event)"
+    >
+      <option value="" disabled>Select country</option>
+      @for (iso of ISO_CODES; track iso.code) {
+      <option [value]="iso.code">{{ iso.emoji }} {{ iso.country }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="field">
+    <input
+      [ngModel]="shippingAddress.line1()"
+      (ngModelChange)="OnShippingLine1Change($event)"
+      type="text"
+      placeholder="Street address"
+    />
+  </div>
+
+  <div class="field">
+    <input
+      [ngModel]="shippingAddress.line2()"
+      (ngModelChange)="OnShippingLine2Change($event)"
+      type="text"
+      placeholder="Apartment, unit, or other"
+    />
+  </div>
+
+  <div class="field">
+    <input
+      [ngModel]="shippingAddress.city()"
+      (ngModelChange)="OnShippingCityChange($event)"
+      type="text"
+      placeholder="Town or city"
+    />
+  </div>
+
+  <div class="field">
+    <input
+      [ngModel]="shippingAddress.postalCode()"
+      (ngModelChange)="OnShippingPostalCodeChange($event)"
+      type="text"
+      placeholder="Postal code"
+    />
+  </div>
+
+  <div class="field">
+    <input
+      [ngModel]="shippingAddress.state()"
+      (ngModelChange)="OnShippingStateChange($event)"
+      type="text"
+      placeholder="State / Province"
+    />
+  </div>
+</div>
+} @else {
+<div class="field">
+  <div
+    class="flex align-vert gap-extra-small dimmed-hover"
+    tabindex="0"
+    role="button"
+    (click)="AddShippingAddress()"
+    (keydown.enter)="AddShippingAddress()"
+    (keydown.space)="AddShippingAddress(); $event.preventDefault()"
+  >
+    <img src="assets/icons/add.svg" class="icon" alt="" />
+    <span class="uline">Add address</span>
+  </div>
+</div>
+}
+
+<div class="field">
+  <div class="field-title">Phone number</div>
+  <div class="phone-input-wrapper">
+    <select
+      class="phone-country-select"
+      [ngModel]="shippingPhone.countryCode()"
+      (ngModelChange)="OnShippingPhoneCountryChange($event)"
+    >
+      @for (country of ISO_CODES; track country.code) {
+      <option [value]="country.code">
+        {{ country.emoji }} {{ country.dialCode }}
+      </option>
+      }
+    </select>
+    <input
+      [ngModel]="shippingPhone.number()"
+      (ngModelChange)="OnShippingPhoneNumberChange($event)"
+      class="phone-number-input"
+      type="tel"
+      [placeholder]="GetPhonePlaceholder(shippingPhone)"
+      [class.field-error]="showErrors && shippingPhone.error()"
+    />
+  </div>
+  @if (showErrors && shippingPhone.error()) {
+  <div class="error">{{ shippingPhone.error() }}</div>
+  }
+</div>
+}
+
+<div class="line"></div>
+
+<div class="field">
+  <div class="field-title">Language</div>
+  <div class="field-value">
+    <select
+      [ngModel]="preferredLocale()"
+      (ngModelChange)="OnPreferredLocaleChange($event)"
+    >
+      <option value="">Select a language...</option>
+      @for (locale of PREFERRED_LOCALES; track locale.value) {
+      <option [value]="locale.value">{{ locale.label }}</option>
+      }
+    </select>
+  </div>
+</div>
+
+<div class="field">
+  <div class="field-title">Tax status</div>
+  <p class="field-help">
+    Choose the tax exemption status that best fits this customer.
+  </p>
+  <div class="field-value">
+    <select [ngModel]="taxExempt()" (ngModelChange)="OnTaxExemptChange($event)">
+      @for (option of TAX_EXEMPT_OPTIONS; track option.value) {
+      <option [value]="option.value">{{ option.label }}</option>
+      }
+    </select>
+  </div>
+</div>
+
+@if (mode === 'create') {
+<div class="field">
+  <div class="field-title">Tax ID</div>
+  <p class="field-help">
+    Tax IDs collected here are stored on the customer for invoicing.
+  </p>
+  @for (taxId of taxIds(); track $index; let index = $index) {
+  <div class="field-value field-double tax-id-row">
+    <select
+      [ngModel]="taxId.type"
+      (ngModelChange)="OnTaxIdTypeChange(index, $event)"
+    >
+      <option value="">ID type</option>
+      @for (type of TAX_ID_TYPES; track type.value) {
+      <option [value]="type.value">{{ type.label }}</option>
+      }
+    </select>
+    <input
+      [ngModel]="taxId.value"
+      (ngModelChange)="OnTaxIdValueChange(index, $event)"
+      type="text"
+      placeholder="Value"
+    />
+    <img
+      src="assets/icons/close.svg"
+      alt="Remove tax ID"
+      class="icon large-icon dimmed-hover"
+      tabindex="0"
+      role="button"
+      (click)="RemoveTaxId(index)"
+      (keydown.enter)="RemoveTaxId(index)"
+      (keydown.space)="RemoveTaxId(index); $event.preventDefault()"
+    />
+  </div>
+  } @if (showErrors && taxIdsError()) {
+  <div class="error">{{ taxIdsError() }}</div>
+  }
+  <div
+    class="flex align-vert gap-extra-small dimmed-hover"
+    tabindex="0"
+    role="button"
+    (click)="AddTaxId()"
+    (keydown.enter)="AddTaxId()"
+    (keydown.space)="AddTaxId(); $event.preventDefault()"
+  >
+    <img src="assets/icons/add.svg" class="icon" alt="" />
+    <span class="uline">Add another ID</span>
+  </div>
+</div>
+}
+
+<div class="line"></div>
+
+<div
+  class="collapsible-toggle"
+  tabindex="0"
+  role="button"
+  (click)="ToggleMoreOptionsExpanded()"
+  (keydown.enter)="ToggleMoreOptionsExpanded()"
+  (keydown.space)="ToggleMoreOptionsExpanded(); $event.preventDefault()"
+>
+  <span class="collapsible-text">More options</span>
+  <img
+    src="assets/icons/chevron_down.svg"
+    class="collapsible-down-icon"
+    [class.expanded]="moreOptionsExpanded()"
+    alt=""
+  />
+</div>
+
+@if (moreOptionsExpanded()) {
 <div class="field">
   <div class="field-title">Metadata</div>
   <p class="field-help">Store additional, structured information.</p>
@@ -41,3 +498,4 @@
     (formChange)="OnMetadataChange($event)"
   ></app-metadata-editor>
 </div>
+}

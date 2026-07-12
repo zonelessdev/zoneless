@@ -3,7 +3,7 @@
   [isOpen]="actions.panelOpen()"
   [title]="GetPanelTitle()"
   [loading]="actions.panelLoading()"
-  submitLabel="Save"
+  [submitLabel]="actions.panelMode() === 'create' ? 'Create' : 'Save'"
   [submitDisabled]="false"
   (closed)="actions.ClosePanel()"
   (submitted)="OnSubmit()"
