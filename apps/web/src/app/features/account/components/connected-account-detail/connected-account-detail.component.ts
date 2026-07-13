@@ -7,11 +7,7 @@ import {
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 
-import {
-  Account,
-  Person,
-  GetConnectedAccountStatus,
-} from '@zoneless/shared-types';
+import { Account, Person } from '@zoneless/shared-types';
 import { StatusChipComponent } from '../../../../shared';
 import { AccountService } from '../../../../data/services/account.service';
 import { GetCountryName } from '../../../../utils';
@@ -64,7 +60,7 @@ export class ConnectedAccountDetailComponent {
   }
 
   GetStatus(): string {
-    return GetConnectedAccountStatus(this.account);
+    return this.account.payouts_enabled ? 'enabled' : 'restricted';
   }
 
   GetCountry(): string {
