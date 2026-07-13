@@ -7,6 +7,7 @@ import {
   signal,
   WritableSignal,
 } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import {
   LineChartComponent,
@@ -22,7 +23,7 @@ import {
 } from '../../../../shared';
 import { TransactionListComponent } from '../../components';
 import type { PaginatedListColumn } from '../../../../shared';
-import { ReportingService } from '../../../../data';
+import { BalanceService, ReportingService } from '../../../../data';
 import { MetaService, StorageService } from '../../../../core';
 import type { MetricCompare, MetricInterval } from '@zoneless/shared-types';
 
@@ -41,6 +42,7 @@ const DEFAULT_PRESET: DateRangePresetId = 'last_7_days';
 @Component({
   selector: 'app-full-home',
   imports: [
+    DecimalPipe,
     RouterLink,
     TransactionListComponent,
     LineChartComponent,
@@ -52,9 +54,17 @@ const DEFAULT_PRESET: DateRangePresetId = 'last_7_days';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FullHomeComponent implements OnInit {
+  private readonly balanceService = inject(BalanceService);
   private readonly reportingService = inject(ReportingService);
   private readonly metaService = inject(MetaService);
   private readonly storage = inject(StorageService);
+
+  readonly availableBalance = computed(
+    () => this.balanceService.GetAvailableBalance('usdc') / 100
+  );
+  readonly pendingBalance = computed(
+    () => this.balanceService.GetPendingBalance('usdc') / 100
+  );
 
   readonly dateRange: WritableSignal<DateRangeValue>;
   readonly interval: WritableSignal<MetricInterval>;

@@ -36,6 +36,32 @@
         }
       </div>
     </div>
+
+    <div class="today-secondary">
+      <div class="summary-card">
+        <div class="summary-card-header">
+          <div class="summary-card-label">Available now</div>
+          <a class="text-link" routerLink="/account/balance">View</a>
+        </div>
+        <div class="summary-value">
+          ${{ availableBalance() | number : '1.2-2' }}
+        </div>
+        @if (pendingBalance() > 0) {
+        <div class="summary-card-sub">
+          Pending ${{ pendingBalance() | number : '1.2-2' }}
+        </div>
+        }
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-header">
+          <div class="summary-card-label">Available to pay out</div>
+          <a class="text-link" routerLink="/account/balance">View</a>
+        </div>
+        <div class="summary-value">
+          ${{ availableBalance() | number : '1.2-2' }}
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
