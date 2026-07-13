@@ -19,7 +19,11 @@ import { ConnectedAccountDetailComponent } from '../components';
 
 import { AccountService } from '../../../data';
 
-import type { Account } from '@zoneless/shared-types';
+import type { Account, ConnectedAccountStatus } from '@zoneless/shared-types';
+import { GetConnectedAccountStatus } from '@zoneless/shared-types';
+import { GetCountryName } from '../../../utils';
+
+type AccountsStatusTab = 'all' | ConnectedAccountStatus;
 
 @Component({
   selector: 'app-connected-accounts',
@@ -37,44 +41,67 @@ export class ConnectedAccountsComponent implements OnInit {
   readonly accountService = inject(AccountService);
   private readonly metaService = inject(MetaService);
 
-  // Connected Account detail panel state (platform only)
   connectedAccountPanelOpen: WritableSignal<boolean> = signal(false);
+  accountsStatusTab: WritableSignal<AccountsStatusTab> = signal('all');
+  accountsQueryParams: WritableSignal<Record<string, string>> = signal({});
 
-  // Connected accounts columns (platform only)
   connectedAccountColumns: PaginatedListColumn[] = [
     {
-      header: 'Account',
+      header: 'Account name',
       field: 'id',
       type: 'text',
-      formatter: (item: unknown) => {
-        const account = item as Account;
-        const individual = account.individual;
-        if (individual?.first_name || individual?.last_name) {
-          return [individual.first_name, individual.last_name]
-            .filter(Boolean)
-            .join(' ');
-        }
-        return account.email ?? account.id;
-      },
+      bolded: true,
+      formatter: (item: unknown) =>
+        this.accountService.GetConnectedAccountDisplayName(item as Account),
     },
     {
       header: 'Account country',
       field: 'country',
       type: 'text',
+      dimmed: true,
+      formatter: (item: unknown) => {
+        const account = item as Account;
+        if (!account.country) return '—';
+        return GetCountryName(account.country) || account.country;
+      },
     },
     {
       header: 'Account status',
-      field: 'payouts_enabled',
+      field: 'status',
       type: 'status',
-      formatter: (item: unknown) => {
-        const account = item as Account;
-        return account.payouts_enabled ? 'enabled' : 'restricted';
-      },
+      formatter: (item: unknown) => GetConnectedAccountStatus(item as Account),
     },
     {
       header: 'Connected on',
       field: 'created',
       type: 'date',
+      dimmed: true,
+      dateFormat: 'd MMM y',
+    },
+    {
+      header: 'Payment balance (USDC)',
+      field: 'payment_balance',
+      type: 'text',
+      dimmed: true,
+      formatter: () => '—',
+    },
+    {
+      header: 'Volume (USDC)',
+      field: 'volume',
+      type: 'text',
+      dimmed: true,
+      formatter: () => '—',
+    },
+    {
+      header: '',
+      field: '',
+      type: 'actions',
+      actions: [
+        {
+          title: 'Copy account ID',
+          action: (item: Account) => this.CopyAccountId(item),
+        },
+      ],
     },
   ];
 
@@ -82,7 +109,15 @@ export class ConnectedAccountsComponent implements OnInit {
     this.metaService.SetMetaTitle('Connected Accounts');
   }
 
-  // Connected Accounts Methods (Platform Only)
+  SetAccountsStatusTab(tab: AccountsStatusTab): void {
+    this.accountsStatusTab.set(tab);
+    this.SyncAccountsQueryParams();
+  }
+
+  OnCreateClick(): void {
+    // Placeholder — account creation flow not yet implemented
+  }
+
   async OnConnectedAccountClick(item: unknown): Promise<void> {
     const account = item as Account;
     this.connectedAccountPanelOpen.set(true);
@@ -103,5 +138,18 @@ export class ConnectedAccountsComponent implements OnInit {
     const account = this.accountService.selectedConnectedAccount();
     if (!account) return 'Account details';
     return this.accountService.GetConnectedAccountDisplayName(account);
+  }
+
+  private SyncAccountsQueryParams(): void {
+    const tab = this.accountsStatusTab();
+    if (tab === 'all') {
+      this.accountsQueryParams.set({});
+      return;
+    }
+    this.accountsQueryParams.set({ status: tab });
+  }
+
+  private CopyAccountId(account: Account): void {
+    void navigator.clipboard.writeText(account.id);
   }
 }

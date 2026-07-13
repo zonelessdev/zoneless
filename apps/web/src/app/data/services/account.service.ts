@@ -136,15 +136,22 @@ export class AccountService {
 
   /**
    * Get the display name for an account.
-   * Returns the person's full name if available, otherwise the email.
+   * Prefers business name, then person's name, then email.
    */
   GetConnectedAccountDisplayName(account: Account): string {
+    const businessName = account.business_profile?.name?.trim();
+    if (businessName) return businessName;
+
+    const displayName = account.settings?.dashboard?.display_name?.trim();
+    if (displayName) return displayName;
+
     const individual = account.individual;
     if (individual?.first_name || individual?.last_name) {
       return [individual.first_name, individual.last_name]
         .filter(Boolean)
         .join(' ');
     }
-    return account.email ?? account.id;
+
+    return account.email ?? individual?.email ?? account.id;
   }
 }

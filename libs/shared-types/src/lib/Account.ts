@@ -127,6 +127,13 @@ export interface Account {
    * @zoneless_extension
    */
   managed?: AccountManaged | null;
+
+  /**
+   * Derived dashboard status for Connect account list filtering.
+   * Kept in sync whenever account capabilities or requirements change.
+   * @zoneless_extension
+   */
+  status?: ConnectedAccountStatus;
 }
 
 /**
@@ -557,4 +564,56 @@ export interface AccountDeletedResponse {
   id: string;
   object: 'account';
   deleted: true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Connected Account Status (Dashboard)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Account statuses shown in the Connected accounts dashboard, matching Stripe.
+ * @see https://docs.stripe.com/connect/dashboard
+ */
+export type ConnectedAccountStatus =
+  | 'enabled'
+  | 'restricted'
+  | 'restricted_soon'
+  | 'in_review'
+  | 'rejected';
+
+/**
+ * Derive the dashboard status badge for a connected account from its
+ * capabilities and requirements — same rules Stripe uses in Connect.
+ */
+export function GetConnectedAccountStatus(
+  account: Pick<Account, 'payouts_enabled' | 'requirements'>
+): ConnectedAccountStatus {
+  const requirements = account.requirements;
+  const disabledReason = requirements?.disabled_reason;
+
+  if (disabledReason?.startsWith('rejected.')) {
+    return 'rejected';
+  }
+
+  if (
+    disabledReason === 'under_review' ||
+    disabledReason === 'listed' ||
+    (requirements?.pending_verification?.length ?? 0) > 0
+  ) {
+    return 'in_review';
+  }
+
+  const isEnabled = account.payouts_enabled;
+  const hasCurrentlyDue = (requirements?.currently_due?.length ?? 0) > 0;
+  const hasDeadline = requirements?.current_deadline != null;
+
+  if (isEnabled && hasCurrentlyDue && hasDeadline) {
+    return 'restricted_soon';
+  }
+
+  if (!isEnabled) {
+    return 'restricted';
+  }
+
+  return 'enabled';
 }

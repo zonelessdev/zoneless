@@ -52,7 +52,8 @@
           </span>
           } @case ('date') {
           <span>{{
-            GetItemDate(item, column.field) | date : 'MMM d, h:mm a'
+            GetItemDate(item, column.field)
+              | date : column.dateFormat || 'MMM d, h:mm a'
           }}</span>
           } @case ('status') {
           <app-status-chip

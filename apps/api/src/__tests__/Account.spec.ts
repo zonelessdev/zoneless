@@ -1,6 +1,6 @@
 import { AccountModule } from '../modules/Account';
 import { Database } from '../modules/Database';
-import { Account } from '@zoneless/shared-types';
+import { Account, GetConnectedAccountStatus } from '@zoneless/shared-types';
 import {
   CreateMockDatabase,
   DeterministicId,
@@ -35,6 +35,63 @@ describe('AccountModule', () => {
   });
 
   // -----------------------------------------------------------------------
+  // GetConnectedAccountStatus
+  // -----------------------------------------------------------------------
+  describe('GetConnectedAccountStatus', () => {
+    it('should return restricted when payouts are disabled', () => {
+      expect(
+        GetConnectedAccountStatus({
+          payouts_enabled: false,
+          requirements: null,
+        })
+      ).toBe('restricted');
+    });
+
+    it('should return enabled when payouts are enabled', () => {
+      expect(
+        GetConnectedAccountStatus({
+          payouts_enabled: true,
+          requirements: null,
+        })
+      ).toBe('enabled');
+    });
+
+    it('should return rejected when disabled_reason is a rejection', () => {
+      expect(
+        GetConnectedAccountStatus({
+          payouts_enabled: false,
+          requirements: {
+            disabled_reason: 'rejected.fraud',
+          },
+        })
+      ).toBe('rejected');
+    });
+
+    it('should return in_review when pending verification', () => {
+      expect(
+        GetConnectedAccountStatus({
+          payouts_enabled: false,
+          requirements: {
+            pending_verification: ['individual.verification.document'],
+          },
+        })
+      ).toBe('in_review');
+    });
+
+    it('should return restricted_soon when enabled with due requirements', () => {
+      expect(
+        GetConnectedAccountStatus({
+          payouts_enabled: true,
+          requirements: {
+            currently_due: ['individual.id_number'],
+            current_deadline: GetFixedTimestamp() + 86400,
+          },
+        })
+      ).toBe('restricted_soon');
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // CreateAccountObject
   // -----------------------------------------------------------------------
   describe('CreateAccountObject', () => {
@@ -52,6 +109,7 @@ describe('AccountModule', () => {
         payouts_enabled: false,
         details_submitted: false,
         metadata: {},
+        status: 'restricted',
       });
       expect(account.id).toMatch(/^acct_z_test/);
       expect(account.created).toBe(GetFixedTimestamp());
@@ -257,6 +315,7 @@ describe('AccountModule', () => {
           user_agent: 'TestAgent',
           service_agreement: 'full',
         },
+        status: 'restricted',
       });
     });
   });
@@ -274,6 +333,7 @@ describe('AccountModule', () => {
 
       expect(mockDb.Update).toHaveBeenCalledWith('Accounts', 'acct_z_1', {
         details_submitted: true,
+        status: 'restricted',
       });
     });
   });
@@ -296,6 +356,7 @@ describe('AccountModule', () => {
           transfers: 'active',
           usdc_payouts: 'active',
         },
+        status: 'enabled',
       });
     });
   });
@@ -327,6 +388,7 @@ describe('AccountModule', () => {
         expect.objectContaining({
           charges_enabled: false,
           payouts_enabled: false,
+          status: 'rejected',
         })
       );
     });

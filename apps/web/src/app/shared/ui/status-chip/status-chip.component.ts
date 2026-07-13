@@ -37,17 +37,20 @@ const STATUS_CHIP_MAP: Record<string, ChipType> = {
   overdue: 'red',
   error: 'red',
   restricted: 'red',
+  rejected: 'red',
   highest: 'red',
 
   // Blue - Info states
   draft: 'blue',
   working: 'blue',
   in_transit: 'blue',
+  in_review: 'blue',
   default: 'blue',
 
   // Orange - Warning states
   disputed: 'orange',
   requires_action: 'orange',
+  restricted_soon: 'orange',
 
   // Grey - Neutral states
   refunded: 'grey',

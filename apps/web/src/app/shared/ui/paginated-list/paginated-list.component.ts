@@ -50,6 +50,8 @@ export interface PaginatedListColumn {
   imageField?: string;
   /** Fallback icon to display if the image field is not found */
   placeholderIcon?: string;
+  /** Optional date format for date type (Angular DatePipe format) */
+  dateFormat?: string;
   /** Optional actions to display in the row */
   actions?: PopupMenuAction[];
 }

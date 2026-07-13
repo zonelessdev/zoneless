@@ -1,18 +1,95 @@
-<div class="view-section">
-  <div class="header-wrapper">
-    <h1>Connected Accounts</h1>
-  </div>
-  <p class="section-description">Manage connected accounts on your platform.</p>
+<div class="header-wrapper">
+  <h1>Connected Accounts</h1>
+  <button
+    type="button"
+    class="action-button action-button-dainty"
+    (click)="OnCreateClick()"
+  >
+    <img class="button-icon" src="assets/icons/add.svg" alt="" />
+    <span>Create</span>
+  </button>
 </div>
 
-<div class="view-section">
-  <app-paginated-list
-    endpoint="accounts"
-    [columns]="connectedAccountColumns"
-    [limit]="10"
-    (rowClick)="OnConnectedAccountClick($event)"
-  ></app-paginated-list>
+<div class="field">
+  <div class="field-pill">
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="accountsStatusTab() === 'all'"
+      (click)="SetAccountsStatusTab('all')"
+      (keydown.enter)="SetAccountsStatusTab('all')"
+      (keydown.space)="SetAccountsStatusTab('all')"
+    >
+      <span>All</span>
+    </div>
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="accountsStatusTab() === 'restricted'"
+      (click)="SetAccountsStatusTab('restricted')"
+      (keydown.enter)="SetAccountsStatusTab('restricted')"
+      (keydown.space)="SetAccountsStatusTab('restricted')"
+    >
+      <span>Restricted</span>
+    </div>
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="
+        accountsStatusTab() === 'restricted_soon'
+      "
+      (click)="SetAccountsStatusTab('restricted_soon')"
+      (keydown.enter)="SetAccountsStatusTab('restricted_soon')"
+      (keydown.space)="SetAccountsStatusTab('restricted_soon')"
+    >
+      <span>Restricted soon</span>
+    </div>
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="accountsStatusTab() === 'in_review'"
+      (click)="SetAccountsStatusTab('in_review')"
+      (keydown.enter)="SetAccountsStatusTab('in_review')"
+      (keydown.space)="SetAccountsStatusTab('in_review')"
+    >
+      <span>In review</span>
+    </div>
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="accountsStatusTab() === 'rejected'"
+      (click)="SetAccountsStatusTab('rejected')"
+      (keydown.enter)="SetAccountsStatusTab('rejected')"
+      (keydown.space)="SetAccountsStatusTab('rejected')"
+    >
+      <span>Rejected</span>
+    </div>
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="accountsStatusTab() === 'enabled'"
+      (click)="SetAccountsStatusTab('enabled')"
+      (keydown.enter)="SetAccountsStatusTab('enabled')"
+      (keydown.space)="SetAccountsStatusTab('enabled')"
+    >
+      <span>Enabled</span>
+    </div>
+  </div>
 </div>
+
+<app-paginated-list
+  endpoint="accounts"
+  [columns]="connectedAccountColumns"
+  [limit]="20"
+  [queryParams]="accountsQueryParams()"
+  (rowClick)="OnConnectedAccountClick($event)"
+></app-paginated-list>
 
 <!-- Connected Account Detail Slide Panel (Platform Only) -->
 <app-slide-panel
