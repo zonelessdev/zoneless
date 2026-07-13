@@ -23,7 +23,6 @@ import {
   CreateAccountSchema,
   UpdateAccountSchema,
   RejectAccountSchema,
-  ListAccountsFiltersInput,
 } from '@zoneless/shared-schemas';
 
 import { Account as AccountType } from '@zoneless/shared-types';
@@ -153,16 +152,12 @@ router.get(
     const startingAfter = req.query.starting_after as string | undefined;
     const endingBefore = req.query.ending_before as string | undefined;
     const created = ParseCreatedFilter(req.query as Record<string, unknown>);
-    const status = req.query.status as
-      | ListAccountsFiltersInput['status']
-      | undefined;
 
     Logger.info('Listing accounts', {
       platformAccountId,
       limit,
       startingAfter,
       endingBefore,
-      status,
     });
 
     try {
@@ -171,7 +166,6 @@ router.get(
         startingAfter,
         endingBefore,
         created,
-        status,
       });
 
       result.data = await Promise.all(

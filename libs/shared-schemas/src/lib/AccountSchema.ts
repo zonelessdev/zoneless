@@ -218,14 +218,6 @@ export type RejectAccountInput = z.infer<typeof RejectAccountSchema>;
 // List Accounts Schema (SDK-specific, not from API)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ConnectedAccountStatusSchema = z.enum([
-  'enabled',
-  'restricted',
-  'restricted_soon',
-  'in_review',
-  'rejected',
-]);
-
 export const ListAccountsSchema = z
   .object({
     limit: z.number().int().min(1).max(100),
@@ -239,15 +231,7 @@ export const ListAccountsSchema = z
         lte: z.number().int(),
       })
       .partial(),
-    status: ConnectedAccountStatusSchema,
   })
   .partial();
 
 export type ListAccountsInput = z.infer<typeof ListAccountsSchema>;
-
-export const ListAccountsFiltersSchema = z.object({
-  status: ConnectedAccountStatusSchema.optional(),
-});
-export type ListAccountsFiltersInput = z.infer<
-  typeof ListAccountsFiltersSchema
->;

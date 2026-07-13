@@ -19,11 +19,8 @@ import { ConnectedAccountDetailComponent } from '../components';
 
 import { AccountService } from '../../../data';
 
-import type { Account, ConnectedAccountStatus } from '@zoneless/shared-types';
-import { GetConnectedAccountStatus } from '@zoneless/shared-types';
+import type { Account } from '@zoneless/shared-types';
 import { GetCountryName } from '../../../utils';
-
-type AccountsStatusTab = 'all' | ConnectedAccountStatus;
 
 @Component({
   selector: 'app-connected-accounts',
@@ -42,8 +39,6 @@ export class ConnectedAccountsComponent implements OnInit {
   private readonly metaService = inject(MetaService);
 
   connectedAccountPanelOpen: WritableSignal<boolean> = signal(false);
-  accountsStatusTab: WritableSignal<AccountsStatusTab> = signal('all');
-  accountsQueryParams: WritableSignal<Record<string, string>> = signal({});
 
   connectedAccountColumns: PaginatedListColumn[] = [
     {
@@ -67,9 +62,12 @@ export class ConnectedAccountsComponent implements OnInit {
     },
     {
       header: 'Account status',
-      field: 'status',
+      field: 'payouts_enabled',
       type: 'status',
-      formatter: (item: unknown) => GetConnectedAccountStatus(item as Account),
+      formatter: (item: unknown) => {
+        const account = item as Account;
+        return account.payouts_enabled ? 'enabled' : 'restricted';
+      },
     },
     {
       header: 'Connected on',
@@ -109,11 +107,6 @@ export class ConnectedAccountsComponent implements OnInit {
     this.metaService.SetMetaTitle('Connected Accounts');
   }
 
-  SetAccountsStatusTab(tab: AccountsStatusTab): void {
-    this.accountsStatusTab.set(tab);
-    this.SyncAccountsQueryParams();
-  }
-
   OnCreateClick(): void {
     // Placeholder — account creation flow not yet implemented
   }
@@ -138,15 +131,6 @@ export class ConnectedAccountsComponent implements OnInit {
     const account = this.accountService.selectedConnectedAccount();
     if (!account) return 'Account details';
     return this.accountService.GetConnectedAccountDisplayName(account);
-  }
-
-  private SyncAccountsQueryParams(): void {
-    const tab = this.accountsStatusTab();
-    if (tab === 'all') {
-      this.accountsQueryParams.set({});
-      return;
-    }
-    this.accountsQueryParams.set({ status: tab });
   }
 
   private CopyAccountId(account: Account): void {
