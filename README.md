@@ -1,18 +1,17 @@
 <p align="center">
   <a href="https://zoneless.com">
-    <img src="https://zoneless.com/assets/images/screenshots/og.png" alt="Zoneless — The open-source Stripe Connect alternative" width="800" />
+    <img src="https://zoneless.com/assets/images/screenshots/og.png" alt="Zoneless — The open-source Stripe, built on stablecoins" width="800" />
   </a>
 </p>
 
 <h1 align="center">Zoneless</h1>
 
 <p align="center">
-  <strong>The open-source Stripe Connect alternative.<br>Pay marketplace sellers globally with USDC. ~$0.002 fees. Instant payouts. Self-hosted.</strong>
+  <strong>The open-source Stripe alternative, built on stablecoins.<br>Payments infrastructure you actually own. Same API and dashboard you already know, minus the fees.</strong>
 </p>
 
 <p align="center">
   <a href="https://zoneless.com/docs">Docs</a> &middot;
-  <a href="https://zoneless.com/#live-demo">Live Demo</a> &middot;
   <a href="https://zoneless.com">Website</a> &middot;
   <a href="https://discord.gg/mdMQJug9mG">Discord</a>
 </p>
@@ -24,62 +23,43 @@
 
 ---
 
-Zoneless is a free, open-source drop-in replacement for the **payout part of Stripe Connect**. It lets you pay marketplace sellers globally with stablecoins (USDC) using an API identical to Stripe — at near-zero cost.
+Zoneless is a free, open-source payments platform with a **one-to-one mapping of Stripe's API, objects, and dashboard** — except every payment settles in USDC, moving wallet to wallet with no banks in between.
 
-If you know Stripe, you already know how to use Zoneless. Same webhooks, same object shapes, same SDK patterns. Just swap `stripe` for `@zoneless/node` and you're live.
-
-## Battle-tested in production
-
-Zoneless powers payouts on [PromptBase](https://promptbase.com), an AI marketplace with **450,000+ users**. At the peak, PromptBase was burning **$9,400/month** in opaque Stripe Connect fees for seller payouts. After switching to Zoneless:
+If you know Stripe, you already know Zoneless. Same webhooks, same object shapes, same SDK patterns. Swap `stripe` for `@zoneless/node`, point it at your instance, and your integration keeps working.
 
 <table>
   <tr>
-    <td align="center"><strong>~$0.002</strong><br><sub>avg. payout cost</sub></td>
-    <td align="center"><strong>1,400+</strong><br><sub>payouts completed</sub></td>
-    <td align="center"><strong>73%</strong><br><sub>of sellers chose Zoneless over Stripe</sub></td>
-    <td align="center"><strong>2,200+</strong><br><sub>sellers onboarded</sub></td>
+    <td align="center"><strong>~$0.002</strong><br><sub>network cost per payment</sub></td>
+    <td align="center"><strong>Seconds</strong><br><sub>to settle, 24/7/365</sub></td>
+    <td align="center"><strong>220+</strong><br><sub>countries &amp; regions</sub></td>
+    <td align="center"><strong>450k+</strong><br><sub>users on platforms running Zoneless</sub></td>
   </tr>
 </table>
 
-<sub>Based on 2,500 fully-onboarded sellers given the choice of Stripe or Zoneless payouts, Dec 2025 – Apr 2026.</sub>
+## Your own full payments stack
 
-> _"Our payout costs dropped significantly, sellers get paid faster, and we can onboard more countries — which has helped grow the buyer side too. A big worry was that sellers would be confused and hate USDC, but they actually love it."_
->
-> — **Ben Stokes**, Founder of [PromptBase](https://promptbase.com)
+- **Dashboard** — Payments, customers, products, and balances in one place. If you know the Stripe dashboard, you know this one.
+- **Checkout** — A hosted payment page your customers pay from in seconds. One redirect to integrate, guided wallet flow built in.
+- **Connect** — Pay sellers and partners worldwide in seconds, for fractions of a cent. Each seller gets their own Express dashboard to track earnings and payouts.
+- **Developer Tools** — API keys, webhooks, and event logs. Everything you need to integrate, test, and debug.
 
 ## Why Zoneless?
 
-- **Near-zero fees** — Payouts cost ~$0.002 in SOL gas. No $2/month per account, no 0.25% + $0.25 per payout.
-- **Stripe-compatible API** — Same webhooks, events, object shapes, and SDK patterns. Migrate with minimal code changes.
-- **Truly global** — Pay anyone in 220+ countries & regions. No banking restrictions.
-- **Instant payouts** — USDC settles on Solana in seconds, 24/7/365. Not 2–7 business days.
+- **Keep the 2.9%** — Payments cost fractions of a cent in network fees, not a percentage cut.
+- **Stripe-compatible API** — Same webhooks, events, object shapes, and SDK patterns. Migrate in an afternoon.
+- **Instant settlement** — USDC settles on Solana in seconds, 24/7/365. Not 2–7 business days.
+- **Truly global** — Accept payments and send payouts in 220+ countries & regions. No banking restrictions.
+- **No chargebacks** — Payments are final. No disputes or fraud reversals.
+- **No frozen accounts** — No processor can hold your balance or shut you off.
+- **Self-custodial** — Your keys, your money. Funds never touch a third party.
 - **Open source** — Apache 2.0 licensed. Audit, fork, self-host. No vendor lock-in or surprise shutdowns.
-- **Self-custodial** — You hold your keys. Funds never touch a third party.
 
-## Zoneless vs Stripe Connect
+## Migrate in an afternoon
 
-|                       | Zoneless                 | Stripe Connect    |
-| --------------------- | ------------------------ | ----------------- |
-| Monthly account fee   | Free                     | $2/active account |
-| Payout fee (domestic) | ~$0.002 (SOL gas)        | 0.25% + $0.25     |
-| Payout fee (intl)     | ~$0.002 (SOL gas)        | $1.50 per payout  |
-| Cross-border fee      | None                     | +0.25–1.25%       |
-| Currency conversion   | None (USDC)              | +0.50–1% FX fee   |
-| Payout speed          | Seconds                  | 2–7 business days |
-| Global coverage       | 220+ countries & regions | ~47 countries     |
-| Source code           | Open source (Apache 2.0) | Proprietary       |
-| Self-hostable         | Yes                      | No                |
-
-## Built for
-
-- **Microtransaction marketplaces** — When payouts cost fractions of a cent, small transactions finally make sense. Digital goods, templates, prompts, and more.
-- **Global creator platforms** — Pay creators worldwide without banking restrictions. No more "sorry, we don't support your country."
-- **AI agent economies** — Programmatic payouts for AI agents and autonomous systems. Machine-to-machine commerce at scale.
-
-## Migrate in minutes
+Zoneless mirrors Stripe's API one-to-one. Swap the SDK, point it at your instance, and your integration keeps working — same event names, same payloads, same signature verification, same idempotency keys.
 
 ```typescript
-// Before — Stripe Connect
+// Before — Stripe
 // import Stripe from 'stripe';
 // const client = new Stripe('sk_live_...');
 
@@ -88,37 +68,49 @@ import { Zoneless } from '@zoneless/node';
 const client = new Zoneless('sk_z_...', 'api.example.com');
 
 // Same API you already know
-const account = await client.accounts.create({
-  type: 'express',
-  country: 'US',
-  email: 'seller@example.com',
-});
-
-// Fee: $0.002 instead of $2+
-await client.payouts.create({
-  amount: 10000,
-  currency: 'usdc',
-  destination: account.id,
+const session = await client.checkout.sessions.create({
+  mode: 'payment',
+  line_items: [
+    {
+      price: 'price_z_...',
+      quantity: 1,
+    },
+  ],
+  success_url: 'https://example.com/success',
 });
 ```
 
-## Express Dashboard
+## How the money moves
 
-Sellers get a familiar Express-style dashboard to view payouts, track earnings, and manage their account — plus guided wallet onboarding.
+Every payment settles in USDC — digital dollars worth exactly $1 — moving wallet to wallet with no banks in between.
+
+1. **Customer pays** — USDC leaves their wallet at checkout. Hosted Checkout guides first-timers through wallet setup in about a minute.
+2. **You hold the funds** — Money lands instantly in a wallet you control. No processor sits between you and your revenue.
+3. **Send money anywhere** — Payouts, refunds, or withdrawals land in seconds, anywhere in the world.
+
+## Battle-tested in production
+
+Zoneless powers payments on [PromptBase](https://promptbase.com), an AI marketplace with **450,000+ users**. At the peak, PromptBase was paying Stripe over **$9,400/month** in fees. After switching to Zoneless:
+
+<table>
+  <tr>
+    <td align="center"><strong>~$0.002</strong><br><sub>avg. payout cost</sub></td>
+    <td align="center"><strong>73%</strong><br><sub>of sellers chose Zoneless over Stripe</sub></td>
+    <td align="center"><strong>2,200+</strong><br><sub>sellers onboarded</sub></td>
+  </tr>
+</table>
+
+> _"At the peak we were paying Stripe over $9,400 a month in Connect fees. I built Zoneless to replace it — payouts now cost fractions of a cent, sellers get paid in seconds, and we onboard countries Stripe never supported."_
+>
+> — **Ben Stokes**, Founder of [PromptBase](https://promptbase.com)
+
+## Dashboard
+
+You get the full platform dashboard; connected sellers get a familiar Express-style dashboard to view payouts, track earnings, and manage their account — plus guided wallet onboarding.
 
 <p align="center">
-  <img src="https://zoneless.com/assets/images/screenshots/dashboard1.webp" alt="Zoneless Express Dashboard" width="700" />
+  <img src="https://zoneless.com/assets/images/screenshots/hero-dashboard.webp" alt="Zoneless Dashboard" width="700" />
 </p>
-
-**[Try the Live Demo →](https://zoneless.com/#live-demo)**
-
-## How sellers get paid
-
-1. **Seller connects a wallet** — During onboarding, sellers connect a Solana wallet (e.g. Phantom). Takes 30 seconds with guided instructions.
-2. **You send USDC** — Trigger payouts via the API. Funds arrive in the seller's wallet in seconds, not days.
-3. **Seller spends or off-ramps** — Sellers spend USDC directly, or convert to local currency via an exchange like Coinbase.
-
-You create and manage your own platform wallet — top it up with USDC via any exchange and you're ready to send payouts.
 
 ## Quick Start
 
@@ -130,7 +122,7 @@ docker compose up -d
 
 Open [localhost/setup](http://localhost/setup) to create your platform account and API key.
 
-See the full [Quickstart Guide](https://zoneless.com/docs/quickstart) for creating connected accounts, transfers, and payouts.
+See the full [Quickstart Guide](https://zoneless.com/docs/quickstart) for creating checkout sessions, connected accounts, transfers, and payouts.
 
 ## Documentation
 
@@ -138,7 +130,7 @@ All guides and API reference docs live at **[zoneless.com/docs](https://zoneless
 
 - [Quickstart](https://zoneless.com/docs/quickstart) — end-to-end setup in under 5 minutes
 - [Deployment](https://zoneless.com/docs/deployment) — deploy to a VPS with Docker
-- [API Reference](https://zoneless.com/docs/account-links) — Accounts, Transfers, Payouts, Webhooks, and more
+- [API Reference](https://zoneless.com/docs/account-links) — Checkout, Accounts, Transfers, Payouts, Webhooks, and more
 - [Migrate from Stripe](https://zoneless.com/docs/migrate-from-stripe) — step-by-step migration guide
 
 ## Local Development
