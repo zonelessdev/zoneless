@@ -20,6 +20,8 @@ import {
   AccountSettings,
   AccountController,
   AccountBusinessProfile,
+  GetConnectedAccountStatus,
+  QueryOperators,
 } from '@zoneless/shared-types';
 import { ValidateUpdate } from './Util';
 import {
@@ -28,6 +30,7 @@ import {
   UpdateAccountSchema,
   UpdateAccountInput,
   RejectAccountInput,
+  ListAccountsFiltersInput,
 } from '@zoneless/shared-schemas';
 
 export class AccountModule {
@@ -217,6 +220,7 @@ export class AccountModule {
       // For connected accounts: platform_account = the platform's ID
       // For platform accounts: platform_account = self (self-referential)
       platform_account: platformAccountId ?? accountId,
+      status: 'restricted',
     };
 
     return account;
@@ -326,13 +330,57 @@ export class AccountModule {
     platformAccountId: string,
     options: Omit<ListOptions, 'account' | 'filters'> & {
       created?: ListOptions['created'];
-    } = {}
+    } & ListAccountsFiltersInput = {}
   ): Promise<ListResult<AccountType>> {
-    return this.listHelper.List({
+    const { status, ...listOptions } = options;
+    const filters: Record<string, unknown> = {};
+    if (status !== undefined) {
+      // Ensure derived statuses are persisted before filtering
+      await this.EnsureAccountStatusesSynced(platformAccountId);
+      filters.status = status;
+    }
+
+    const result = await this.listHelper.List({
       account: platformAccountId,
-      ...options,
-      filters: {},
+      ...listOptions,
+      filters,
     });
+
+    return {
+      ...result,
+      data: result.data.map((account) => ({
+        ...account,
+        status: account.status ?? GetConnectedAccountStatus(account),
+      })),
+    };
+  }
+
+  /**
+   * Persist derived dashboard status for all connected accounts on a platform.
+   * Called before status-filtered list queries so legacy accounts are included.
+   */
+  private async EnsureAccountStatusesSynced(
+    platformAccountId: string
+  ): Promise<void> {
+    const accounts = await this.db.Query<AccountType>({
+      collection: 'Accounts',
+      method: 'READ',
+      parameters: [
+        {
+          key: 'platform_account',
+          operator: QueryOperators['=='],
+          value: platformAccountId,
+        },
+      ],
+    });
+
+    await Promise.all(
+      accounts.map(async (account) => {
+        const status = GetConnectedAccountStatus(account);
+        if (account.status === status) return;
+        await this.db.Update<AccountType>('Accounts', account.id, { status });
+      })
+    );
   }
 
   /**
@@ -440,11 +488,13 @@ export class AccountModule {
     update: Partial<AccountType>
   ): Promise<AccountType> {
     // Get previous state for the event (before update)
-    const previousAccount = this.eventService
-      ? await this.GetAccount(accountId)
-      : null;
+    const previousAccount = await this.GetAccount(accountId);
 
-    await this.db.Update<AccountType>('Accounts', accountId, update);
+    const nextState = this.MergeAccountUpdate(previousAccount, update);
+    const status = GetConnectedAccountStatus(nextState);
+    const updateWithStatus: Partial<AccountType> = { ...update, status };
+
+    await this.db.Update<AccountType>('Accounts', accountId, updateWithStatus);
 
     const account = await this.GetAccount(accountId);
     if (!account) {
@@ -460,7 +510,7 @@ export class AccountModule {
       const previousAttributes = previousAccount
         ? ExtractChangedFields(
             previousAccount as unknown as Record<string, unknown>,
-            update as Record<string, unknown>
+            updateWithStatus as Record<string, unknown>
           )
         : null;
 
@@ -472,6 +522,36 @@ export class AccountModule {
     }
 
     return account;
+  }
+
+  /**
+   * Merge a partial update onto the current account for status derivation.
+   */
+  private MergeAccountUpdate(
+    previousAccount: AccountType | null,
+    update: Partial<AccountType>
+  ): AccountType {
+    const base = previousAccount ?? ({} as AccountType);
+    const nextState: AccountType = {
+      ...base,
+      ...update,
+    };
+
+    if (update.requirements || base.requirements) {
+      nextState.requirements = {
+        ...base.requirements,
+        ...update.requirements,
+      };
+    }
+
+    if (update.capabilities || base.capabilities) {
+      nextState.capabilities = {
+        ...base.capabilities,
+        ...update.capabilities,
+      };
+    }
+
+    return nextState;
   }
 
   /**
