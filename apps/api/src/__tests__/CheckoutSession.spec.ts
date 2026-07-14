@@ -29,6 +29,7 @@ jest.mock('../utils/Timestamp', () => ({
 jest.mock('../modules/AppConfig', () => ({
   GetAppConfig: jest.fn(() => ({
     dashboardUrl: 'http://localhost:4200',
+    checkoutUrl: 'http://localhost:4200',
     livemode: false,
     appSecret: 'test-secret',
   })),
@@ -139,7 +140,7 @@ describe('CheckoutSessionModule', () => {
       expect(session.livemode).toBe(false);
 
       expect(session.ui_mode).toBe('hosted_page');
-      expect(session.url).toBe(`http://localhost:4200/checkout/${session.id}`);
+      expect(session.url).toBe(`http://localhost:4200/c/${session.id}`);
       expect(session.client_secret).toBeNull();
       expect(session.success_url).toBe('https://example.com/success');
       expect(session.cancel_url).toBeNull();

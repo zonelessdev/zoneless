@@ -54,17 +54,29 @@ function GenerateSecureHex(bytes: number): string {
 }
 
 /**
+ * Strip a trailing slash so URL joins stay consistent.
+ */
+function NormalizeOrigin(url: string): string {
+  return url.replace(/\/$/, '');
+}
+
+/**
  * Build the base config from environment variables.
  * appSecret will be empty until InitializeAppConfig is called (if not in env).
  */
 function BuildConfigFromEnv(): AppConfig {
+  const dashboardUrl = NormalizeOrigin(
+    process.env.DASHBOARD_URL ||
+      `http://localhost:${process.env.DASHBOARD_PORT || '80'}`
+  );
+  const checkoutUrl = NormalizeOrigin(process.env.CHECKOUT_URL || dashboardUrl);
+
   return {
     mongodbUri:
       process.env.MONGODB_URI ||
       'mongodb://localhost:27017/zoneless?replicaSet=rs0',
-    dashboardUrl:
-      process.env.DASHBOARD_URL ||
-      `http://localhost:${process.env.DASHBOARD_PORT || '80'}`,
+    dashboardUrl,
+    checkoutUrl,
     appSecret: process.env.APP_SECRET || '',
     livemode: process.env.LIVEMODE === 'true',
   };

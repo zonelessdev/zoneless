@@ -30,6 +30,7 @@ jest.mock('../utils/Timestamp', () => ({
 jest.mock('../modules/AppConfig', () => ({
   GetAppConfig: jest.fn(() => ({
     dashboardUrl: 'http://localhost:4200',
+    checkoutUrl: 'http://localhost:4200',
     livemode: false,
     appSecret: 'test-secret',
   })),
