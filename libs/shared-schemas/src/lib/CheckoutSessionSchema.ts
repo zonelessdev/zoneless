@@ -16,7 +16,7 @@ const CheckoutSessionAfterExpirationSchema = z.object({
   }),
 });
 
-const CheckoutSessionAutomaticTaxSchema = z.object({
+export const CheckoutSessionAutomaticTaxSchema = z.object({
   enabled: z.boolean(),
   liability: z
     .object({
@@ -42,7 +42,7 @@ const CheckoutSessionBrandingSettingsSchema = z.object({
   logo: CheckoutSessionBrandingImageSchema.optional(),
 });
 
-const CheckoutSessionConsentCollectionSchema = z.object({
+export const CheckoutSessionConsentCollectionSchema = z.object({
   payment_method_reuse_agreement: z
     .object({
       position: z.enum(['auto', 'hidden']),
@@ -52,7 +52,7 @@ const CheckoutSessionConsentCollectionSchema = z.object({
   terms_of_service: z.enum(['none', 'required']).optional(),
 });
 
-const CheckoutSessionCustomFieldSchema = z
+export const CheckoutSessionCustomFieldSchema = z
   .object({
     key: z
       .string()
@@ -101,7 +101,7 @@ const CheckoutSessionCustomTextEntrySchema = z.object({
   message: z.string().min(1).max(1200),
 });
 
-const CheckoutSessionCustomTextSchema = z.object({
+export const CheckoutSessionCustomTextSchema = z.object({
   after_submit: CheckoutSessionCustomTextEntrySchema.optional(),
   shipping_address: CheckoutSessionCustomTextEntrySchema.optional(),
   submit: CheckoutSessionCustomTextEntrySchema.optional(),
@@ -123,7 +123,7 @@ const CheckoutSessionDiscountSchema = z
     message: 'Only one of `coupon` or `promotion_code` may be specified',
   });
 
-const CheckoutSessionInvoiceCreationSchema = z.object({
+export const CheckoutSessionInvoiceCreationSchema = z.object({
   enabled: z.boolean(),
   invoice_data: z
     .object({
@@ -172,7 +172,7 @@ const CheckoutSessionProductDataSchema = z.object({
   unit_label: z.string().max(12).optional(),
 });
 
-const CheckoutSessionPriceDataSchema = z
+export const CheckoutSessionPriceDataSchema = z
   .object({
     currency: z.string().min(1).max(4),
     product: z.string().optional(),
@@ -197,7 +197,7 @@ const CheckoutSessionPriceDataSchema = z
     { message: 'Either `unit_amount` or `unit_amount_decimal` is required' }
   );
 
-const CheckoutSessionAdjustableQuantitySchema = z.object({
+export const CheckoutSessionAdjustableQuantitySchema = z.object({
   enabled: z.boolean(),
   maximum: z.number().int().min(1).max(999999).optional(),
   minimum: z.number().int().min(0).optional(),
@@ -217,7 +217,7 @@ const CheckoutSessionLineItemSchema = z
     message: 'Either `price` or `price_data` is required for each line item',
   });
 
-const CheckoutSessionOptionalItemSchema = z.object({
+export const CheckoutSessionOptionalItemSchema = z.object({
   price: z.string().min(1),
   quantity: z.number().int().nonnegative(),
   adjustable_quantity: CheckoutSessionAdjustableQuantitySchema.optional(),
@@ -228,7 +228,7 @@ const CheckoutSessionNameCollectionEntrySchema = z.object({
   optional: z.boolean().optional(),
 });
 
-const CheckoutSessionNameCollectionSchema = z.object({
+export const CheckoutSessionNameCollectionSchema = z.object({
   business: CheckoutSessionNameCollectionEntrySchema.optional(),
   individual: CheckoutSessionNameCollectionEntrySchema.optional(),
 });
@@ -248,7 +248,7 @@ const CheckoutSessionShippingSchema = z.object({
   tracking_number: z.string().optional(),
 });
 
-const CheckoutSessionTransferDataSchema = z.object({
+export const CheckoutSessionTransferDataSchema = z.object({
   destination: z.string().min(1),
   amount: z.number().int().nonnegative().optional(),
 });
@@ -277,7 +277,7 @@ const CheckoutSessionPermissionsSchema = z.object({
   update_shipping_details: z.enum(['client_only', 'server_only']).optional(),
 });
 
-const CheckoutSessionPhoneNumberCollectionSchema = z.object({
+export const CheckoutSessionPhoneNumberCollectionSchema = z.object({
   enabled: z.boolean(),
 });
 
@@ -295,7 +295,7 @@ const CheckoutSessionSetupIntentDataSchema = z.object({
   on_behalf_of: z.string().optional(),
 });
 
-const CheckoutSessionShippingAddressCollectionSchema = z.object({
+export const CheckoutSessionShippingAddressCollectionSchema = z.object({
   /**
    * @remarks Stripe defines ~240 supported country codes here; kept as a plain string array
    * for maintainability, matching the simplification already used for CheckoutSession's
@@ -349,7 +349,7 @@ const CheckoutSessionShippingOptionSchema = z
     message: 'Either `shipping_rate` or `shipping_rate_data` is required',
   });
 
-const CheckoutSessionTaxIdCollectionSchema = z.object({
+export const CheckoutSessionTaxIdCollectionSchema = z.object({
   enabled: z.boolean(),
   required: z.enum(['if_supported', 'never']).optional(),
 });

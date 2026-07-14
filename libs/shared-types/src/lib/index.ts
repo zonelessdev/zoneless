@@ -16,6 +16,7 @@ export * from './Event';
 export * from './ExternalWallet';
 export * from './IdempotencyKey';
 export * from './PaymentIntent';
+export * from './PaymentLink';
 export * from './Payout';
 export * from './Person';
 export * from './Price';
