@@ -1,0 +1,8 @@
+@if (loading()) {
+<app-page-loader />
+} @else if (errorMessage()) {
+<div class="site-wrapper payment-link-error">
+  <h1>Payment link unavailable</h1>
+  <p>{{ errorMessage() }}</p>
+</div>
+}

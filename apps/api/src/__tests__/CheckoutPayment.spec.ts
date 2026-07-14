@@ -16,6 +16,7 @@ import {
 import {
   CreateMockDatabase,
   DeterministicId,
+  DeterministicUrlSlug,
   GetFixedTimestamp,
   ResetIdCounter,
 } from './Setup';
@@ -23,6 +24,7 @@ import {
 jest.mock('../modules/Database');
 jest.mock('../utils/IdGenerator', () => ({
   GenerateId: jest.fn((prefix: string) => DeterministicId(prefix)),
+  GenerateUrlSlug: jest.fn(() => DeterministicUrlSlug()),
 }));
 jest.mock('../utils/Timestamp', () => ({
   Now: jest.fn(() => GetFixedTimestamp()),
@@ -31,6 +33,7 @@ jest.mock('../modules/AppConfig', () => ({
   GetAppConfig: jest.fn(() => ({
     dashboardUrl: 'http://localhost:4200',
     checkoutUrl: 'http://localhost:4200',
+    paymentLinkUrl: 'http://localhost:4200',
     livemode: false,
     appSecret: 'test-secret',
   })),
@@ -160,6 +163,7 @@ describe('CheckoutPaymentModule', () => {
       productModule,
       paymentIntentModule,
       chargeModule,
+      undefined,
       mockSolana as unknown as Solana
     );
   });
@@ -206,6 +210,9 @@ describe('CheckoutPaymentModule', () => {
       };
 
       jest
+        .spyOn(checkoutSessionModule, 'GetCheckoutSessionByUrlSlug')
+        .mockResolvedValue(session);
+      jest
         .spyOn(checkoutSessionModule, 'GetCheckoutSession')
         .mockResolvedValue(session);
       mockDb.Get = jest
@@ -215,7 +222,7 @@ describe('CheckoutPaymentModule', () => {
         .mockResolvedValueOnce(requiresConfirmation);
 
       const result = await module.PreparePayment(
-        session.id,
+        session.url_slug,
         'PayerWallet111',
         'buyer@example.com'
       );
@@ -274,7 +281,7 @@ describe('CheckoutPaymentModule', () => {
       };
 
       jest
-        .spyOn(checkoutSessionModule, 'GetCheckoutSession')
+        .spyOn(checkoutSessionModule, 'GetCheckoutSessionByUrlSlug')
         .mockResolvedValueOnce(session)
         .mockResolvedValueOnce(session)
         .mockResolvedValueOnce(completedSession);
@@ -321,7 +328,7 @@ describe('CheckoutPaymentModule', () => {
         failure_reason: null,
       });
 
-      const result = await module.ConfirmPayment(session.id, 'sig_abc');
+      const result = await module.ConfirmPayment(session.url_slug, 'sig_abc');
 
       expect(eventService.Emit.mock.calls.map((call) => call[0])).toEqual([
         'payment_intent.processing',
@@ -381,7 +388,7 @@ describe('CheckoutPaymentModule', () => {
       };
 
       jest
-        .spyOn(checkoutSessionModule, 'GetCheckoutSession')
+        .spyOn(checkoutSessionModule, 'GetCheckoutSessionByUrlSlug')
         .mockResolvedValue(session);
       jest
         .spyOn(
@@ -410,7 +417,7 @@ describe('CheckoutPaymentModule', () => {
       });
 
       await expect(
-        module.ConfirmPayment(session.id, 'sig_bad')
+        module.ConfirmPayment(session.url_slug, 'sig_bad')
       ).rejects.toThrow('Amount mismatch');
 
       expect(eventService.Emit.mock.calls.map((call) => call[0])).toEqual([

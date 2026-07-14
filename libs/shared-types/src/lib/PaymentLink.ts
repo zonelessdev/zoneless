@@ -16,6 +16,11 @@ export interface PaymentLink {
   object: 'payment_link';
   /** Whether the payment link's url is active. If false, customers visiting the URL will be shown a page saying that the link has been deactivated. */
   active: boolean;
+  /**
+   * Time at which the object was created. Measured in seconds since the Unix epoch.
+   * @remarks Not documented on Stripe's Payment Link object; stored for list pagination.
+   */
+  created: number;
   /** Behavior after the purchase is complete. */
   after_completion: PaymentLinkAfterCompletion;
   /** Whether user redeemable promotion codes are enabled. */
@@ -227,6 +232,13 @@ export interface PaymentLink {
    * @zoneless_extension
    */
   platform_account: string;
+
+  /**
+   * Opaque slug used in the public payment link URL (`/b/{url_slug}`).
+   * Distinct from `id` so shareable links do not expose the API object id.
+   * @zoneless_extension
+   */
+  url_slug: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

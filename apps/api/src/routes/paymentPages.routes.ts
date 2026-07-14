@@ -11,6 +11,7 @@ import { CustomerModule } from '../modules/Customer';
 import { ExternalWalletModule } from '../modules/ExternalWallet';
 import { PaymentIntentModule } from '../modules/PaymentIntent';
 import { ChargeModule } from '../modules/Charge';
+import { PaymentLinkModule } from '../modules/PaymentLink';
 
 const router = express.Router();
 
@@ -32,6 +33,13 @@ const checkoutSessionModule = new CheckoutSessionModule(
   customerModule,
   paymentIntentModule
 );
+const paymentLinkModule = new PaymentLinkModule(
+  db,
+  eventService,
+  priceModule,
+  productModule,
+  checkoutSessionModule
+);
 const externalWalletModule = new ExternalWalletModule(db, eventService);
 const checkoutPaymentModule = new CheckoutPaymentModule(
   db,
@@ -39,37 +47,51 @@ const checkoutPaymentModule = new CheckoutPaymentModule(
   externalWalletModule,
   productModule,
   paymentIntentModule,
-  chargeModule
+  chargeModule,
+  paymentLinkModule
 );
 
 /**
- * GET /v1/payment_pages/:id
+ * POST /v1/payment_pages/from_payment_link/:urlSlug
+ * Public endpoint: create a Checkout Session from a Payment Link template.
+ * `urlSlug` is the opaque slug from `/b/{url_slug}`.
+ * Returns the new session; the hosted opener navigates to `/c/{session.url_slug}`.
+ */
+router.post(
+  '/from_payment_link/:urlSlug',
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const session = await paymentLinkModule.OpenPaymentLink(req.params.urlSlug);
+    res.status(201).json(session);
+  })
+);
+
+/**
+ * GET /v1/payment_pages/:urlSlug
  * Public bootstrap endpoint for the hosted checkout page, mirroring Stripe's
  * payment_pages endpoint. No authentication is required: the unguessable
- * checkout session ID in the URL acts as the bearer credential, which is how
- * Stripe-hosted checkout links work.
+ * url_slug in the URL acts as the bearer credential.
  *
  * The response is enriched with the merchant's receiving wallet so the
  * checkout page can display it and build the payment transaction.
  */
 router.get(
-  '/:id',
+  '/:urlSlug',
   AsyncHandler(async (req: express.Request, res: express.Response) => {
     const session = await checkoutPaymentModule.GetPaymentPageSession(
-      req.params.id
+      req.params.urlSlug
     );
     res.json(session);
   })
 );
 
 /**
- * POST /v1/payment_pages/:id/prepare
+ * POST /v1/payment_pages/:urlSlug/prepare
  * Build an unsigned USDC payment transaction for the checkout session,
  * transferring the session total from the customer's wallet to the
  * merchant's wallet. The customer signs and broadcasts it via their wallet.
  */
 router.post(
-  '/:id/prepare',
+  '/:urlSlug/prepare',
   AsyncHandler(async (req: express.Request, res: express.Response) => {
     const { payer_wallet: payerWallet, email } = req.body as {
       payer_wallet?: string;
@@ -77,7 +99,7 @@ router.post(
     };
 
     const prepared = await checkoutPaymentModule.PreparePayment(
-      req.params.id,
+      req.params.urlSlug,
       payerWallet,
       email
     );
@@ -86,18 +108,18 @@ router.post(
 );
 
 /**
- * POST /v1/payment_pages/:id/confirm
+ * POST /v1/payment_pages/:urlSlug/confirm
  * Verify a broadcast payment transaction on-chain and complete the checkout
  * session. Emits 'checkout.session.completed' on success. Idempotent: if the
  * session was already completed with the same signature, it is returned as-is.
  */
 router.post(
-  '/:id/confirm',
+  '/:urlSlug/confirm',
   AsyncHandler(async (req: express.Request, res: express.Response) => {
     const { signature } = req.body as { signature?: string };
 
     const session = await checkoutPaymentModule.ConfirmPayment(
-      req.params.id,
+      req.params.urlSlug,
       signature
     );
     res.json(session);

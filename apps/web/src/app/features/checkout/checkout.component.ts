@@ -42,16 +42,16 @@ export class CheckoutComponent implements OnInit {
   email = '';
 
   async ngOnInit(): Promise<void> {
-    const id = this.route.snapshot.paramMap.get('checkoutSessionId');
-    if (!id) return;
-    await this.LoadCheckoutSession(id);
+    const urlSlug = this.route.snapshot.paramMap.get('checkoutSessionId');
+    if (!urlSlug) return;
+    await this.LoadCheckoutSession(urlSlug);
   }
 
-  private async LoadCheckoutSession(id: string): Promise<void> {
+  private async LoadCheckoutSession(urlSlug: string): Promise<void> {
     this.loading.set(true);
     try {
       const checkoutSession =
-        await this.checkoutSessionService.GetPublicCheckoutSession(id);
+        await this.checkoutSessionService.GetPublicCheckoutSession(urlSlug);
       this.checkoutSession.set(checkoutSession);
       this.email =
         checkoutSession.customer_email ??
@@ -113,7 +113,7 @@ export class CheckoutComponent implements OnInit {
       }
 
       const prepared = await this.checkoutSessionService.PreparePayment(
-        session.id,
+        session.url_slug,
         payerWallet,
         this.email || undefined
       );
@@ -128,7 +128,7 @@ export class CheckoutComponent implements OnInit {
       this.paymentPhase.set('processing');
 
       const completedSession = await this.checkoutSessionService.ConfirmPayment(
-        session.id,
+        session.url_slug,
         signature
       );
 

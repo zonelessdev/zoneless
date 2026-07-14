@@ -435,10 +435,12 @@ export type RetrieveCheckoutSessionInput = z.infer<
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Schema for creating a checkout session.
+ * Schema for creating a checkout session (shared shape + common refinements).
+ * Public API adds a `success_url` requirement for hosted mode; Payment Link
+ * opens use this base so hosted_confirmation links can omit it.
  * @see https://docs.stripe.com/api/checkout/sessions/create
  */
-export const CreateCheckoutSessionSchema = z
+const CreateCheckoutSessionBaseSchema = z
   .object({
     mode: z.enum(['payment', 'setup', 'subscription']),
 
@@ -523,17 +525,6 @@ export const CreateCheckoutSessionSchema = z
   )
   .refine(
     (session) =>
-      session.ui_mode === 'embedded_page' ||
-      session.ui_mode === 'elements' ||
-      !!session.success_url,
-    {
-      message:
-        '`success_url` is required unless `ui_mode` is `embedded_page` or `elements`',
-      path: ['success_url'],
-    }
-  )
-  .refine(
-    (session) =>
       !(
         session.cancel_url &&
         (session.ui_mode === 'embedded_page' || session.ui_mode === 'elements')
@@ -544,6 +535,31 @@ export const CreateCheckoutSessionSchema = z
       path: ['cancel_url'],
     }
   );
+
+/**
+ * Schema for creating a checkout session via the public API.
+ * Hosted mode requires `success_url`.
+ * @see https://docs.stripe.com/api/checkout/sessions/create
+ */
+export const CreateCheckoutSessionSchema =
+  CreateCheckoutSessionBaseSchema.refine(
+    (session) =>
+      session.ui_mode === 'embedded_page' ||
+      session.ui_mode === 'elements' ||
+      !!session.success_url,
+    {
+      message:
+        '`success_url` is required unless `ui_mode` is `embedded_page` or `elements`',
+      path: ['success_url'],
+    }
+  );
+
+/**
+ * Schema for creating a checkout session from a Payment Link template.
+ * Allows omitting `success_url` for hosted_confirmation after_completion.
+ */
+export const CreateCheckoutSessionFromPaymentLinkSchema =
+  CreateCheckoutSessionBaseSchema;
 
 export type CreateCheckoutSessionInput = z.infer<
   typeof CreateCheckoutSessionSchema

@@ -11,9 +11,15 @@ export interface AppConfig {
   /**
    * Hosted checkout URL origin (e.g., https://checkout.zoneless.com).
    * Defaults to dashboardUrl for single-domain / self-hosted deployments.
-   * Session links are always `{checkoutUrl}/c/:id`.
+   * Session links are always `{checkoutUrl}/c/{url_slug}` (opaque slug, not the API id).
    */
   checkoutUrl: string;
+  /**
+   * Payment Link URL origin (e.g., https://pay.zoneless.com).
+   * Defaults to checkoutUrl for single-domain / self-hosted deployments.
+   * Payment link URLs are always `{paymentLinkUrl}/b/{url_slug}` (opaque slug, not the API id).
+   */
+  paymentLinkUrl: string;
   /**
    * Master application secret (from APP_SECRET env or auto-generated).
    * Purpose-specific keys (JWT, encryption) are derived from this via HKDF.

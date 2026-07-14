@@ -63,6 +63,8 @@ const EVENT_TYPE_LABELS: Record<(typeof EVENT_TYPES)[number], string> = {
   'payment_intent.processing': 'Payment intent processing',
   'payment_intent.requires_action': 'Payment intent requires action',
   'payment_intent.succeeded': 'Payment intent succeeded',
+  'payment_link.created': 'Payment link created',
+  'payment_link.updated': 'Payment link updated',
   'payout.created': 'Payout created',
   'payout.updated': 'Payout updated',
   'payout.paid': 'Payout paid',

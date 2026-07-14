@@ -53,6 +53,7 @@ services:
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017/zoneless?directConnection=true}
       - DASHBOARD_URL=${DASHBOARD_URL:-}
       - CHECKOUT_URL=${CHECKOUT_URL:-}
+      - PAYMENT_LINK_URL=${PAYMENT_LINK_URL:-}
       - DASHBOARD_PORT=${DASHBOARD_PORT:-80}
       - APP_SECRET=${APP_SECRET:-}
       - SINGLE_TENANT=${SINGLE_TENANT:-true}

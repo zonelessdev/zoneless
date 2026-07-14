@@ -7,7 +7,7 @@
 
 import { Database } from './Database';
 import { EventService } from './EventService';
-import { GenerateId } from '../utils/IdGenerator';
+import { GenerateId, GenerateUrlSlug } from '../utils/IdGenerator';
 import {
   CheckoutSession as CheckoutSessionType,
   CheckoutSessionCustomField,
@@ -21,6 +21,7 @@ import type { CustomerModule } from './Customer';
 import type { PaymentIntentModule } from './PaymentIntent';
 import {
   CreateCheckoutSessionSchema,
+  CreateCheckoutSessionFromPaymentLinkSchema,
   CreateCheckoutSessionInput,
   UpdateCheckoutSessionSchema,
   UpdateCheckoutSessionInput,
@@ -97,9 +98,15 @@ export class CheckoutSessionModule {
    */
   async CreateCheckoutSession(
     platformAccountId: string,
-    input: CreateCheckoutSessionInput
+    input: CreateCheckoutSessionInput,
+    options?: { payment_link?: string }
   ): Promise<CheckoutSessionType> {
-    const validatedInput = ValidateUpdate(CreateCheckoutSessionSchema, input);
+    const validatedInput = ValidateUpdate(
+      options?.payment_link
+        ? CreateCheckoutSessionFromPaymentLinkSchema
+        : CreateCheckoutSessionSchema,
+      input
+    );
 
     if (validatedInput.customer && this.customerModule) {
       const customer = await this.customerModule.GetCustomer(
@@ -122,8 +129,9 @@ export class CheckoutSessionModule {
 
     const session = this.CheckoutSessionObject(
       platformAccountId,
-      validatedInput,
-      lineItems
+      validatedInput as CreateCheckoutSessionInput,
+      lineItems,
+      options?.payment_link ?? null
     );
 
     if (session.mode === 'payment' && this.paymentIntentModule) {
@@ -142,9 +150,12 @@ export class CheckoutSessionModule {
   CheckoutSessionObject(
     platformAccountId: string,
     input: CreateCheckoutSessionInput,
-    lineItems: CheckoutSessionLineItem[]
+    lineItems: CheckoutSessionLineItem[],
+    paymentLink: string | null = null
   ): CheckoutSessionType {
     const id = GenerateId('cs_z', 24);
+    const livemode = GetAppConfig().livemode;
+    const urlSlug = GenerateUrlSlug(livemode);
     const uiMode = input.ui_mode ?? 'hosted_page';
     const isEmbedded = uiMode === 'embedded_page' || uiMode === 'elements';
     const totals = this.ComputeTotals(lineItems);
@@ -285,7 +296,7 @@ export class CheckoutSessionModule {
         has_more: false,
         url: `/v1/checkout/sessions/${id}/line_items`,
       },
-      livemode: GetAppConfig().livemode,
+      livemode,
       locale: input.locale ?? null,
       managed_payments: input.managed_payments
         ? { enabled: input.managed_payments.enabled ?? false }
@@ -311,7 +322,7 @@ export class CheckoutSessionModule {
       optional_items: input.optional_items ?? null,
       origin_context: input.origin_context ?? null,
       payment_intent: null,
-      payment_link: null,
+      payment_link: paymentLink,
       payment_method_collection: input.payment_method_collection ?? 'always',
       payment_method_configuration_details: null,
       payment_method_options: input.payment_method_options ?? {},
@@ -368,8 +379,9 @@ export class CheckoutSessionModule {
       ui_mode: uiMode,
       url:
         uiMode === 'hosted_page'
-          ? `${GetAppConfig().checkoutUrl}/c/${id}`
+          ? `${GetAppConfig().checkoutUrl}/c/${urlSlug}`
           : null,
+      url_slug: urlSlug,
       wallet_options: input.wallet_options
         ? {
             link: input.wallet_options.link
@@ -390,6 +402,21 @@ export class CheckoutSessionModule {
    */
   async GetCheckoutSession(id: string): Promise<CheckoutSessionType | null> {
     return this.db.Get<CheckoutSessionType>('CheckoutSessions', id);
+  }
+
+  /**
+   * Look up a checkout session by its opaque public URL slug.
+   */
+  async GetCheckoutSessionByUrlSlug(
+    urlSlug: string
+  ): Promise<CheckoutSessionType | null> {
+    const sessions = await this.db.FindCustom<CheckoutSessionType>(
+      'CheckoutSessions',
+      'url_slug',
+      '==',
+      urlSlug
+    );
+    return sessions?.[0] ?? null;
   }
 
   /**

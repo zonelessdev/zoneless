@@ -51,10 +51,16 @@ app.set('trust proxy', 1);
 // Request logging (skip health checks)
 app.use(RequestLoggerWithSkip(['/api/health']));
 
-// CORS — allow dashboard and (when configured) dedicated checkout origin
+// CORS — allow dashboard, checkout, and (when configured) payment-link origins
 app.use(
   cors({
-    origin: [...new Set([appConfig.dashboardUrl, appConfig.checkoutUrl])],
+    origin: [
+      ...new Set([
+        appConfig.dashboardUrl,
+        appConfig.checkoutUrl,
+        appConfig.paymentLinkUrl,
+      ]),
+    ],
     credentials: true,
   })
 );
