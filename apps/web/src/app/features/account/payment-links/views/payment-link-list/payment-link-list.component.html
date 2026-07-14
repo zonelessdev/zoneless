@@ -1,0 +1,13 @@
+<div class="header-wrapper">
+  <h1>Payment Links</h1>
+  <button type="button" class="action-button action-button-dainty">
+    <img class="button-icon" src="assets/icons/add.svg" alt="" />
+    <span>Create payment link</span>
+  </button>
+</div>
+<app-paginated-list
+  endpoint="payment_links"
+  [columns]="paymentLinkColumns"
+  [limit]="10"
+  [queryParams]="paymentLinksQueryParams()"
+></app-paginated-list>
