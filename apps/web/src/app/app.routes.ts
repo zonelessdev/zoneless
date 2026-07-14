@@ -65,6 +65,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'b/:paymentLinkId',
+    loadComponent: () =>
+      import('./features/payment-link/payment-link.component').then(
+        (m) => m.PaymentLinkComponent
+      ),
+  },
+  {
     path: '',
     redirectTo: '/account/home',
     pathMatch: 'full',

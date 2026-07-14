@@ -70,6 +70,9 @@ function BuildConfigFromEnv(): AppConfig {
       `http://localhost:${process.env.DASHBOARD_PORT || '80'}`
   );
   const checkoutUrl = NormalizeOrigin(process.env.CHECKOUT_URL || dashboardUrl);
+  const paymentLinkUrl = NormalizeOrigin(
+    process.env.PAYMENT_LINK_URL || checkoutUrl
+  );
 
   return {
     mongodbUri:
@@ -77,6 +80,7 @@ function BuildConfigFromEnv(): AppConfig {
       'mongodb://localhost:27017/zoneless?replicaSet=rs0',
     dashboardUrl,
     checkoutUrl,
+    paymentLinkUrl,
     appSecret: process.env.APP_SECRET || '',
     livemode: process.env.LIVEMODE === 'true',
   };

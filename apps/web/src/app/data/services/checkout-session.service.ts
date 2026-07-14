@@ -88,17 +88,31 @@ export class CheckoutSessionService {
   }
 
   /**
-   * Fetch a checkout session via the public payment pages endpoint.
-   * Used by the hosted checkout page, which customers visit unauthenticated.
+   * Open a payment link via the public payment pages endpoint.
+   * `urlSlug` is the opaque slug from `/b/{url_slug}`.
    */
-  async GetPublicCheckoutSession(
-    checkoutSessionId: string
-  ): Promise<CheckoutSession> {
+  async OpenPaymentLink(urlSlug: string): Promise<CheckoutSession> {
+    this.loading.set(true);
+    try {
+      return await this.api.Call<CheckoutSession>(
+        'POST',
+        `payment_pages/from_payment_link/${urlSlug}`
+      );
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  /**
+   * Fetch a checkout session via the public payment pages endpoint.
+   * `urlSlug` is the opaque slug from `/c/{url_slug}`.
+   */
+  async GetPublicCheckoutSession(urlSlug: string): Promise<CheckoutSession> {
     this.loading.set(true);
     try {
       const checkoutSession = await this.api.Call<CheckoutSession>(
         'GET',
-        `payment_pages/${checkoutSessionId}`
+        `payment_pages/${urlSlug}`
       );
       return checkoutSession;
     } finally {
@@ -111,13 +125,13 @@ export class CheckoutSessionService {
    * the public payment pages endpoint. The customer signs it in their wallet.
    */
   async PreparePayment(
-    checkoutSessionId: string,
+    urlSlug: string,
     payerWallet: string,
     email?: string
   ): Promise<CheckoutPaymentTransaction> {
     return this.api.Call<CheckoutPaymentTransaction>(
       'POST',
-      `payment_pages/${checkoutSessionId}/prepare`,
+      `payment_pages/${urlSlug}/prepare`,
       { payer_wallet: payerWallet, ...(email ? { email } : {}) }
     );
   }
@@ -127,12 +141,12 @@ export class CheckoutSessionService {
    * on-chain and completes the checkout session.
    */
   async ConfirmPayment(
-    checkoutSessionId: string,
+    urlSlug: string,
     signature: string
   ): Promise<CheckoutSession> {
     return this.api.Call<CheckoutSession>(
       'POST',
-      `payment_pages/${checkoutSessionId}/confirm`,
+      `payment_pages/${urlSlug}/confirm`,
       { signature }
     );
   }

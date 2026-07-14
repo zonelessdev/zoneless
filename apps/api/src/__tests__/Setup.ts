@@ -25,6 +25,14 @@ export function DeterministicId(prefix: string): string {
   return `${prefix}_test${String(idCounter).padStart(3, '0')}`;
 }
 
+/**
+ * Returns a deterministic public URL slug (test-mode shaped).
+ */
+export function DeterministicUrlSlug(): string {
+  idCounter++;
+  return `test_slug${String(idCounter).padStart(3, '0')}`;
+}
+
 // ---------------------------------------------------------------------------
 // Fixed timestamp
 // ---------------------------------------------------------------------------

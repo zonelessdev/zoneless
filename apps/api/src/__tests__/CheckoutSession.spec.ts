@@ -15,6 +15,7 @@ import { ListHelper } from '../utils/ListHelper';
 import {
   CreateMockDatabase,
   DeterministicId,
+  DeterministicUrlSlug,
   ResetIdCounter,
   GetFixedTimestamp,
 } from './Setup';
@@ -22,6 +23,7 @@ import {
 jest.mock('../modules/Database');
 jest.mock('../utils/IdGenerator', () => ({
   GenerateId: jest.fn((prefix: string) => DeterministicId(prefix)),
+  GenerateUrlSlug: jest.fn(() => DeterministicUrlSlug()),
 }));
 jest.mock('../utils/Timestamp', () => ({
   Now: jest.fn(() => GetFixedTimestamp()),
@@ -30,6 +32,7 @@ jest.mock('../modules/AppConfig', () => ({
   GetAppConfig: jest.fn(() => ({
     dashboardUrl: 'http://localhost:4200',
     checkoutUrl: 'http://localhost:4200',
+    paymentLinkUrl: 'http://localhost:4200',
     livemode: false,
     appSecret: 'test-secret',
   })),
@@ -140,7 +143,9 @@ describe('CheckoutSessionModule', () => {
       expect(session.livemode).toBe(false);
 
       expect(session.ui_mode).toBe('hosted_page');
-      expect(session.url).toBe(`http://localhost:4200/c/${session.id}`);
+      expect(session.url_slug).toBeTruthy();
+      expect(session.url).toBe(`http://localhost:4200/c/${session.url_slug}`);
+      expect(session.url).not.toContain(session.id);
       expect(session.client_secret).toBeNull();
       expect(session.success_url).toBe('https://example.com/success');
       expect(session.cancel_url).toBeNull();
@@ -476,6 +481,41 @@ describe('CheckoutSessionModule', () => {
         })
       ).rejects.toThrow();
       expect(mockDb.Set).not.toHaveBeenCalled();
+    });
+
+    it('should allow omitting success_url when creating from a payment link', async () => {
+      mockDb.Get = jest
+        .fn()
+        .mockImplementation(async (collection: string, id: string) => {
+          if (collection === 'Prices' && id === 'price_z_1') {
+            return BuildPrice();
+          }
+          if (collection === 'Products' && id === 'prod_z_1') {
+            return { id: 'prod_z_1', name: 'Test Product' } as Product;
+          }
+          return null;
+        });
+
+      const session = await module.CreateCheckoutSession(
+        'acct_z_platform',
+        {
+          mode: 'payment',
+          line_items: [{ price: 'price_z_1', quantity: 1 }],
+          ui_mode: 'hosted_page',
+        },
+        { payment_link: 'plink_z_1' }
+      );
+
+      expect(session.success_url).toBeNull();
+      expect(session.payment_link).toBe('plink_z_1');
+      expect(mockDb.Set).toHaveBeenCalledWith(
+        'CheckoutSessions',
+        session.id,
+        expect.objectContaining({
+          success_url: null,
+          payment_link: 'plink_z_1',
+        })
+      );
     });
   });
 

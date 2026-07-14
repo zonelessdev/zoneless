@@ -16,6 +16,7 @@ import { BalanceTransactionModule } from './BalanceTransaction';
 import { ProductModule } from './Product';
 import type { PaymentIntentModule } from './PaymentIntent';
 import type { ChargeModule } from './Charge';
+import type { PaymentLinkModule } from './PaymentLink';
 import { Solana, SolanaExplorerUrl } from './chains/Solana';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
@@ -53,6 +54,7 @@ export class CheckoutPaymentModule {
   private readonly balanceTransactionModule: BalanceTransactionModule;
   private readonly paymentIntentModule: PaymentIntentModule | null;
   private readonly chargeModule: ChargeModule | null;
+  private readonly paymentLinkModule: PaymentLinkModule | null;
   private readonly solana: Solana;
 
   constructor(
@@ -62,6 +64,7 @@ export class CheckoutPaymentModule {
     productModule: ProductModule,
     paymentIntentModule?: PaymentIntentModule,
     chargeModule?: ChargeModule,
+    paymentLinkModule?: PaymentLinkModule,
     solana?: Solana
   ) {
     this.db = db;
@@ -73,6 +76,7 @@ export class CheckoutPaymentModule {
     this.balanceTransactionModule = new BalanceTransactionModule(db);
     this.paymentIntentModule = paymentIntentModule || null;
     this.chargeModule = chargeModule || null;
+    this.paymentLinkModule = paymentLinkModule || null;
     this.solana = solana || new Solana();
   }
 
@@ -80,8 +84,8 @@ export class CheckoutPaymentModule {
    * Bootstrap the hosted checkout page: the sanitized session enriched with
    * the merchant's receiving wallet, display details, and expanded products.
    */
-  async GetPaymentPageSession(id: string): Promise<CheckoutSession> {
-    const session = await this.GetSessionOrThrow(id);
+  async GetPaymentPageSession(urlSlug: string): Promise<CheckoutSession> {
+    const session = await this.GetSessionOrThrow(urlSlug);
     const [merchantWallet, account, expandedSession] = await Promise.all([
       this.ResolveMerchantWallet(session.platform_account),
       this.accountModule.GetAccount(session.platform_account),
@@ -187,7 +191,7 @@ export class CheckoutPaymentModule {
    * @returns The unsigned transaction bundle
    */
   async PreparePayment(
-    id: string,
+    urlSlug: string,
     payerWallet: string | undefined,
     email?: string
   ): Promise<PreparedCheckoutPayment> {
@@ -199,7 +203,7 @@ export class CheckoutPaymentModule {
       );
     }
 
-    const session = await this.GetSessionOrThrow(id);
+    const session = await this.GetSessionOrThrow(urlSlug);
     this.AssertSessionPayable(session);
 
     const merchantWallet = await this.ResolveMerchantWallet(
@@ -240,12 +244,12 @@ export class CheckoutPaymentModule {
    * `checkout.session.completed`. Idempotent: if the session was already
    * completed with the same signature, it is returned as-is.
    *
-   * @param id - The checkout session ID
+   * @param urlSlug - The opaque public URL slug for the checkout session
    * @param signature - The Solana transaction signature of the payment
    * @returns The completed public checkout session
    */
   async ConfirmPayment(
-    id: string,
+    urlSlug: string,
     signature: string | undefined
   ): Promise<CheckoutSession> {
     if (!signature || typeof signature !== 'string') {
@@ -256,7 +260,7 @@ export class CheckoutPaymentModule {
       );
     }
 
-    const session = await this.GetSessionOrThrow(id);
+    const session = await this.GetSessionOrThrow(urlSlug);
 
     // Idempotency: the session was already completed with this signature.
     // Re-run the ledger recording (a no-op when already recorded) so a
@@ -347,6 +351,12 @@ export class CheckoutPaymentModule {
         transaction_signature: signature,
         payer_wallet: verification.payer_address,
       });
+
+    if (completedSession.payment_link && this.paymentLinkModule) {
+      await this.paymentLinkModule.RecordCompletedSession(
+        completedSession.payment_link
+      );
+    }
 
     const balanceTransaction = await this.RecordPaymentOnLedger(
       completedSession,
@@ -478,8 +488,9 @@ export class CheckoutPaymentModule {
     };
   }
 
-  private async GetSessionOrThrow(id: string): Promise<CheckoutSession> {
-    const session = await this.checkoutSessionModule.GetCheckoutSession(id);
+  private async GetSessionOrThrow(urlSlug: string): Promise<CheckoutSession> {
+    const session =
+      await this.checkoutSessionModule.GetCheckoutSessionByUrlSlug(urlSlug);
 
     if (!session) {
       throw new AppError(

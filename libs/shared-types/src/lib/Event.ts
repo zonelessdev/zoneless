@@ -9,6 +9,7 @@ import { Customer } from './Customer';
 import { ExternalWallet } from './ExternalWallet';
 import { IdempotencyKey } from './IdempotencyKey';
 import { PaymentIntent } from './PaymentIntent';
+import { PaymentLink } from './PaymentLink';
 import { Payout } from './Payout';
 import { Person } from './Person';
 import { Price } from './Price';
@@ -75,6 +76,10 @@ export const EVENT_TYPES = [
   'payment_intent.requires_action',
   'payment_intent.succeeded',
 
+  // Payment Link events
+  'payment_link.created',
+  'payment_link.updated',
+
   // Payout events
   'payout.created',
   'payout.updated',
@@ -128,6 +133,7 @@ export type EventDataObject =
   | ExternalWallet
   | IdempotencyKey
   | PaymentIntent
+  | PaymentLink
   | Payout
   | Person
   | Price

@@ -453,6 +453,13 @@ export interface CheckoutSession {
   platform_account: string;
 
   /**
+   * Opaque slug used in the hosted checkout URL (`/c/{url_slug}`).
+   * Distinct from `id` so shareable links do not expose the API object id.
+   * @zoneless_extension
+   */
+  url_slug: string;
+
+  /**
    * On-chain payment details recorded when the session is completed.
    * @zoneless_extension
    */

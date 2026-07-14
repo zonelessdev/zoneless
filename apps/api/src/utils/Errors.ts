@@ -144,6 +144,16 @@ export const ERRORS = {
     status: 404,
     type: 'resource_missing',
   },
+  PAYMENT_LINK_NOT_FOUND: {
+    message: 'Payment link not found',
+    status: 404,
+    type: 'resource_missing',
+  },
+  PAYMENT_LINK_INACTIVE: {
+    message: 'This payment link has been deactivated',
+    status: 400,
+    type: 'invalid_request_error',
+  },
   CHARGE_NOT_FOUND: {
     message: 'Charge not found',
     status: 404,
