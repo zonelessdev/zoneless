@@ -12,6 +12,8 @@ import {
   GetFixedTimestamp,
 } from './Setup';
 
+const mockDashboardUrl = 'http://localhost:4200';
+
 jest.mock('../modules/Database');
 jest.mock('../utils/IdGenerator', () => ({
   GenerateId: jest.fn((prefix: string) => DeterministicId(prefix)),
@@ -21,7 +23,7 @@ jest.mock('../utils/Timestamp', () => ({
 }));
 jest.mock('../modules/AppConfig', () => ({
   GetAppConfig: jest.fn(() => ({
-    dashboardUrl: 'http://localhost:4200',
+    dashboardUrl: mockDashboardUrl,
     livemode: false,
     appSecret: 'test-secret',
   })),
@@ -103,6 +105,10 @@ describe('ChargeModule', () => {
           transaction_hash: null,
         },
       });
+      expect(charge.receipt_number).toBe(`rcpt_${charge.id}`);
+      expect(charge.receipt_url).toBe(
+        `${mockDashboardUrl}/v1/receipts/${charge.id}`
+      );
       expect(charge.refunded).toBe(false);
       expect(charge.refunds).toEqual({
         object: 'list',
@@ -199,6 +205,11 @@ describe('ChargeModule', () => {
       expect(mockDb.Set).toHaveBeenCalledWith('Charges', charge.id, charge);
       expect(charge.status).toBe('succeeded');
       expect(charge.captured).toBe(true);
+      expect(charge.receipt_number).toEqual(expect.any(String));
+      expect(charge.receipt_number).toBe(`rcpt_${charge.id}`);
+      expect(charge.receipt_url).toBe(
+        `${mockDashboardUrl}/v1/receipts/${charge.id}`
+      );
       expect(eventService.Emit).toHaveBeenCalledWith(
         'charge.succeeded',
         'acct_z_platform',
@@ -832,6 +843,10 @@ describe('ChargeModule', () => {
       expect(charge.status).toBe('succeeded');
       expect(charge.captured).toBe(true);
       expect(charge.payment_intent).toBe('pi_z_1');
+      expect(charge.receipt_number).toBe(`rcpt_${charge.id}`);
+      expect(charge.receipt_url).toBe(
+        `${mockDashboardUrl}/v1/receipts/${charge.id}`
+      );
       expect(charge.payment_method_details).toEqual({
         type: 'crypto',
         crypto: {

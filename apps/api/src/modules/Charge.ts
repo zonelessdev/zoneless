@@ -37,6 +37,7 @@ import { GetAppConfig } from './AppConfig';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
 import { GetPlatformAccountId } from './PlatformAccess';
+import { BuildChargeReceiptNumber, BuildChargeReceiptUrl } from './Receipt';
 
 type AddressInput = NonNullable<
   NonNullable<CreateChargeInput['shipping']>['address']
@@ -289,8 +290,8 @@ export class ChargeModule {
       presentment_details: null,
       radar_options: null,
       receipt_email: input.receipt_email ?? null,
-      receipt_number: null,
-      receipt_url: null,
+      receipt_number: BuildChargeReceiptNumber(id),
+      receipt_url: BuildChargeReceiptUrl(id),
       refunded: false,
       refunds: EmptyRefundsList(id),
       review: null,
@@ -412,8 +413,8 @@ export class ChargeModule {
         ? { session: input.radar_options.session ?? null }
         : null,
       receipt_email: input.receipt_email ?? null,
-      receipt_number: null,
-      receipt_url: null,
+      receipt_number: BuildChargeReceiptNumber(id),
+      receipt_url: BuildChargeReceiptUrl(id),
       refunded: false,
       refunds: EmptyRefundsList(id),
       review: null,
