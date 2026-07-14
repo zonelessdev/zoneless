@@ -1,0 +1,34 @@
+@use '../../../../../styles/base.scss' as *;
+@use '../../../../../styles/forms.scss' as *;
+@use '../../../../../styles/account.scss' as *;
+
+.field-help-with-icon {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-small;
+  margin-top: $spacing-small;
+
+  img {
+    width: 14px;
+    height: 14px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    opacity: $dimmed;
+  }
+}
+
+.capability-option {
+  padding: $spacing-small $spacing;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  background-color: $dark-background-color;
+  cursor: pointer;
+
+  div {
+    font-size: $font-size;
+  }
+}
+
+select {
+  width: 100%;
+}

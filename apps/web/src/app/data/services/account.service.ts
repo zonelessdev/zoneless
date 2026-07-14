@@ -1,6 +1,7 @@
 import { Injectable, signal, WritableSignal, inject } from '@angular/core';
 import { ApiService } from '../../core/services/api.service';
 import { Account, LoginLink } from '@zoneless/shared-types';
+import { CreateAccountInput } from '@zoneless/shared-schemas';
 
 /**
  * Input type for updating an account.
@@ -92,6 +93,13 @@ export class AccountService {
   // ─────────────────────────────────────────────────────────────────────────────
   // Connected Account Methods (Platform Only)
   // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Create a connected account (platform API key only).
+   */
+  async CreateAccount(data: CreateAccountInput): Promise<Account> {
+    return this.api.Call<Account>('POST', 'accounts', data);
+  }
 
   /**
    * Fetch any account by ID (used for viewing connected accounts).

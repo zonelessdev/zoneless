@@ -1,0 +1,53 @@
+<div class="field">
+  <div class="field-title">Country</div>
+  <div class="field-value">
+    <select
+      [ngModel]="actions.draftCountry()"
+      (ngModelChange)="OnCountryChange($event)"
+    >
+      @for (country of ISO_CODES; track country.code) {
+      <option [value]="country.code">{{ country.country }}</option>
+      }
+    </select>
+  </div>
+  <p class="field-help field-help-with-icon">
+    <img src="assets/icons/info.svg" alt="" />
+    <span
+      >Accounts in
+      {{ actions.GetCountryDisplayName(actions.draftCountry()) }} can receive
+      transfers in USDC.</span
+    >
+  </p>
+</div>
+
+<div class="field">
+  <div class="field-title">Business type</div>
+  <div class="field-value">
+    <select
+      [ngModel]="actions.draftBusinessType()"
+      (ngModelChange)="OnBusinessTypeChange($event)"
+    >
+      @for (type of BUSINESS_TYPES; track type.value) {
+      <option [value]="type.value">{{ type.label }}</option>
+      }
+    </select>
+  </div>
+</div>
+
+<div class="field">
+  <div class="field-top">
+    <div class="field-title">Capabilities</div>
+    <button type="button" class="text-link" (click)="DeselectAllCapabilities()">
+      Deselect all
+    </button>
+  </div>
+  <label class="custom-checkbox field-check capability-option">
+    <input
+      type="checkbox"
+      [checked]="actions.draftTransfersRequested()"
+      (change)="OnTransfersChange($any($event.target).checked)"
+    />
+    <span class="checkmark"></span>
+    <div>Transfers</div>
+  </label>
+</div>
