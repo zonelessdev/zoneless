@@ -497,8 +497,11 @@ export interface CheckoutSession {
 // Custom Fields
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** A custom field collected from the customer during Checkout. Up to 3 are supported per session. */
-export interface CheckoutSessionCustomField {
+/**
+ * Custom field configuration shared by Checkout Sessions and Payment Links.
+ * Does not include collected customer values — those exist only on completed sessions.
+ */
+export interface CheckoutCustomField {
   /** Configuration for type=dropdown fields. */
   dropdown: {
     /** The value that pre-fills on the payment page. */
@@ -510,8 +513,6 @@ export interface CheckoutSessionCustomField {
       /** The value for this option, not displayed to the customer. Must be unique, alphanumeric, and up to 100 characters. */
       value: string;
     }[];
-    /** The option selected by the customer. This will be the value for the option. */
-    value: string | null;
   } | null;
   /** String of your choice that your integration can use to reconcile this field. Must be unique, alphanumeric, and up to 200 characters. */
   key: string;
@@ -530,8 +531,6 @@ export interface CheckoutSessionCustomField {
     maximum_length: number | null;
     /** The minimum character length requirement for the customer's input. */
     minimum_length: number | null;
-    /** The value entered by the customer, containing only digits. */
-    value: string | null;
   } | null;
   /** Whether the customer is required to complete the field before completing the Checkout Session. Defaults to false. */
   optional: boolean;
@@ -543,11 +542,52 @@ export interface CheckoutSessionCustomField {
     maximum_length: number | null;
     /** The minimum character length requirement for the customer's input. */
     minimum_length: number | null;
-    /** The value entered by the customer. */
-    value: string | null;
   } | null;
   /** The type of the field. */
   type: 'dropdown' | 'numeric' | 'text';
+}
+
+/**
+ * A custom field collected from the customer during Checkout. Up to 3 are supported per session.
+ * Extends the shared config shape with the values entered by the customer.
+ */
+export interface CheckoutSessionCustomField extends CheckoutCustomField {
+  /** Configuration for type=dropdown fields, including the option selected by the customer. */
+  dropdown: {
+    /** The value that pre-fills on the payment page. */
+    default_value: string | null;
+    /** The options available for the customer to select. Up to 200 options allowed. */
+    options: {
+      /** The label for the option, displayed to the customer. Up to 100 characters. */
+      label: string;
+      /** The value for this option, not displayed to the customer. Must be unique, alphanumeric, and up to 100 characters. */
+      value: string;
+    }[];
+    /** The option selected by the customer. This will be the value for the option. */
+    value: string | null;
+  } | null;
+  /** Configuration for type=numeric fields, including the value entered by the customer. */
+  numeric: {
+    /** The value that pre-fills the field on the payment page. */
+    default_value: string | null;
+    /** The maximum character length constraint for the customer's input. */
+    maximum_length: number | null;
+    /** The minimum character length requirement for the customer's input. */
+    minimum_length: number | null;
+    /** The value entered by the customer, containing only digits. */
+    value: string | null;
+  } | null;
+  /** Configuration for type=text fields, including the value entered by the customer. */
+  text: {
+    /** The value that pre-fills the field on the payment page. */
+    default_value: string | null;
+    /** The maximum character length constraint for the customer's input. */
+    maximum_length: number | null;
+    /** The minimum character length requirement for the customer's input. */
+    minimum_length: number | null;
+    /** The value entered by the customer. */
+    value: string | null;
+  } | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
