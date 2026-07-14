@@ -60,4 +60,12 @@ export const accountRoutes: Routes = [
     loadChildren: () =>
       import('./products/prices.routes').then((m) => m.priceRoutes),
   },
+  {
+    path: 'payment-links',
+    canActivate: [platformOnlyGuard],
+    loadChildren: () =>
+      import('./payment-links/payment-links.routes').then(
+        (m) => m.paymentLinkRoutes
+      ),
+  },
 ];
