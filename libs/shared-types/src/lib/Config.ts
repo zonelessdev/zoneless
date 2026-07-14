@@ -6,8 +6,14 @@
 export interface AppConfig {
   /** MongoDB connection string */
   mongodbUri: string;
-  /** Dashboard URL (e.g., http://localhost:4200 or https://connect.yourdomain.com) */
+  /** Dashboard URL (e.g., http://localhost:4200 or https://dashboard.zoneless.com) */
   dashboardUrl: string;
+  /**
+   * Hosted checkout URL origin (e.g., https://checkout.zoneless.com).
+   * Defaults to dashboardUrl for single-domain / self-hosted deployments.
+   * Session links are always `{checkoutUrl}/c/:id`.
+   */
+  checkoutUrl: string;
   /**
    * Master application secret (from APP_SECRET env or auto-generated).
    * Purpose-specific keys (JWT, encryption) are derived from this via HKDF.

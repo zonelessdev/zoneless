@@ -58,10 +58,10 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'checkout/:checkoutSessionId',
+    path: 'c/:checkoutSessionId',
     loadComponent: () =>
       import('./features/checkout/checkout.component').then(
-        (mod) => mod.CheckoutComponent
+        (m) => m.CheckoutComponent
       ),
   },
   {
@@ -73,7 +73,7 @@ export const routes: Routes = [
     path: '**',
     loadComponent: () =>
       import('./features/not-found/not-found.component').then(
-        (mod) => mod.NotFoundComponent
+        (m) => m.NotFoundComponent
       ),
   },
 ];

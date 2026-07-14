@@ -368,7 +368,7 @@ export class CheckoutSessionModule {
       ui_mode: uiMode,
       url:
         uiMode === 'hosted_page'
-          ? `${GetAppConfig().dashboardUrl}/checkout/${id}`
+          ? `${GetAppConfig().checkoutUrl}/c/${id}`
           : null,
       wallet_options: input.wallet_options
         ? {
