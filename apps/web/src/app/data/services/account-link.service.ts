@@ -1,5 +1,7 @@
 import { Injectable, inject, WritableSignal, signal } from '@angular/core';
-import { AuthService, ExchangeContext } from '../../core';
+import { AuthService, ExchangeContext, ApiService } from '../../core';
+import type { AccountLink } from '@zoneless/shared-types';
+import type { CreateAccountLinkInput } from '@zoneless/shared-schemas';
 
 export interface LinkError {
   type: string;
@@ -11,6 +13,7 @@ export interface LinkError {
 })
 export class AccountLinkService {
   private readonly auth = inject(AuthService);
+  private readonly api = inject(ApiService);
 
   accountId: WritableSignal<string> = signal('');
   linkContext: WritableSignal<ExchangeContext | null> = signal(null);
@@ -20,6 +23,13 @@ export class AccountLinkService {
     this.accountId.set('');
     this.linkContext.set(null);
     this.linkError.set(null);
+  }
+
+  /**
+   * Create an account link for connected-account onboarding or update.
+   */
+  async CreateAccountLink(data: CreateAccountLinkInput): Promise<AccountLink> {
+    return this.api.Call<AccountLink>('POST', 'account_links', data);
   }
 
   async ExchangeToken(token: string): Promise<void> {

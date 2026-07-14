@@ -1,0 +1,184 @@
+@if (actions.flowOpen()) {
+<div
+  class="create-flow-backdrop create-flow-backdrop-open"
+  role="presentation"
+  tabindex="-1"
+  (click)="OnBackdropClick()"
+  (keydown.escape)="OnBackdropClick()"
+>
+  <div
+    class="create-flow-surface create-flow-surface-open"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="'create-connected-account-title'"
+    (click)="OnSurfaceClick($event)"
+    (keydown)="OnSurfaceClick($event)"
+  >
+    <div class="progress-bar">
+      <div
+        class="progress-fill"
+        [style.width.%]="actions.GetProgressPercent()"
+      ></div>
+    </div>
+
+    <button
+      type="button"
+      class="create-flow-close"
+      (click)="OnCloseClick()"
+      [disabled]="actions.loading()"
+      aria-label="Close"
+    >
+      <img src="assets/icons/close.svg" alt="" />
+    </button>
+
+    <div class="create-flow-body">
+      <!-- Summary -->
+      @if (actions.step() === 'summary') {
+      <h1 id="create-connected-account-title" class="create-flow-title">
+        Create an account
+      </h1>
+
+      <section class="summary-section">
+        <div class="section-header">
+          <h2 class="settings-section-title">Account properties</h2>
+        </div>
+        <div class="summary-rows">
+          <div class="summary-row">
+            <span class="summary-label">Dashboard access</span>
+            <span class="summary-value">Express</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Negative balance liability</span>
+            <span class="summary-value">Platform</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Requirement collection</span>
+            <span class="summary-value">Zoneless</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="summary-section">
+        <div class="section-header">
+          <h2 class="settings-section-title">Other details</h2>
+          <button
+            type="button"
+            class="text-link edit-link"
+            (click)="actions.OpenEditDetails()"
+          >
+            <img src="assets/icons/edit.svg" alt="" />
+            Edit
+          </button>
+        </div>
+        <div class="summary-rows">
+          <div class="summary-row">
+            <span class="summary-label">Country</span>
+            <span class="summary-value">{{
+              actions.GetCountryDisplayName()
+            }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Business type</span>
+            <span class="summary-value">{{
+              actions.GetBusinessTypeLabel()
+            }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Capabilities</span>
+            <span class="summary-value">{{
+              actions.GetCapabilitiesLabel()
+            }}</span>
+          </div>
+        </div>
+      </section>
+
+      @if (actions.error()) {
+      <div class="error create-error">{{ actions.error() }}</div>
+      }
+
+      <button
+        type="button"
+        class="action-button action-button-full"
+        [class.loader-button]="actions.loading()"
+        [disabled]="actions.loading()"
+        (click)="OnCreate()"
+      >
+        @if (actions.loading()) {
+        <app-loader size="small" color="light"></app-loader>
+        } @else { Create }
+      </button>
+      }
+
+      <!-- Edit details -->
+      @if (actions.step() === 'edit-details') {
+      <p class="create-flow-eyebrow">Create an account</p>
+      <h1 id="create-connected-account-title" class="create-flow-title">
+        Edit account details
+      </h1>
+
+      <app-create-connected-account-details-form></app-create-connected-account-details-form>
+
+      <div class="create-flow-actions">
+        <button
+          type="button"
+          class="action-button action-button-dainty outline"
+          (click)="actions.BackToSummary()"
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          class="action-button action-button-dainty"
+          (click)="actions.SaveDetails()"
+        >
+          Save
+        </button>
+      </div>
+      }
+
+      <!-- Success -->
+      @if (actions.step() === 'success') {
+      <div class="success-content">
+        <h1 id="create-connected-account-title" class="create-flow-title">
+          Connected account created
+        </h1>
+        <p class="success-subtitle">
+          Provide this link to the connected account, and once it's completed,
+          their account will be ready to use.
+        </p>
+
+        @if (actions.createdAccountLink(); as link) {
+        <div class="onboarding-link-field">
+          <input type="text" [value]="link.url" readonly />
+          <button
+            type="button"
+            class="copy-link-button"
+            title="Copy to clipboard"
+            (click)="actions.CopyOnboardingLink()"
+          >
+            @if (actions.linkCopied()) {
+            <img src="assets/icons/check.svg" alt="Copied" />
+            } @else {
+            <img src="assets/icons/content_copy.svg" alt="Copy" />
+            }
+          </button>
+        </div>
+        <p class="expires-note">
+          <img src="assets/icons/clock.svg" alt="" />
+          <span>{{ actions.GetExpiresInLabel() }}</span>
+        </p>
+        }
+
+        <button
+          type="button"
+          class="action-button action-button-full"
+          (click)="OnViewAccount()"
+        >
+          View account
+        </button>
+      </div>
+      }
+    </div>
+  </div>
+</div>
+}

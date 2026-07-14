@@ -5,38 +5,48 @@ import {
   signal,
   WritableSignal,
   OnInit,
+  OnDestroy,
+  ViewChild,
 } from '@angular/core';
 
-import type { PaginatedListColumn } from '../../../shared';
-import { MetaService } from '../../../core';
+import type { PaginatedListColumn } from '../../../../../shared';
+import { MetaService } from '../../../../../core';
 import {
   PaginatedListComponent,
   SlidePanelComponent,
   LoaderComponent,
-} from '../../../shared';
+} from '../../../../../shared';
 
-import { ConnectedAccountDetailComponent } from '../components';
+import { ConnectedAccountDetailComponent } from '../../../components';
+import { CreateConnectedAccountHostComponent } from '../../components/create-connected-account-host/create-connected-account-host.component';
+import { ConnectedAccountActionsService } from '../../services/connected-account-actions.service';
 
-import { AccountService } from '../../../data';
+import { AccountService } from '../../../../../data';
 
 import type { Account } from '@zoneless/shared-types';
-import { GetCountryName } from '../../../utils';
+import { GetCountryName } from '../../../../../utils';
+import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-connected-accounts',
+  selector: 'app-connected-accounts-list',
   imports: [
     PaginatedListComponent,
     SlidePanelComponent,
     LoaderComponent,
     ConnectedAccountDetailComponent,
+    CreateConnectedAccountHostComponent,
   ],
-  templateUrl: './connected-accounts.component.html',
-  styleUrl: './connected-accounts.component.scss',
+  templateUrl: './connected-accounts-list.component.html',
+  styleUrl: './connected-accounts-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ConnectedAccountsComponent implements OnInit {
+export class ConnectedAccountsListComponent implements OnInit, OnDestroy {
   readonly accountService = inject(AccountService);
+  readonly actions = inject(ConnectedAccountActionsService);
   private readonly metaService = inject(MetaService);
+  private sub?: Subscription;
+
+  @ViewChild('accountsList') accountsList?: PaginatedListComponent<any>;
 
   connectedAccountPanelOpen: WritableSignal<boolean> = signal(false);
 
@@ -105,21 +115,22 @@ export class ConnectedAccountsComponent implements OnInit {
 
   ngOnInit(): void {
     this.metaService.SetMetaTitle('Connected Accounts');
+    this.sub = this.actions.events$.subscribe(() => {
+      this.accountsList?.Reload();
+    });
   }
 
-  OnCreateClick(): void {
-    // Placeholder — account creation flow not yet implemented
+  ngOnDestroy(): void {
+    this.sub?.unsubscribe();
   }
 
   async OnConnectedAccountClick(item: unknown): Promise<void> {
     const account = item as Account;
-    this.connectedAccountPanelOpen.set(true);
+    await this.OpenAccountPanel(account.id);
+  }
 
-    try {
-      await this.accountService.LoadConnectedAccount(account.id);
-    } catch (error) {
-      console.error('Failed to load connected account details:', error);
-    }
+  async OnViewCreatedAccount(accountId: string): Promise<void> {
+    await this.OpenAccountPanel(accountId);
   }
 
   OnConnectedAccountPanelClosed(): void {
@@ -131,6 +142,15 @@ export class ConnectedAccountsComponent implements OnInit {
     const account = this.accountService.selectedConnectedAccount();
     if (!account) return 'Account details';
     return this.accountService.GetConnectedAccountDisplayName(account);
+  }
+
+  private async OpenAccountPanel(accountId: string): Promise<void> {
+    this.connectedAccountPanelOpen.set(true);
+    try {
+      await this.accountService.LoadConnectedAccount(accountId);
+    } catch (error) {
+      console.error('Failed to load connected account details:', error);
+    }
   }
 
   private CopyAccountId(account: Account): void {

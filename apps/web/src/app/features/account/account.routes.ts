@@ -22,9 +22,9 @@ export const accountRoutes: Routes = [
   {
     path: 'connected-accounts',
     canActivate: [platformOnlyGuard],
-    loadComponent: () =>
-      import('./connected-accounts/connected-accounts.component').then(
-        (m) => m.ConnectedAccountsComponent
+    loadChildren: () =>
+      import('./connected-accounts/connected-accounts.routes').then(
+        (m) => m.connectedAccountRoutes
       ),
   },
   {
