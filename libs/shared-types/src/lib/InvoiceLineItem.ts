@@ -1,5 +1,10 @@
 import { CustomerDiscount, CustomerTaxRate } from './Customer';
-import { Price } from './Price';
+import {
+  InvoiceDiscountAmount,
+  InvoiceItem,
+  InvoicePeriod,
+  InvoicePricing,
+} from './InvoiceItem';
 
 /**
  * Stripe-compatible Invoice Line Item object for Zoneless.
@@ -19,7 +24,7 @@ export interface InvoiceLineItem {
   /** An arbitrary string attached to the object. Often useful for displaying to users. */
   description: string | null;
   /** The amount of discount calculated per discount for this line item. */
-  discount_amounts: InvoiceLineItemDiscountAmount[] | null;
+  discount_amounts: InvoiceDiscountAmount[] | null;
   /** If true, discounts will apply to this line item. Always false for prorations. */
   discountable: boolean;
   /**
@@ -46,11 +51,11 @@ export interface InvoiceLineItem {
    * subscription. For invoice items, this is the time at which the invoice item was created or the period
    * of the item.
    */
-  period: InvoiceLineItemPeriod;
+  period: InvoicePeriod;
   /** Contains pretax credit amounts (ex: discount, credit grants, etc) that apply to this line item. */
   pretax_credit_amounts: InvoiceLineItemPretaxCreditAmount[] | null;
   /** The pricing information of the line item. */
-  pricing: InvoiceLineItemPricing | null;
+  pricing: InvoicePricing | null;
   /**
    * Quantity of units for the invoice line item in integer format, with any decimal precision truncated.
    * For the line item's full-precision decimal quantity, use quantity_decimal. This field will be
@@ -64,18 +69,6 @@ export interface InvoiceLineItem {
   subtotal: number;
   /** The tax information of the line item. */
   taxes: InvoiceLineItemTax[] | null;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Discount amounts
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** The amount of discount calculated for a single discount on this line item. */
-export interface InvoiceLineItemDiscountAmount {
-  /** The amount, in the smallest currency unit, of the discount. */
-  amount: number;
-  /** The discount that was applied to get this discount amount. Expandable. */
-  discount: string | CustomerDiscount;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -94,8 +87,8 @@ export interface InvoiceLineItemParent {
 
 /** Details about the invoice item that generated this line item. */
 export interface InvoiceLineItemInvoiceItemDetails {
-  /** The invoice item that generated this line item. */
-  invoice_item: string;
+  /** The invoice item that generated this line item. Expandable. */
+  invoice_item: string | InvoiceItem;
   /** Whether this is a proration. */
   proration: boolean;
   /** Additional details for proration line items. */
@@ -106,8 +99,8 @@ export interface InvoiceLineItemInvoiceItemDetails {
 
 /** Details about the subscription item that generated this line item. */
 export interface InvoiceLineItemSubscriptionItemDetails {
-  /** The invoice item that generated this line item. */
-  invoice_item: string | null;
+  /** The invoice item that generated this line item. Expandable. */
+  invoice_item: string | InvoiceItem | null;
   /** Whether this is a proration. */
   proration: boolean;
   /** Additional details for proration line items. */
@@ -135,18 +128,6 @@ export interface InvoiceLineItemProrationCreditedItems {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Period
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** The period this line_item covers. */
-export interface InvoiceLineItemPeriod {
-  /** The end of the period, which must be greater than or equal to the start. This value is inclusive. */
-  end: number;
-  /** The start of the period. This value is inclusive. */
-  start: number;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Pretax credit amounts
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -166,31 +147,6 @@ export interface InvoiceLineItemPretaxCreditAmount {
   discount: string | CustomerDiscount | null;
   /** Type of the pretax credit amount referenced. */
   type: 'credit_balance_transaction' | 'discount';
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Pricing
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** The pricing information of the line item. */
-export interface InvoiceLineItemPricing {
-  /** Additional details about the price this item is associated with. Present when type is price_details. */
-  price_details: InvoiceLineItemPriceDetails | null;
-  /** The type of the pricing details. */
-  type: 'price_details';
-  /**
-   * The unit amount (in the currency specified) of the item which contains a decimal value with at most
-   * 12 decimal places.
-   */
-  unit_amount_decimal: string | null;
-}
-
-/** Additional details about the price this item is associated with. */
-export interface InvoiceLineItemPriceDetails {
-  /** The ID of the price this item is associated with. Expandable. */
-  price: string | Price;
-  /** The ID of the product this item is associated with. */
-  product: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
