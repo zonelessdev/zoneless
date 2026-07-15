@@ -94,7 +94,7 @@ export interface InvoiceItemDeleted {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Shared invoice shapes (reused by InvoiceLineItem)
+// Shared invoice shapes (reused by Invoice and InvoiceLineItem)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** The period associated with an invoice item or line item. */
@@ -133,6 +133,68 @@ export interface InvoiceDiscountAmount {
   /** The discount that was applied to get this discount amount. Expandable. */
   discount: string | CustomerDiscount;
 }
+
+/** A pretax credit amount (ex: discount, credit grants, etc) on an invoice or line item. */
+export interface InvoicePretaxCreditAmount {
+  /** The amount, in the smallest currency unit, of the pretax credit amount. */
+  amount: number;
+  /**
+   * The credit balance transaction that was applied to get this pretax credit amount.
+   * Present when type is credit_balance_transaction. Expandable.
+   */
+  credit_balance_transaction: string | null;
+  /**
+   * The discount that was applied to get this pretax credit amount.
+   * Present when type is discount. Expandable.
+   */
+  discount: string | CustomerDiscount | null;
+  /** Type of the pretax credit amount referenced. */
+  type: 'credit_balance_transaction' | 'discount';
+}
+
+/** Tax information for an invoice or line item. */
+export interface InvoiceTax {
+  /** The amount of the tax, in the smallest currency unit. */
+  amount: number;
+  /** Whether this tax is inclusive or exclusive. */
+  tax_behavior: 'exclusive' | 'inclusive';
+  /** Additional details about the tax rate. Only present when type is tax_rate_details. */
+  tax_rate_details: InvoiceTaxRateDetails | null;
+  /**
+   * The reasoning behind this tax, for example, if the product is tax exempt. The possible values for
+   * this field may be extended as new tax rules are supported.
+   */
+  taxability_reason: InvoiceTaxabilityReason;
+  /** The amount on which tax is calculated, in the smallest currency unit. */
+  taxable_amount: number | null;
+  /** The type of tax information. */
+  type: 'tax_rate_details';
+}
+
+/** Additional details about a tax rate referenced on an invoice or line item. */
+export interface InvoiceTaxRateDetails {
+  /** ID of the tax rate. Expandable. */
+  tax_rate: string | CustomerTaxRate;
+}
+
+/** The reasoning behind a tax amount on an invoice or line item. */
+export type InvoiceTaxabilityReason =
+  | 'customer_exempt'
+  | 'not_available'
+  | 'not_collecting'
+  | 'not_subject_to_tax'
+  | 'not_supported'
+  | 'portion_product_exempt'
+  | 'portion_reduced_rated'
+  | 'portion_standard_rated'
+  | 'product_exempt'
+  | 'product_exempt_holiday'
+  | 'proportionally_rated'
+  | 'reduced_rated'
+  | 'reverse_charge'
+  | 'standard_rated'
+  | 'taxable_basis_reduced'
+  | 'zero_rated';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Parent

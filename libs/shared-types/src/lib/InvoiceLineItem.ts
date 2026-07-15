@@ -1,9 +1,11 @@
-import { CustomerDiscount, CustomerTaxRate } from './Customer';
+import { CustomerDiscount } from './Customer';
 import {
   InvoiceDiscountAmount,
   InvoiceItem,
   InvoicePeriod,
+  InvoicePretaxCreditAmount,
   InvoicePricing,
+  InvoiceTax,
 } from './InvoiceItem';
 
 /**
@@ -53,7 +55,7 @@ export interface InvoiceLineItem {
    */
   period: InvoicePeriod;
   /** Contains pretax credit amounts (ex: discount, credit grants, etc) that apply to this line item. */
-  pretax_credit_amounts: InvoiceLineItemPretaxCreditAmount[] | null;
+  pretax_credit_amounts: InvoicePretaxCreditAmount[] | null;
   /** The pricing information of the line item. */
   pricing: InvoicePricing | null;
   /**
@@ -68,7 +70,7 @@ export interface InvoiceLineItem {
   /** The subtotal of the line item, in the smallest currency unit, before any discounts or taxes. */
   subtotal: number;
   /** The tax information of the line item. */
-  taxes: InvoiceLineItemTax[] | null;
+  taxes: InvoiceTax[] | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -126,73 +128,3 @@ export interface InvoiceLineItemProrationCreditedItems {
   /** Credited invoice line items. */
   invoice_line_items: string[];
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Pretax credit amounts
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** A pretax credit amount (ex: discount, credit grants, etc) that applies to this line item. */
-export interface InvoiceLineItemPretaxCreditAmount {
-  /** The amount, in the smallest currency unit, of the pretax credit amount. */
-  amount: number;
-  /**
-   * The credit balance transaction that was applied to get this pretax credit amount.
-   * Present when type is credit_balance_transaction. Expandable.
-   */
-  credit_balance_transaction: string | null;
-  /**
-   * The discount that was applied to get this pretax credit amount.
-   * Present when type is discount. Expandable.
-   */
-  discount: string | CustomerDiscount | null;
-  /** Type of the pretax credit amount referenced. */
-  type: 'credit_balance_transaction' | 'discount';
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Taxes
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Tax information for a line item. */
-export interface InvoiceLineItemTax {
-  /** The amount of the tax, in the smallest currency unit. */
-  amount: number;
-  /** Whether this tax is inclusive or exclusive. */
-  tax_behavior: 'exclusive' | 'inclusive';
-  /** Additional details about the tax rate. Only present when type is tax_rate_details. */
-  tax_rate_details: InvoiceLineItemTaxRateDetails | null;
-  /**
-   * The reasoning behind this tax, for example, if the product is tax exempt. The possible values for
-   * this field may be extended as new tax rules are supported.
-   */
-  taxability_reason: InvoiceLineItemTaxabilityReason;
-  /** The amount on which tax is calculated, in the smallest currency unit. */
-  taxable_amount: number | null;
-  /** The type of tax information. */
-  type: 'tax_rate_details';
-}
-
-/** Additional details about the tax rate. */
-export interface InvoiceLineItemTaxRateDetails {
-  /** ID of the tax rate. Expandable. */
-  tax_rate: string | CustomerTaxRate;
-}
-
-/** The reasoning behind a tax amount on an invoice line item. */
-export type InvoiceLineItemTaxabilityReason =
-  | 'customer_exempt'
-  | 'not_available'
-  | 'not_collecting'
-  | 'not_subject_to_tax'
-  | 'not_supported'
-  | 'portion_product_exempt'
-  | 'portion_reduced_rated'
-  | 'portion_standard_rated'
-  | 'product_exempt'
-  | 'product_exempt_holiday'
-  | 'proportionally_rated'
-  | 'reduced_rated'
-  | 'reverse_charge'
-  | 'standard_rated'
-  | 'taxable_basis_reduced'
-  | 'zero_rated';
