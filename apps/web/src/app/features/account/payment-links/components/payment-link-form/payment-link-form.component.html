@@ -1,0 +1,542 @@
+<div class="form-section">
+  <div class="field-title">Select type</div>
+  <div class="type-select-wrap">
+    <button
+      type="button"
+      class="type-select"
+      (click)="ToggleTypeMenu()"
+      [attr.aria-expanded]="typeMenuOpen()"
+    >
+      <span>{{
+        linkType() === 'products'
+          ? 'Products or subscriptions'
+          : 'Customers choose what to pay'
+      }}</span>
+      <img
+        src="assets/icons/chevron_down.svg"
+        class="collapsible-down-icon"
+        [class.expanded]="typeMenuOpen()"
+        alt=""
+      />
+    </button>
+
+    @if (typeMenuOpen()) {
+    <div class="type-menu">
+      <button
+        type="button"
+        class="type-option"
+        [class.type-option-selected]="linkType() === 'products'"
+        (click)="SelectLinkType('products')"
+      >
+        <img src="assets/icons/package.svg" alt="" />
+        <div>
+          <div class="type-option-title">Products or subscriptions</div>
+          <div class="type-option-help">
+            Best for ecommerce or software-as-a-service.
+          </div>
+        </div>
+      </button>
+      <button
+        type="button"
+        class="type-option"
+        [class.type-option-selected]="linkType() === 'custom'"
+        (click)="SelectLinkType('custom')"
+      >
+        <img src="assets/icons/savings.svg" alt="" />
+        <div>
+          <div class="type-option-title">Customers choose what to pay</div>
+          <div class="type-option-help">
+            Best for tipping, donations, or pay-what-you-want.
+          </div>
+        </div>
+      </button>
+    </div>
+    }
+  </div>
+</div>
+
+<div class="tab-bar form-tabs">
+  <button
+    type="button"
+    class="tab-button"
+    [class.tab-active]="activeTab() === 'payment'"
+    (click)="SetTab('payment')"
+  >
+    Payment page
+  </button>
+  <button
+    type="button"
+    class="tab-button"
+    [class.tab-active]="activeTab() === 'after'"
+    (click)="SetTab('after')"
+  >
+    After payment
+  </button>
+</div>
+
+@if (activeTab() === 'payment') { @if (linkType() === 'products') {
+<div class="form-section">
+  <div class="field-title">Product</div>
+  <div class="product-picker">
+    <div class="product-search-wrap">
+      <img src="assets/icons/search.svg" class="search-icon" alt="" />
+      <input
+        type="text"
+        placeholder="Find or add a product..."
+        [ngModel]="productSearch()"
+        (ngModelChange)="OnProductSearchChange($event)"
+        (focus)="OnProductSearchFocus()"
+      />
+    </div>
+
+    @if (productMenuOpen()) {
+    <div class="product-menu">
+      <button type="button" class="product-menu-add" (click)="OpenAddProduct()">
+        <img src="assets/icons/add.svg" alt="" />
+        <span>Add new product</span>
+      </button>
+      <div class="product-menu-label">Recent products</div>
+      @if (productsLoading()) {
+      <div class="product-menu-empty">Loading products...</div>
+      } @else if (productsError()) {
+      <div class="product-menu-empty">{{ productsError() }}</div>
+      } @else if (filteredProducts().length === 0) {
+      <div class="product-menu-empty">No products found</div>
+      } @else { @for (product of filteredProducts(); track product.id) {
+      <button
+        type="button"
+        class="product-menu-item"
+        (click)="SelectProduct(product)"
+      >
+        <div class="product-menu-name">{{ product.name }}</div>
+        <div class="product-menu-price">
+          {{ FormatProductPrice(product) }}
+        </div>
+      </button>
+      } }
+    </div>
+    } @if (lineItems().length > 0) {
+    <div class="selected-products">
+      @for (item of lineItems(); track item.key) {
+      <div class="selected-product">
+        <div>
+          <div class="selected-product-name">{{ item.name }}</div>
+          <div class="selected-product-price">
+            {{ FormatPrice(item.unitAmount, item.recurringInterval) }}
+          </div>
+        </div>
+        <button
+          type="button"
+          class="remove-product"
+          aria-label="Remove product"
+          (click)="RemoveLineItem(item.key)"
+        >
+          <img src="assets/icons/close.svg" alt="" />
+        </button>
+      </div>
+      }
+    </div>
+    } @if (showErrors && lineItemsError()) {
+    <div class="error">{{ lineItemsError() }}</div>
+    }
+  </div>
+</div>
+} @else {
+<div class="form-section">
+  <div class="field">
+    <div class="field-title">Title</div>
+    <input
+      type="text"
+      [ngModel]="customTitle()"
+      (ngModelChange)="OnCustomTitleChange($event)"
+      placeholder="Donate"
+      [class.field-error]="showErrors && customTitleError()"
+    />
+    @if (showErrors && customTitleError()) {
+    <div class="error">{{ customTitleError() }}</div>
+    }
+  </div>
+  <div class="field">
+    <div class="field-title">Suggested amount</div>
+    <div class="dollar-input">
+      <span>USDC$</span>
+      <input
+        type="number"
+        [ngModel]="customPreset()"
+        (ngModelChange)="OnCustomPresetChange($event)"
+      />
+    </div>
+  </div>
+  <div class="field field-double">
+    <div class="field-nested">
+      <div class="field-title">Minimum</div>
+      <div class="dollar-input">
+        <span>USDC$</span>
+        <input
+          type="number"
+          [ngModel]="customMinimum()"
+          (ngModelChange)="OnCustomMinimumChange($event)"
+        />
+      </div>
+    </div>
+    <div class="field-nested">
+      <div class="field-title">Maximum</div>
+      <div class="dollar-input">
+        <span>USDC$</span>
+        <input
+          type="number"
+          [ngModel]="customMaximum()"
+          (ngModelChange)="OnCustomMaximumChange($event)"
+        />
+      </div>
+    </div>
+  </div>
+  @if (showErrors && customAmountError()) {
+  <div class="error">{{ customAmountError() }}</div>
+  }
+</div>
+}
+
+<div class="form-section">
+  <div class="field-title">Options</div>
+
+  <!-- <label class="custom-checkbox field-check option-row">
+    <input
+      type="checkbox"
+      [checked]="managedPayments()"
+      (change)="
+        OnCheckboxChange(managedPayments, $any($event.target).checked)
+      "
+    />
+    <span class="checkmark"></span>
+    <div class="option-label">
+      <span>Enable Managed Payments</span>
+      <span class="new-badge">New</span>
+      <app-more-info-hover
+        text="Let Zoneless manage payment routing and settlement for this link."
+      ></app-more-info-hover>
+    </div>
+  </label> -->
+
+  <label class="custom-checkbox field-check option-row">
+    <input
+      type="checkbox"
+      [checked]="automaticTax()"
+      (change)="OnCheckboxChange(automaticTax, $any($event.target).checked)"
+    />
+    <span class="checkmark"></span>
+    <div>Collect tax automatically</div>
+  </label>
+
+  <label class="custom-checkbox field-check option-row">
+    <input
+      type="checkbox"
+      [checked]="collectCustomerNames()"
+      (change)="
+        OnCheckboxChange(collectCustomerNames, $any($event.target).checked)
+      "
+    />
+    <span class="checkmark"></span>
+    <div>Collect customer names</div>
+  </label>
+
+  <label class="custom-checkbox field-check option-row">
+    <input
+      type="checkbox"
+      [checked]="collectBusinessNames()"
+      (change)="
+        OnCheckboxChange(collectBusinessNames, $any($event.target).checked)
+      "
+    />
+    <span class="checkmark"></span>
+    <div>Collect business names</div>
+  </label>
+
+  <label class="custom-checkbox field-check option-row">
+    <input
+      type="checkbox"
+      [checked]="collectAddresses()"
+      (change)="OnCheckboxChange(collectAddresses, $any($event.target).checked)"
+    />
+    <span class="checkmark"></span>
+    <div>Collect customer addresses</div>
+  </label>
+
+  <label class="custom-checkbox field-check option-row">
+    <input
+      type="checkbox"
+      [checked]="collectPhone()"
+      (change)="OnCheckboxChange(collectPhone, $any($event.target).checked)"
+    />
+    <span class="checkmark"></span>
+    <div class="option-label">
+      <span>Require customers to provide a phone number</span>
+      <app-more-info-hover
+        text="Customers must enter a phone number before completing checkout."
+      ></app-more-info-hover>
+    </div>
+  </label>
+
+  <label class="custom-checkbox field-check option-row">
+    <input
+      type="checkbox"
+      [checked]="limitPayments()"
+      (change)="OnCheckboxChange(limitPayments, $any($event.target).checked)"
+    />
+    <span class="checkmark"></span>
+    <div class="option-label">
+      <span>Limit the number of payments</span>
+      <app-more-info-hover
+        text="Deactivate this payment link after it reaches the completed payment limit."
+      ></app-more-info-hover>
+    </div>
+  </label>
+
+  @if (limitPayments()) {
+  <div class="field nested-field">
+    <input
+      type="number"
+      min="1"
+      [ngModel]="paymentLimit()"
+      (ngModelChange)="OnPaymentLimitChange($event)"
+    />
+  </div>
+  }
+</div>
+
+<div class="form-section">
+  <div
+    class="collapsible-toggle"
+    tabindex="0"
+    role="button"
+    (click)="ToggleAdvanced()"
+    (keydown.enter)="ToggleAdvanced()"
+    (keydown.space)="ToggleAdvanced(); $event.preventDefault()"
+  >
+    <span class="collapsible-text">Advanced options</span>
+    <img
+      src="assets/icons/chevron_down.svg"
+      class="collapsible-down-icon"
+      [class.expanded]="advancedExpanded()"
+      alt=""
+    />
+  </div>
+
+  @if (advancedExpanded()) {
+  <label class="custom-checkbox field-check option-row">
+    <input
+      type="checkbox"
+      [checked]="addCustomFields()"
+      (change)="OnCheckboxChange(addCustomFields, $any($event.target).checked)"
+    />
+    <span class="checkmark"></span>
+    <div class="option-label">
+      <span>Add custom fields</span>
+      <app-more-info-hover
+        text="Collect additional information from customers at checkout."
+      ></app-more-info-hover>
+    </div>
+  </label>
+
+  @if (addCustomFields()) {
+  <div class="field nested-field">
+    <input
+      type="text"
+      placeholder="Field label"
+      [ngModel]="customFieldLabel()"
+      (ngModelChange)="customFieldLabel.set($event); EmitFormChange()"
+    />
+  </div>
+  }
+
+  <label class="custom-checkbox field-check option-row">
+    <input
+      type="checkbox"
+      [checked]="allowPromotionCodes()"
+      (change)="
+        OnCheckboxChange(allowPromotionCodes, $any($event.target).checked)
+      "
+    />
+    <span class="checkmark"></span>
+    <div class="option-label">
+      <span>Allow promotion codes</span>
+      <app-more-info-hover
+        text="Customers can enter a promotion code on the payment page."
+      ></app-more-info-hover>
+    </div>
+  </label>
+
+  <label class="custom-checkbox field-check option-row">
+    <input
+      type="checkbox"
+      [checked]="collectTaxIds()"
+      (change)="OnCheckboxChange(collectTaxIds, $any($event.target).checked)"
+    />
+    <span class="checkmark"></span>
+    <div class="option-label">
+      <span>Allow business customers to provide tax IDs</span>
+      <app-more-info-hover
+        text="Collect tax IDs from business customers at checkout."
+      ></app-more-info-hover>
+    </div>
+  </label>
+
+  <label class="custom-checkbox field-check option-row">
+    <input
+      type="checkbox"
+      [checked]="savePaymentDetails()"
+      (change)="
+        OnCheckboxChange(savePaymentDetails, $any($event.target).checked)
+      "
+    />
+    <span class="checkmark"></span>
+    <div class="option-label">
+      <span>Save payment details for future use</span>
+      <app-more-info-hover
+        text="Allow customers to save their wallet details for later purchases."
+      ></app-more-info-hover>
+    </div>
+  </label>
+
+  <label class="custom-checkbox field-check option-row">
+    <input
+      type="checkbox"
+      [checked]="requireTerms()"
+      (change)="OnCheckboxChange(requireTerms, $any($event.target).checked)"
+    />
+    <span class="checkmark"></span>
+    <div class="option-label">
+      <span>Require customers to accept your terms of service</span>
+      <app-more-info-hover
+        text="Customers must accept your terms before paying."
+      ></app-more-info-hover>
+    </div>
+  </label>
+
+  <div class="cta-row">
+    <select
+      [ngModel]="submitType()"
+      (ngModelChange)="OnSubmitTypeChange($event)"
+    >
+      <option value="pay">Pay</option>
+      <option value="donate">Donate</option>
+      <option value="book">Book</option>
+      <option value="subscribe">Subscribe</option>
+      <option value="auto">Auto</option>
+    </select>
+    <span class="cta-help">as the call to action</span>
+  </div>
+  }
+</div>
+} @else {
+<div class="form-section">
+  <div class="field-title">Confirmation page</div>
+
+  <label class="field-radio">
+    <input
+      type="radio"
+      name="afterCompletion"
+      [checked]="afterCompletionMode() === 'hosted_confirmation'"
+      (change)="SetAfterCompletionMode('hosted_confirmation')"
+    />
+    <span>Show confirmation page</span>
+  </label>
+
+  @if (afterCompletionMode() === 'hosted_confirmation') {
+  <div class="nested-field">
+    <label class="custom-checkbox field-check option-row">
+      <input
+        type="checkbox"
+        [checked]="useCustomConfirmationMessage()"
+        (change)="
+          OnCheckboxChange(
+            useCustomConfirmationMessage,
+            $any($event.target).checked
+          )
+        "
+      />
+      <span class="checkmark"></span>
+      <div>Replace default with custom message</div>
+    </label>
+    @if (useCustomConfirmationMessage()) {
+    <textarea
+      class="medium-textarea"
+      [ngModel]="customConfirmationMessage()"
+      (ngModelChange)="OnCustomConfirmationMessageChange($event)"
+      placeholder="Thanks for your order"
+      maxlength="500"
+    ></textarea>
+    }
+  </div>
+  }
+
+  <label class="field-radio">
+    <input
+      type="radio"
+      name="afterCompletion"
+      [checked]="afterCompletionMode() === 'redirect'"
+      (change)="SetAfterCompletionMode('redirect')"
+    />
+    <div>
+      <div>Don't show confirmation page</div>
+      <div class="field-help radio-help">
+        Redirect customers to your website.
+      </div>
+    </div>
+  </label>
+
+  @if (afterCompletionMode() === 'redirect') {
+  <div class="nested-field">
+    <input
+      type="text"
+      placeholder="https://www.example.com"
+      [ngModel]="redirectUrl()"
+      (ngModelChange)="OnRedirectUrlChange($event)"
+      [class.field-error]="showErrors && redirectUrlError()"
+    />
+    @if (showErrors && redirectUrlError()) {
+    <div class="error">{{ redirectUrlError() }}</div>
+    }
+  </div>
+  }
+</div>
+
+<div class="form-section">
+  <div class="field-title">Connect</div>
+  <label class="custom-checkbox field-check option-row">
+    <input
+      type="checkbox"
+      [checked]="splitPayment()"
+      (change)="OnCheckboxChange(splitPayment, $any($event.target).checked)"
+    />
+    <span class="checkmark"></span>
+    <div>Split the payment with a connected account</div>
+  </label>
+  @if (splitPayment()) {
+  <div class="nested-field">
+    <input
+      type="text"
+      placeholder="Connected account ID"
+      [ngModel]="connectedAccountId()"
+      (ngModelChange)="connectedAccountId.set($event); EmitFormChange()"
+    />
+  </div>
+  }
+</div>
+
+<div class="form-section">
+  <div class="field-title">Post-payment invoice</div>
+  <label class="custom-checkbox field-check option-row">
+    <input
+      type="checkbox"
+      [checked]="createInvoice()"
+      (change)="OnCheckboxChange(createInvoice, $any($event.target).checked)"
+    />
+    <span class="checkmark"></span>
+    <div>Create an invoice PDF</div>
+  </label>
+  <p class="field-help">
+    Post-payment invoices provide more information than a regular receipt.
+  </p>
+</div>
+}

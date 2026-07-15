@@ -1,13 +1,20 @@
 <div class="header-wrapper">
   <h1>Payment Links</h1>
-  <button type="button" class="action-button action-button-dainty">
+  <button
+    type="button"
+    class="action-button action-button-dainty"
+    (click)="actions.OpenCreate()"
+  >
     <img class="button-icon" src="assets/icons/add.svg" alt="" />
     <span>Create payment link</span>
   </button>
 </div>
 <app-paginated-list
+  #paymentLinksList
   endpoint="payment_links"
   [columns]="paymentLinkColumns"
   [limit]="10"
   [queryParams]="paymentLinksQueryParams()"
 ></app-paginated-list>
+
+<app-payment-link-actions-host></app-payment-link-actions-host>

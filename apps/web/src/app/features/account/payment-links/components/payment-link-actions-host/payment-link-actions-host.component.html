@@ -1,0 +1,110 @@
+@if (actions.flowOpen()) {
+<div
+  class="create-flow-backdrop create-flow-backdrop-open"
+  role="presentation"
+  tabindex="-1"
+  (click)="OnClose()"
+  (keydown.escape)="OnClose()"
+>
+  <div
+    class="create-flow-surface create-flow-surface-open"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="create-payment-link-title"
+    (click)="OnSurfaceClick($event)"
+    (keydown)="OnSurfaceClick($event)"
+  >
+    <header class="create-flow-header">
+      <div class="header-left">
+        <button
+          type="button"
+          class="close-button"
+          aria-label="Close"
+          [disabled]="actions.loading()"
+          (click)="OnClose()"
+        >
+          <img src="assets/icons/close.svg" alt="" />
+        </button>
+        <h1 id="create-payment-link-title">Create a payment link</h1>
+      </div>
+      <button
+        type="button"
+        class="action-button action-button-dainty"
+        [class.action-button-disabled]="!isValid() || actions.loading()"
+        [class.loader-button]="actions.loading()"
+        [disabled]="!isValid() || actions.loading()"
+        (click)="OnSubmit()"
+      >
+        @if (actions.loading()) {
+        <app-loader size="small" color="light"></app-loader>
+        } @else {
+        <img class="button-icon" src="assets/icons/check.svg" alt="" />
+        <span>Create link</span>
+        }
+      </button>
+    </header>
+
+    <div class="create-flow-body">
+      <aside class="config-pane">
+        <app-payment-link-form
+          #paymentLinkForm
+          [isOpen]="actions.flowOpen()"
+          [showErrors]="actions.showErrors()"
+          (formChange)="OnFormChange($event)"
+          (validationChange)="OnValidationChange($event)"
+        ></app-payment-link-form>
+
+        @if (actions.error(); as error) {
+        <div class="error create-error">{{ error }}</div>
+        }
+      </aside>
+
+      <section class="preview-pane">
+        <div class="preview-header">
+          <div class="preview-header-left">
+            <span class="preview-label">Preview</span>
+            @if (previewState().tab === 'after') {
+            <span class="preview-sublabel">Confirmation page</span>
+            }
+          </div>
+          <div class="device-toggle">
+            <button
+              type="button"
+              class="device-button"
+              [class.device-button-active]="
+                previewState().previewDevice === 'mobile'
+              "
+              (click)="SetPreviewDevice('mobile')"
+            >
+              Mobile
+            </button>
+            <button
+              type="button"
+              class="device-button"
+              [class.device-button-active]="
+                previewState().previewDevice === 'desktop'
+              "
+              (click)="SetPreviewDevice('desktop')"
+            >
+              Desktop
+            </button>
+          </div>
+        </div>
+
+        <div class="preview-canvas">
+          <app-payment-link-preview
+            [state]="previewState()"
+          ></app-payment-link-preview>
+        </div>
+
+        <p class="preview-footnote">
+          You can enable more payment methods and change how this page looks in
+          your account settings.
+        </p>
+      </section>
+    </div>
+  </div>
+</div>
+}
+
+<app-product-actions-host></app-product-actions-host>

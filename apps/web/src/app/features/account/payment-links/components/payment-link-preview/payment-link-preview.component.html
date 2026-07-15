@@ -1,0 +1,135 @@
+<div
+  class="preview-shell"
+  [class.preview-mobile]="state.previewDevice === 'mobile'"
+>
+  <div class="preview-window">
+    <div class="preview-summary checkout-order-summary">
+      <div class="checkout-merchant-icon">
+        @if (platformLogo()) {
+        <img [src]="platformLogo()" [alt]="platformName()" />
+        } @else {
+        {{ platformInitials() }}
+        }
+      </div>
+
+      <div class="summary-product">{{ ProductName() }}</div>
+      <div class="summary-amount">{{ FormatAmount(TotalAmount()) }}</div>
+
+      @if (LineItems().length > 1) {
+      <div class="summary-items">
+        @for (item of LineItems(); track item.key) {
+        <div class="summary-item">
+          <span>{{ item.name }}</span>
+          <span>{{ FormatAmount(item.unitAmount * item.quantity) }}</span>
+        </div>
+        }
+      </div>
+      }
+    </div>
+
+    <div class="preview-checkout checkout-payment-panel">
+      @if (state.tab === 'after' && state.afterCompletionMode ===
+      'hosted_confirmation') {
+      <div class="confirmation">
+        <img
+          class="confirmation-check"
+          src="assets/icons/check_circle.svg"
+          alt=""
+        />
+        <div class="confirmation-title">{{ ConfirmationMessage() }}</div>
+        <div class="confirmation-card">
+          <div class="confirmation-row">
+            <span class="confirmation-label">Contact information</span>
+            <span>customer@example.com</span>
+          </div>
+          <div class="confirmation-row">
+            <span class="confirmation-label">Payment method</span>
+            <span>USDC — {{ FormatAmount(TotalAmount()) }}</span>
+          </div>
+        </div>
+      </div>
+      } @else if (state.tab === 'after' && state.afterCompletionMode ===
+      'redirect') {
+      <div class="confirmation">
+        <div class="confirmation-title">Redirecting customers</div>
+        <p class="redirect-copy">
+          After payment, customers will be sent to your website instead of a
+          confirmation page.
+        </p>
+      </div>
+      } @else {
+      <div class="checkout-section-label">Contact information</div>
+      <label class="checkout-contact-box preview-contact">
+        <span class="contact-label">Email</span>
+        <input type="email" placeholder="email@example.com" disabled />
+      </label>
+
+      @if (state.collectCustomerNames) {
+      <label class="checkout-contact-box preview-contact">
+        <span class="contact-label">Name</span>
+        <input type="text" placeholder="Jane Diaz" disabled />
+      </label>
+      } @if (state.collectBusinessNames) {
+      <label class="checkout-contact-box preview-contact">
+        <span class="contact-label">Business</span>
+        <input type="text" placeholder="Acme Inc." disabled />
+      </label>
+      } @if (state.collectPhone) {
+      <label class="checkout-contact-box preview-contact">
+        <span class="contact-label">Phone</span>
+        <input type="text" placeholder="+1 555 000 0000" disabled />
+      </label>
+      } @if (state.collectAddresses) {
+      <label class="checkout-contact-box preview-contact">
+        <span class="contact-label">Address</span>
+        <input type="text" placeholder="Address" disabled />
+      </label>
+      }
+
+      <div class="checkout-section-label method-label">Payment method</div>
+      <div class="checkout-method-box">
+        <div class="checkout-method-option">
+          <img src="assets/images/logos/usdc.svg" alt="" />
+          <span>USDC</span>
+        </div>
+        <div class="checkout-method-detail">
+          <div class="checkout-method-detail-label">
+            Paying with USDC on Solana
+          </div>
+          <div class="checkout-method-detail-help">
+            Connect a wallet and approve
+            {{ FormatAmount(TotalAmount()) }} in USDC.
+          </div>
+        </div>
+      </div>
+
+      @if (state.allowPromotionCodes) {
+      <label class="checkout-contact-box preview-contact">
+        <span class="contact-label">Promo</span>
+        <input type="text" placeholder="Enter code" disabled />
+      </label>
+      } @if (state.requireTerms) {
+      <label class="terms-row">
+        <input type="checkbox" disabled />
+        <span>I agree to the Terms of Service</span>
+      </label>
+      }
+
+      <button type="button" class="checkout-pay-button" disabled>
+        {{ SubmitLabel() }}
+      </button>
+
+      <div class="checkout-fine-print preview-fine-print">
+        By paying, you agree to Terms and Privacy.
+      </div>
+
+      <div class="checkout-payment-footer preview-footer-row">
+        <span>Powered by <b>Zoneless</b></span>
+        <span class="checkout-payment-footer-divider"></span>
+        <span>Terms</span>
+        <span>Privacy</span>
+      </div>
+      }
+    </div>
+  </div>
+</div>

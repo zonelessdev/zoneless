@@ -1,0 +1,188 @@
+@use '../../../../../styles/base.scss' as *;
+@use '../../../../../styles/buttons.scss' as *;
+@use '../../../../../styles/forms.scss' as *;
+@use '../../../../../styles/account.scss' as *;
+
+.create-flow-backdrop {
+  position: fixed;
+  inset: 0;
+  background: $background-color;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.create-flow-surface {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: $background-color;
+}
+
+.create-flow-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing;
+  padding: $spacing $spacing-medium;
+  border-bottom: 1px solid $darkest-background-color;
+  flex-shrink: 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-snug;
+  min-width: 0;
+
+  h1 {
+    margin: 0;
+    font-family: $title-font;
+    font-size: $font-size-large;
+    font-weight: $title-weight;
+    color: $text-color;
+  }
+}
+
+.close-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: $spacing-extra-small;
+  border-radius: $border-radius-small;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: $darker-background-color;
+  }
+
+  &:disabled {
+    opacity: $dimmed-disabled;
+    cursor: not-allowed;
+  }
+
+  img {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.create-flow-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) 1fr;
+}
+
+.config-pane {
+  overflow: auto;
+  padding: $spacing-medium;
+  border-right: 1px solid $darkest-background-color;
+  background: $background-color;
+}
+
+.preview-pane {
+  overflow: auto;
+  padding: $spacing-medium;
+  background: $mid-background-color;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing;
+  margin-bottom: $spacing;
+  flex-shrink: 0;
+}
+
+.preview-header-left {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-small;
+}
+
+.preview-label {
+  font-family: $title-font;
+  font-weight: $title-weight;
+  font-size: $font-size;
+}
+
+.preview-sublabel {
+  font-size: $font-size-small;
+  opacity: $dimmed;
+}
+
+.device-toggle {
+  display: inline-flex;
+  gap: $spacing-extra-small;
+  background: $background-color;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  padding: 2px;
+}
+
+.device-button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: $text-font;
+  font-size: $font-size-small;
+  padding: $spacing-extra-small $spacing-small;
+  border-radius: 6px;
+  color: $text-color;
+  opacity: $dimmed;
+}
+
+.device-button-active {
+  background: $darker-background-color;
+  opacity: 1;
+  font-weight: $medium-weight;
+}
+
+.preview-canvas {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: $spacing 0 $spacing-large;
+  min-height: 480px;
+}
+
+.preview-footnote {
+  margin: 0;
+  font-size: $font-size-small;
+  opacity: $dimmed;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.create-error {
+  margin-top: $spacing;
+}
+
+:host ::ng-deep .slide-panel-backdrop {
+  z-index: 1100;
+}
+
+@media only screen and (max-width: 900px) {
+  .create-flow-body {
+    grid-template-columns: 1fr;
+  }
+
+  .config-pane {
+    border-right: none;
+    border-bottom: 1px solid $darkest-background-color;
+    max-height: 55vh;
+  }
+
+  .preview-pane {
+    min-height: 45vh;
+  }
+}
