@@ -1,0 +1,311 @@
+@if (paymentLink(); as pl) {
+<div class="detail-header">
+  <div class="object-label">Payment link</div>
+  <div class="flex align-vert-start space-between gap-medium">
+    <div class="flex flex-column gap-small header-main">
+      <h1 class="detail-title">
+        <span>{{ title() }}</span>
+        @if (unitAmountLabel()) {
+        <span class="detail-title-price">for {{ unitAmountLabel() }}</span>
+        }
+      </h1>
+      <p class="detail-subtitle">
+        Copy and share to start accepting payments with this link.
+      </p>
+      <div class="flex align-vert gap-small url-row">
+        <app-copy-text
+          class="url-copy"
+          [text]="pl.url"
+          tooltipText="Copy payment link URL"
+        ></app-copy-text>
+        <app-popup-menu
+          [actions]="paymentLinkActions"
+          [item]="pl"
+          [highlightIcon]="true"
+        ></app-popup-menu>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <button
+    type="button"
+    class="tab-button"
+    [class.tab-active]="activeTab() === 'overview'"
+    (click)="SetTab('overview')"
+  >
+    Overview
+  </button>
+  <button
+    type="button"
+    class="tab-button"
+    [class.tab-active]="activeTab() === 'payments'"
+    (click)="SetTab('payments')"
+  >
+    Payments and analytics
+  </button>
+</div>
+
+@if (activeTab() === 'overview') {
+<div class="flex gap-extra-large view-panels detail-panels">
+  <div class="view-left-panel detail-left">
+    <div class="view-section">
+      <h2 class="section-title">Products</h2>
+      <table class="products-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Quantity</th>
+            <th>Adjustable quantity</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of lineItems(); track item.id) {
+          <tr>
+            <td>
+              <div class="product-cell">
+                <div class="product-thumb">
+                  @if (GetLineItemProductImage(item); as image) {
+                  <img [src]="image" alt="" />
+                  } @else {
+                  <img class="icon" src="assets/icons/package.svg" alt="" />
+                  }
+                </div>
+                <div class="product-cell-text">
+                  @if (LineItemProductId(item); as productId) {
+                  <a
+                    class="link-highlight product-name-link"
+                    [routerLink]="['/account/products', productId]"
+                    >{{ item.description || 'Product' }}</a
+                  >
+                  } @else {
+                  <span class="product-name-link">{{
+                    item.description || 'Product'
+                  }}</span>
+                  }
+                  <div class="product-price dimmed">
+                    {{ LineItemAmount(item) }}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td>{{ item.quantity ?? 1 }}</td>
+            <td>No</td>
+          </tr>
+          } @empty {
+          <tr>
+            <td colspan="3" class="dimmed">No products</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="view-section">
+      <h2 class="section-title">Payment methods</h2>
+      <div class="payment-methods">
+        <div class="payment-method-item">
+          <img src="assets/images/logos/usdc.svg" alt="" />
+          <span>USDC</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="view-section">
+      <h2 class="section-title">Details</h2>
+      <div class="details-list">
+        <div class="detail-row">
+          <div class="detail-label">Status</div>
+          <div class="detail-value">
+            @if (pl.active) {
+            <span class="chip green-chip">Active</span>
+            } @else {
+            <span class="chip grey-chip">Inactive</span>
+            }
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Date created</div>
+          <div class="detail-value">
+            {{ pl.created * 1000 | date : 'd MMM, HH:mm' }}
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">ID</div>
+          <div class="detail-value">
+            <app-copy-text [text]="pl.id"></app-copy-text>
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Limited use</div>
+          <div class="detail-value">{{ FormatLimitedUse(pl) }}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Allow promotion codes</div>
+          <div class="detail-value">
+            {{ FormatYesNo(pl.allow_promotion_codes) }}
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Collect addresses</div>
+          <div class="detail-value">{{ FormatCollectAddresses(pl) }}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Collect phone numbers</div>
+          <div class="detail-value">
+            {{ FormatYesNo(pl.phone_number_collection.enabled) }}
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Collect full names</div>
+          <div class="detail-value">
+            {{ FormatYesNo(!!pl.name_collection?.individual?.enabled) }}
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Collect business names</div>
+          <div class="detail-value">
+            {{ FormatYesNo(!!pl.name_collection?.business?.enabled) }}
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">
+            Allow business customers to provide tax IDs
+          </div>
+          <div class="detail-value">
+            {{ FormatYesNo(pl.tax_id_collection.enabled) }}
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Save payment details for future use</div>
+          <div class="detail-value">
+            {{ FormatYesNo(!!pl.payment_intent_data?.setup_future_usage) }}
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Collect tax automatically</div>
+          <div class="detail-value">
+            {{ FormatYesNo(pl.automatic_tax.enabled) }}
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Collect terms of service agreement</div>
+          <div class="detail-value">
+            {{
+              FormatYesNo(
+                pl.consent_collection?.terms_of_service === 'required'
+              )
+            }}
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Confirmation page</div>
+          <div class="detail-value">{{ FormatConfirmationPage(pl) }}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Deactivated link page</div>
+          <div class="detail-value">{{ FormatDeactivatedLinkPage(pl) }}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Call to action button</div>
+          <div class="detail-value">
+            {{ FormatSubmitTypeLabel(pl.submit_type) }}
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Post-payment invoice</div>
+          <div class="detail-value">
+            {{ FormatYesNo(!!pl.invoice_creation?.enabled) }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view-section">
+      <div class="section-edit-top">
+        <h2 class="section-title">Metadata</h2>
+        <button
+          type="button"
+          class="action-button action-button-small outline"
+          (click)="OnEditMetadata()"
+        >
+          <img src="assets/icons/edit.svg" class="icon" alt="Edit icon" />
+        </button>
+      </div>
+      <p class="section-description metadata-help">
+        Use metadata to store custom additional information.
+      </p>
+      @if (hasMetadata()) { @for (entry of MetadataToArray(pl.metadata); track
+      entry.key) {
+      <div class="detail-row">
+        <div class="detail-label">{{ entry.key }}</div>
+        <div class="detail-value">{{ entry.value }}</div>
+      </div>
+      } } @else {
+      <div class="dimmed">No metadata</div>
+      }
+    </div>
+
+    <div class="view-section">
+      <h2 class="section-title">Events</h2>
+      <app-events-list [itemId]="pl.id"></app-events-list>
+    </div>
+  </div>
+
+  <div class="view-right-panel detail-right">
+    <div class="view-section preview-section">
+      <div class="preview-header">
+        <h2 class="section-title">Preview</h2>
+        <div class="device-toggle">
+          <button
+            type="button"
+            class="device-button"
+            [class.device-button-active]="previewDevice() === 'mobile'"
+            (click)="SetPreviewDevice('mobile')"
+          >
+            Mobile
+          </button>
+          <button
+            type="button"
+            class="device-button"
+            [class.device-button-active]="previewDevice() === 'desktop'"
+            (click)="SetPreviewDevice('desktop')"
+          >
+            Desktop
+          </button>
+        </div>
+      </div>
+      @if (previewState(); as state) {
+      <div
+        class="preview-frame"
+        [class.preview-frame-mobile]="previewDevice() === 'mobile'"
+      >
+        <div class="preview-scale">
+          <app-payment-link-preview [state]="state"></app-payment-link-preview>
+        </div>
+      </div>
+      }
+    </div>
+  </div>
+</div>
+} @else {
+<div class="payments-tab">
+  <div class="view-section">
+    <div class="section-header">
+      <h2 class="section-title">Performance</h2>
+    </div>
+    <div class="performance-empty dimmed">
+      No payment data for this date range.
+    </div>
+  </div>
+  <div class="view-section">
+    <div class="section-header">
+      <h2 class="section-title">Recent payments</h2>
+    </div>
+    <div class="dimmed">No payments</div>
+  </div>
+</div>
+} }
+
+<app-payment-link-actions-host></app-payment-link-actions-host>
