@@ -29,6 +29,7 @@ export * from './Price';
 export * from './Product';
 export * from './QueryParameters';
 export * from './Reporting';
+export * from './Subscription';
 export * from './SubscriptionItem';
 export * from './TopUp';
 export * from './Transfer';
