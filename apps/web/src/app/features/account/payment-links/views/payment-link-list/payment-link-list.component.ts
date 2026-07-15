@@ -8,15 +8,20 @@ import {
   OnDestroy,
   ViewChild,
 } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   PaginatedListComponent,
   PaginatedListColumn,
 } from '../../../../../shared';
-import type { PaymentLink, Price } from '@zoneless/shared-types';
+import type { PaymentLink } from '@zoneless/shared-types';
 import { MetaService } from '../../../../../core';
 import { Subscription } from 'rxjs';
 import { PaymentLinkActionsService } from '../../services/payment-link-actions.service';
 import { PaymentLinkActionsHostComponent } from '../../components/payment-link-actions-host/payment-link-actions-host.component';
+import {
+  FormatPaymentLinkPrice,
+  GetPaymentLinkName,
+} from '../../util/payment-link-display';
 
 @Component({
   selector: 'app-payment-link-list',
@@ -27,6 +32,7 @@ import { PaymentLinkActionsHostComponent } from '../../components/payment-link-a
 })
 export class PaymentLinkListComponent implements OnInit, OnDestroy {
   private readonly metaService = inject(MetaService);
+  private readonly router = inject(Router);
   readonly actions = inject(PaymentLinkActionsService);
   private sub?: Subscription;
   @ViewChild('paymentLinksList')
@@ -38,7 +44,7 @@ export class PaymentLinkListComponent implements OnInit, OnDestroy {
       field: 'line_items.data[0].description',
       type: 'text',
       bolded: true,
-      formatter: (item: unknown) => this.FormatName(item as PaymentLink),
+      formatter: (item: unknown) => GetPaymentLinkName(item as PaymentLink),
     },
     {
       header: '',
@@ -53,7 +59,7 @@ export class PaymentLinkListComponent implements OnInit, OnDestroy {
       header: 'Price',
       field: 'line_items.data[0].amount_total',
       type: 'text',
-      formatter: (item: unknown) => this.FormatPrice(item as PaymentLink),
+      formatter: (item: unknown) => FormatPaymentLinkPrice(item as PaymentLink),
     },
     {
       header: 'Collected Fees',
@@ -83,7 +89,14 @@ export class PaymentLinkListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.metaService.SetMetaTitle('Payment Links');
-    this.sub = this.actions.events$.subscribe(() => {
+    this.sub = this.actions.events$.subscribe((event) => {
+      if (event.type === 'created') {
+        void this.router.navigate([
+          '/account/payment-links',
+          event.paymentLink.id,
+        ]);
+        return;
+      }
       this.paymentLinksList?.Reload();
     });
   }
@@ -92,30 +105,8 @@ export class PaymentLinkListComponent implements OnInit, OnDestroy {
     this.sub?.unsubscribe();
   }
 
-  private FormatName(paymentLink: PaymentLink): string {
-    const firstItem = paymentLink.line_items?.data?.[0];
-    if (firstItem?.description) {
-      return firstItem.description;
-    }
-    return paymentLink.id;
-  }
-
-  private FormatPrice(paymentLink: PaymentLink): string {
-    const firstItem = paymentLink.line_items?.data?.[0];
-    if (!firstItem) {
-      return '—';
-    }
-
-    const price =
-      typeof firstItem.price === 'string' ? null : (firstItem.price as Price);
-    const unitAmount = price?.unit_amount ?? firstItem.amount_total ?? 0;
-    const formatted = `US$${(unitAmount / 100).toFixed(2)}`;
-
-    if (price?.recurring) {
-      return `${formatted} / ${price.recurring.interval}`;
-    }
-
-    return formatted;
+  OnRowClick(paymentLink: PaymentLink): void {
+    void this.router.navigate(['/account/payment-links', paymentLink.id]);
   }
 
   private CopyPaymentLinkUrl(paymentLink: PaymentLink): void {

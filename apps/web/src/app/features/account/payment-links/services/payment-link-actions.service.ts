@@ -4,10 +4,11 @@ import { Subject } from 'rxjs';
 import { PaymentLinkService, PriceService } from '../../../../data';
 import { CreatePaymentLinkInput } from '@zoneless/shared-schemas';
 
-export type PaymentLinkActionEvent = {
-  type: 'created';
-  paymentLink: PaymentLink;
-};
+export type PaymentLinkActionEvent =
+  | { type: 'created'; paymentLink: PaymentLink }
+  | { type: 'updated'; paymentLink: PaymentLink }
+  | { type: 'deactivated'; paymentLink: PaymentLink }
+  | { type: 'activated'; paymentLink: PaymentLink };
 
 export type PaymentLinkCreateFormPayload = {
   createInput: CreatePaymentLinkInput;
@@ -29,6 +30,19 @@ export class PaymentLinkActionsService {
   loading: WritableSignal<boolean> = signal(false);
   showErrors: WritableSignal<boolean> = signal(false);
   error: WritableSignal<string | null> = signal(null);
+
+  deactivateDialogOpen = signal(false);
+  deactivating = signal(false);
+  paymentLinkToDeactivate = signal<PaymentLink | null>(null);
+
+  activateDialogOpen = signal(false);
+  activating = signal(false);
+  paymentLinkToActivate = signal<PaymentLink | null>(null);
+
+  metadataDialogOpen: WritableSignal<boolean> = signal(false);
+  metadataSaving: WritableSignal<boolean> = signal(false);
+  metadataTarget: WritableSignal<PaymentLink | null> = signal(null);
+  metadataDraft: WritableSignal<Record<string, string>> = signal({});
 
   readonly events$ = new Subject<PaymentLinkActionEvent>();
 
@@ -85,6 +99,76 @@ export class PaymentLinkActionsService {
       console.error('Failed to create payment link:', error);
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  OpenDeactivate(paymentLink: PaymentLink): void {
+    this.paymentLinkToDeactivate.set(paymentLink);
+    this.deactivateDialogOpen.set(true);
+  }
+
+  async ConfirmDeactivate(): Promise<void> {
+    const paymentLink = this.paymentLinkToDeactivate();
+    if (!paymentLink) return;
+    this.deactivating.set(true);
+    try {
+      const updated = await this.paymentLinkService.UpdatePaymentLink(
+        paymentLink.id,
+        { active: false }
+      );
+      this.events$.next({ type: 'deactivated', paymentLink: updated });
+      this.deactivateDialogOpen.set(false);
+      this.paymentLinkToDeactivate.set(null);
+    } finally {
+      this.deactivating.set(false);
+    }
+  }
+
+  OpenActivate(paymentLink: PaymentLink): void {
+    this.paymentLinkToActivate.set(paymentLink);
+    this.activateDialogOpen.set(true);
+  }
+
+  async ConfirmActivate(): Promise<void> {
+    const paymentLink = this.paymentLinkToActivate();
+    if (!paymentLink) return;
+    this.activating.set(true);
+    try {
+      const updated = await this.paymentLinkService.UpdatePaymentLink(
+        paymentLink.id,
+        { active: true }
+      );
+      this.events$.next({ type: 'activated', paymentLink: updated });
+      this.activateDialogOpen.set(false);
+      this.paymentLinkToActivate.set(null);
+    } finally {
+      this.activating.set(false);
+    }
+  }
+
+  OpenEditMetadata(paymentLink: PaymentLink): void {
+    this.metadataTarget.set(paymentLink);
+    this.metadataDraft.set({ ...(paymentLink.metadata ?? {}) });
+    this.metadataDialogOpen.set(true);
+  }
+
+  OnMetadataChange(metadata: Record<string, string>): void {
+    this.metadataDraft.set(metadata);
+  }
+
+  async ConfirmEditMetadata(): Promise<void> {
+    const paymentLink = this.metadataTarget();
+    if (!paymentLink) return;
+    this.metadataSaving.set(true);
+    try {
+      const updated = await this.paymentLinkService.UpdatePaymentLink(
+        paymentLink.id,
+        { metadata: this.metadataDraft() }
+      );
+      this.events$.next({ type: 'updated', paymentLink: updated });
+      this.metadataDialogOpen.set(false);
+    } finally {
+      this.metadataSaving.set(false);
     }
   }
 }

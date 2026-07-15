@@ -6,7 +6,8 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { LoaderComponent } from '../../../../../shared';
+import { ConfirmDialogComponent, LoaderComponent } from '../../../../../shared';
+import { MetadataEditModalComponent } from '../../../components';
 import { PaymentLinkActionsService } from '../../services/payment-link-actions.service';
 import {
   PaymentLinkFormComponent,
@@ -23,6 +24,8 @@ import { ProductActionsHostComponent } from '../../../products/components/produc
     PaymentLinkFormComponent,
     PaymentLinkPreviewComponent,
     ProductActionsHostComponent,
+    ConfirmDialogComponent,
+    MetadataEditModalComponent,
   ],
   templateUrl: './payment-link-actions-host.component.html',
   styleUrl: './payment-link-actions-host.component.scss',

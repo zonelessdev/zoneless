@@ -19,6 +19,13 @@ export const paymentLinkRoutes: Routes = [
             (m) => m.PaymentLinkListComponent
           ),
       },
+      {
+        path: ':paymentLinkId',
+        loadComponent: () =>
+          import(
+            './views/payment-link-detail/payment-link-detail.component'
+          ).then((m) => m.PaymentLinkDetailComponent),
+      },
     ],
   },
 ];

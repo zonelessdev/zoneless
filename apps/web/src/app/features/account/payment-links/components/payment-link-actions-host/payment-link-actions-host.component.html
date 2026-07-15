@@ -107,4 +107,35 @@
 </div>
 }
 
+<app-confirm-dialog
+  [isOpen]="actions.deactivateDialogOpen()"
+  title="Deactivate payment link"
+  description="Customers will no longer be able to pay with this link. You can reactivate it later."
+  confirmLabel="Deactivate"
+  [loading]="actions.deactivating()"
+  [destructive]="true"
+  (confirmed)="actions.ConfirmDeactivate()"
+  (cancelled)="actions.deactivateDialogOpen.set(false)"
+></app-confirm-dialog>
+
+<app-confirm-dialog
+  [isOpen]="actions.activateDialogOpen()"
+  title="Activate payment link"
+  description="Customers will be able to pay with this link again."
+  confirmLabel="Activate"
+  [loading]="actions.activating()"
+  (confirmed)="actions.ConfirmActivate()"
+  (cancelled)="actions.activateDialogOpen.set(false)"
+></app-confirm-dialog>
+
+<app-metadata-edit-modal
+  [isOpen]="actions.metadataDialogOpen()"
+  [loading]="actions.metadataSaving()"
+  title="Edit metadata"
+  [metadata]="actions.metadataDraft()"
+  (formChange)="actions.OnMetadataChange($event)"
+  (confirmed)="actions.ConfirmEditMetadata()"
+  (cancelled)="actions.metadataDialogOpen.set(false)"
+></app-metadata-edit-modal>
+
 <app-product-actions-host></app-product-actions-host>
