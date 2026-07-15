@@ -1,4 +1,4 @@
-import { Price } from './Price';
+import { SubscriptionItemList } from './SubscriptionItem';
 
 /**
  * Stripe-compatible Customer object for Zoneless.
@@ -583,7 +583,7 @@ export interface CustomerSubscription {
     };
   };
   /** List of subscription items, each with an attached price. */
-  items: CustomerSubscriptionItemList;
+  items: SubscriptionItemList;
   /** The most recent invoice this subscription has generated over its lifecycle (for example, when it cycles or is updated). */
   latest_invoice: string | null;
   /** If the object exists in live mode, the value is true. If the object exists in test mode, the value is false. */
@@ -691,46 +691,3 @@ export interface CustomerSubscription {
   trial_start: number | null;
 }
 
-/** The customer's payment sources, if any (list of subscription items). */
-export interface CustomerSubscriptionItemList {
-  /** String representing the object's type. Objects of the same type share the same value. Always has the value list. */
-  object: 'list';
-  /** Details about each object. */
-  data: CustomerSubscriptionItem[];
-  /** True if this list has another page of items after this one that can be fetched. */
-  has_more: boolean;
-  /** The URL where this list can be accessed. */
-  url: string;
-}
-
-export interface CustomerSubscriptionItem {
-  /** Unique identifier for the object. */
-  id: string;
-  /** String representing the object's type. Objects of the same type share the same value. */
-  object: 'subscription_item';
-  /** The time period the subscription item has been billed for. */
-  billed_until: number | null;
-  /** Define thresholds at which an invoice will be sent, and the related subscription advanced to a new billing period. */
-  billing_thresholds: {
-    /** Usage threshold that triggers the subscription to create an invoice. */
-    usage_gte: number | null;
-  } | null;
-  /** Time at which the object was created. Measured in seconds since the Unix epoch. */
-  created: number;
-  /** The end time of this subscription item's current billing period. */
-  current_period_end: number;
-  /** The start time of this subscription item's current billing period. */
-  current_period_start: number;
-  /** The discounts applied to the subscription item. Subscription item discounts are applied before subscription discounts. */
-  discounts: string[];
-  /** Set of key-value pairs that you can attach to an object. This can be useful for storing additional information about the object in a structured format. */
-  metadata: Record<string, string>;
-  /** The price the customer is subscribed to. */
-  price: string | Price;
-  /** The quantity of the plan to which the customer should be subscribed. */
-  quantity: number | null;
-  /** The subscription this subscription_item belongs to. */
-  subscription: string;
-  /** The tax rates which apply to this subscription_item. When set, the default_tax_rates on the subscription do not apply to this subscription_item. */
-  tax_rates: CustomerTaxRate[] | null;
-}
