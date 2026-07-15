@@ -56,6 +56,8 @@ const EVENT_TYPE_LABELS: Record<(typeof EVENT_TYPES)[number], string> = {
   'external_account.created': 'External account created',
   'external_account.updated': 'External account updated',
   'external_account.deleted': 'External account deleted',
+  'invoiceitem.created': 'Invoice item created',
+  'invoiceitem.deleted': 'Invoice item deleted',
   'payment_intent.created': 'Payment intent created',
   'payment_intent.updated': 'Payment intent updated',
   'payment_intent.canceled': 'Payment intent canceled',

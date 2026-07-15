@@ -16,12 +16,18 @@ export interface InvoiceItem {
   amount: number;
   /** Three-letter ISO currency code, in lowercase. Must be a supported currency. */
   currency: 'usdc';
-  /** The ID of the customer to bill for this invoice item. Expandable. */
-  customer: string | Customer;
+  /** The ID of the customer to bill for this invoice item. Expandable. Null when using customer_account. */
+  customer: string | Customer | null;
   /** The ID of the account to bill for this invoice item. */
   customer_account: string | null;
   /** Time at which the object was created. Measured in seconds since the Unix epoch. */
   date: number;
+  /**
+   * Creation timestamp used for list ordering and `created` filters.
+   * Mirrors `date`. Stripe’s invoice item object exposes `date` only.
+   * @zoneless_extension
+   */
+  created: number;
   /** An arbitrary string attached to the object. Often useful for displaying to users. */
   description: string | null;
   /** If true, discounts will apply to this invoice item. Always false for prorations. */
@@ -69,9 +75,9 @@ export interface InvoiceItem {
   quantity_decimal: string;
   /**
    * The tax rates which apply to the invoice item. When set, the default_tax_rates on the invoice do
-   * not apply to this invoice item.
+   * not apply to this invoice item. Use `expand[]=tax_rates` to expand each tax rate.
    */
-  tax_rates: CustomerTaxRate[] | null;
+  tax_rates: (string | CustomerTaxRate)[] | null;
   /** ID of the test clock this invoice item belongs to. Expandable. */
   test_clock: string | null;
   /**
