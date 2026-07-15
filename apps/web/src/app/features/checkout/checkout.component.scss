@@ -1,6 +1,7 @@
 @use '../../styles/base.scss' as *;
 @use '../../styles/buttons.scss' as *;
 @use '../../styles/forms.scss' as *;
+@use '../../styles/checkout.scss' as checkout;
 
 .checkout-page {
   display: flex;
@@ -12,8 +13,8 @@
 // -----------------------------------------------------------------------------
 .order-summary {
   flex: 1;
-  background-color: $text-color;
-  color: $background-color;
+  background-color: checkout.$checkout-summary-bg;
+  color: checkout.$checkout-summary-fg;
 }
 
 .order-summary-content {
@@ -177,7 +178,7 @@
 // -----------------------------------------------------------------------------
 .payment-panel {
   flex: 1;
-  background-color: $background-color;
+  background-color: checkout.$checkout-panel-bg;
 }
 
 .payment-content {
@@ -281,7 +282,7 @@
 }
 
 .method-box {
-  border: 1px solid $darkest-background-color;
+  border: 1px solid checkout.$checkout-muted-border;
   border-radius: $border-radius;
 }
 
@@ -349,6 +350,9 @@
   padding: 0 $spacing;
   height: 48px;
   line-height: 1;
+  background-color: checkout.$checkout-pay-button-bg;
+  background-image: none;
+  color: checkout.$checkout-pay-button-fg;
   transition: background-color 0.25s ease, transform $transition,
     box-shadow $transition;
 
@@ -369,7 +373,7 @@
   }
 
   &.pay-button-success {
-    background-color: #54b484;
+    background-color: checkout.$checkout-success;
     background-image: none;
   }
 }
@@ -456,7 +460,7 @@
 .payment-footer-divider {
   width: 1px;
   height: 14px;
-  background-color: $darkest-background-color;
+  background-color: checkout.$checkout-muted-border;
 }
 
 // -----------------------------------------------------------------------------

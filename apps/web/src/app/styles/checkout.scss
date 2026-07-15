@@ -1,0 +1,174 @@
+@use './base.scss' as *;
+
+// Shared checkout visual language — used by hosted checkout and dashboard previews.
+// Change these tokens to update both the live checkout page and payment-link preview.
+
+$checkout-summary-bg: $text-color;
+$checkout-summary-fg: $background-color;
+$checkout-panel-bg: $background-color;
+$checkout-muted-border: $darkest-background-color;
+$checkout-pay-button-bg: $button-color;
+$checkout-pay-button-fg: $background-color;
+$checkout-success: #54b484;
+
+.checkout-order-summary {
+  background-color: $checkout-summary-bg;
+  color: $checkout-summary-fg;
+}
+
+.checkout-merchant-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: $title-font;
+  font-weight: $title-weight;
+  font-size: $font-size-small;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.checkout-payment-panel {
+  background-color: $checkout-panel-bg;
+  color: $text-color;
+}
+
+.checkout-section-label {
+  font-size: $font-size;
+  margin-bottom: $spacing-small;
+}
+
+.checkout-contact-box {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+  background-color: $darker-background-color;
+  border-radius: $border-radius-small;
+  padding: $spacing-small $spacing-snug;
+
+  .contact-label {
+    font-size: $font-size;
+    opacity: $dimmed-extra;
+    flex-shrink: 0;
+    width: 48px;
+  }
+
+  input[type='email'],
+  input[type='text'] {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 0;
+    min-width: 0;
+
+    &:focus,
+    &:focus-within {
+      box-shadow: none;
+    }
+  }
+}
+
+.checkout-method-box {
+  border: 1px solid $checkout-muted-border;
+  border-radius: $border-radius;
+}
+
+.checkout-method-option {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+  padding: $spacing-snug $spacing;
+  font-size: $font-size;
+  font-weight: $medium-weight;
+
+  img {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.checkout-method-detail {
+  padding: 0 $spacing $spacing;
+}
+
+.checkout-method-detail-label {
+  font-size: $font-size-small;
+  opacity: $dimmed;
+  margin-bottom: $spacing-small;
+}
+
+.checkout-method-detail-help {
+  font-size: $font-size-small;
+  opacity: $dimmed-extra;
+  margin-top: $spacing-small;
+}
+
+.checkout-pay-button {
+  width: 100%;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+  outline: none;
+  border-radius: $border-radius-small;
+  font-family: $title-font;
+  font-weight: $medium-weight;
+  font-size: $font-size-med;
+  padding: 0 $spacing;
+  height: 48px;
+  min-height: 48px;
+  flex-shrink: 0;
+  line-height: 1;
+  background-color: $checkout-pay-button-bg;
+  color: $checkout-pay-button-fg;
+  cursor: pointer;
+  box-sizing: border-box;
+
+  &:disabled {
+    cursor: default;
+    pointer-events: none;
+    opacity: $dimmed;
+  }
+}
+
+.checkout-payment-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-snug;
+  font-size: $font-size-small;
+  opacity: $dimmed-extra;
+
+  a,
+  a:visited {
+    color: inherit !important;
+    font-size: $font-size-small;
+  }
+}
+
+.checkout-payment-footer-divider {
+  width: 1px;
+  height: 14px;
+  background-color: $checkout-muted-border;
+}
+
+.checkout-fine-print {
+  text-align: center;
+  font-size: $font-size-small;
+  opacity: $dimmed-extra;
+
+  a,
+  a:visited {
+    color: inherit !important;
+    font-size: $font-size-small;
+    text-decoration: underline;
+  }
+}

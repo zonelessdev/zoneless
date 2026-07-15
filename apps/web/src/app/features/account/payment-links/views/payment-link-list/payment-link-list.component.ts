@@ -5,6 +5,8 @@ import {
   signal,
   inject,
   OnInit,
+  OnDestroy,
+  ViewChild,
 } from '@angular/core';
 import {
   PaginatedListComponent,
@@ -12,16 +14,23 @@ import {
 } from '../../../../../shared';
 import type { PaymentLink, Price } from '@zoneless/shared-types';
 import { MetaService } from '../../../../../core';
+import { Subscription } from 'rxjs';
+import { PaymentLinkActionsService } from '../../services/payment-link-actions.service';
+import { PaymentLinkActionsHostComponent } from '../../components/payment-link-actions-host/payment-link-actions-host.component';
 
 @Component({
   selector: 'app-payment-link-list',
-  imports: [PaginatedListComponent],
+  imports: [PaginatedListComponent, PaymentLinkActionsHostComponent],
   templateUrl: './payment-link-list.component.html',
   styleUrl: './payment-link-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PaymentLinkListComponent implements OnInit {
+export class PaymentLinkListComponent implements OnInit, OnDestroy {
   private readonly metaService = inject(MetaService);
+  readonly actions = inject(PaymentLinkActionsService);
+  private sub?: Subscription;
+  @ViewChild('paymentLinksList')
+  paymentLinksList?: PaginatedListComponent<any>;
 
   paymentLinkColumns: PaginatedListColumn[] = [
     {
@@ -74,6 +83,13 @@ export class PaymentLinkListComponent implements OnInit {
 
   ngOnInit(): void {
     this.metaService.SetMetaTitle('Payment Links');
+    this.sub = this.actions.events$.subscribe(() => {
+      this.paymentLinksList?.Reload();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.sub?.unsubscribe();
   }
 
   private FormatName(paymentLink: PaymentLink): string {
