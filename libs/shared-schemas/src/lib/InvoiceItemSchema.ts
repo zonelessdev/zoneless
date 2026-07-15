@@ -5,7 +5,11 @@ import { ExpandableSchema } from './ExpandableSchema';
 // Reusable nested object schemas
 // ─────────────────────────────────────────────────────────────────────────────
 
-const InvoiceItemDiscountSchema = z
+/**
+ * Coupon / promotion code / existing discount reference used when attaching
+ * discounts on invoice items and invoices.
+ */
+export const InvoiceItemDiscountSchema = z
   .object({
     coupon: z.string().optional(),
     discount: z.string().optional(),
