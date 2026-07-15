@@ -29,6 +29,7 @@ import paymentPagesRouter from './paymentPages.routes';
 import paymentLinksRouter from './paymentLinks.routes';
 import paymentIntentsRouter from './paymentIntents.routes';
 import chargesRouter from './charges.routes';
+import invoiceItemsRouter from './invoiceItems.routes';
 import reportingRouter from './reporting.routes';
 
 const router = express.Router();
@@ -78,5 +79,6 @@ router.use('/checkout/sessions', checkoutSessionsRouter);
 router.use('/payment_links', paymentLinksRouter);
 router.use('/payment_intents', paymentIntentsRouter);
 router.use('/charges', chargesRouter);
+router.use('/invoiceitems', invoiceItemsRouter);
 router.use('/reporting', reportingRouter);
 export default router;

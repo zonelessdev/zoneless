@@ -8,6 +8,7 @@ import { CheckoutSession } from './CheckoutSession';
 import { Customer } from './Customer';
 import { ExternalWallet } from './ExternalWallet';
 import { IdempotencyKey } from './IdempotencyKey';
+import { InvoiceItem } from './InvoiceItem';
 import { PaymentIntent } from './PaymentIntent';
 import { PaymentLink } from './PaymentLink';
 import { Payout } from './Payout';
@@ -66,6 +67,10 @@ export const EVENT_TYPES = [
   'external_account.created',
   'external_account.updated',
   'external_account.deleted',
+
+  // Invoice item events
+  'invoiceitem.created',
+  'invoiceitem.deleted',
 
   // PaymentIntent events
   'payment_intent.created',
@@ -132,6 +137,7 @@ export type EventDataObject =
   | Customer
   | ExternalWallet
   | IdempotencyKey
+  | InvoiceItem
   | PaymentIntent
   | PaymentLink
   | Payout
