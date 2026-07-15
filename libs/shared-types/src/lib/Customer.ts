@@ -690,4 +690,3 @@ export interface CustomerSubscription {
   /** If the subscription has a trial, the beginning of that trial. */
   trial_start: number | null;
 }
-
