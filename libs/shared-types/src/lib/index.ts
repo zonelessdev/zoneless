@@ -15,7 +15,9 @@ export * from './Charge';
 export * from './Event';
 export * from './ExternalWallet';
 export * from './IdempotencyKey';
+export * from './InvoiceItem';
 export * from './InvoiceLineItem';
+
 export * from './PaymentIntent';
 
 export * from './PaymentLink';
