@@ -30,6 +30,7 @@ import paymentLinksRouter from './paymentLinks.routes';
 import paymentIntentsRouter from './paymentIntents.routes';
 import chargesRouter from './charges.routes';
 import invoiceItemsRouter from './invoiceItems.routes';
+import invoicesRouter from './invoices.routes';
 import reportingRouter from './reporting.routes';
 
 const router = express.Router();
@@ -80,5 +81,6 @@ router.use('/payment_links', paymentLinksRouter);
 router.use('/payment_intents', paymentIntentsRouter);
 router.use('/charges', chargesRouter);
 router.use('/invoiceitems', invoiceItemsRouter);
+router.use('/invoices', invoicesRouter);
 router.use('/reporting', reportingRouter);
 export default router;

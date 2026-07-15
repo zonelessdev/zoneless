@@ -291,6 +291,55 @@ export class InvoiceItemModule {
     });
   }
 
+  /**
+   * Attach invoice items to an invoice by setting `invoice` on each item.
+   * Used when creating an invoice with `pending_invoice_items_behavior=include`.
+   */
+  async AttachInvoiceItems(
+    ids: string[],
+    invoiceId: string
+  ): Promise<InvoiceItemType[]> {
+    const attached: InvoiceItemType[] = [];
+    for (const id of ids) {
+      await this.db.Update<InvoiceItemType>('InvoiceItems', id, {
+        invoice: invoiceId,
+      });
+      const item = await this.GetInvoiceItem(id);
+      if (item) {
+        attached.push(item);
+      }
+    }
+    return attached;
+  }
+
+  /**
+   * List all pending invoice items for a customer (paginates through results).
+   */
+  async ListAllPendingInvoiceItems(
+    platformAccountId: string,
+    customerId: string
+  ): Promise<InvoiceItemType[]> {
+    const items: InvoiceItemType[] = [];
+    let startingAfter: string | undefined;
+    let hasMore = true;
+
+    while (hasMore) {
+      const page = await this.ListInvoiceItems({
+        account: platformAccountId,
+        customer: customerId,
+        pending: true,
+        limit: 100,
+        startingAfter,
+      });
+      items.push(...page.data);
+      hasMore = page.has_more;
+      startingAfter =
+        page.data.length > 0 ? page.data[page.data.length - 1].id : undefined;
+    }
+
+    return items;
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Pricing / amount resolution
   // ─────────────────────────────────────────────────────────────────────────

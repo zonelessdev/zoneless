@@ -1,0 +1,1036 @@
+/**
+ * @fileOverview Methods for Invoices
+ *
+ * Invoices are statements of amounts owed by a customer. They contain invoice
+ * items (and later, subscription line items / prorations). Settled in USDC.
+ *
+ * @module Invoice
+ * @see https://docs.stripe.com/api/invoices
+ */
+
+import { Database } from './Database';
+import { EventService } from './EventService';
+import { ExtractChangedFields } from './Event';
+import type { CustomerModule } from './Customer';
+import type { InvoiceItemModule } from './InvoiceItem';
+import { GenerateId } from '../utils/IdGenerator';
+import {
+  Customer as CustomerType,
+  Invoice as InvoiceType,
+  InvoiceDeleted,
+  InvoiceItem as InvoiceItemType,
+  InvoiceLineItem,
+  InvoiceStatus,
+  QueryOperators,
+} from '@zoneless/shared-types';
+import { StripUndefined, ValidateUpdate } from './Util';
+import {
+  CreateInvoiceSchema,
+  CreateInvoiceInput,
+  UpdateInvoiceSchema,
+  UpdateInvoiceInput,
+  FinalizeInvoiceSchema,
+  FinalizeInvoiceInput,
+  PayInvoiceSchema,
+  PayInvoiceInput,
+  ListInvoicesFiltersInput,
+} from '@zoneless/shared-schemas';
+import { ListHelper, ListOptions, ListResult } from '../utils/ListHelper';
+import { Now } from '../utils/Timestamp';
+import { GetAppConfig } from './AppConfig';
+import { AppError } from '../utils/AppError';
+import { ERRORS } from '../utils/Errors';
+
+/** Fields that may only be changed while the invoice is a draft. */
+const DRAFT_ONLY_UPDATE_FIELDS = new Set([
+  'collection_method',
+  'days_until_due',
+  'due_date',
+  'application_fee_amount',
+  'account_tax_ids',
+  'default_tax_rates',
+  'shipping_cost',
+  'transfer_data',
+  'automatically_finalizes_at',
+]);
+
+export class InvoiceModule {
+  private readonly db: Database;
+  private readonly eventService: EventService | null;
+  private readonly listHelper: ListHelper<InvoiceType>;
+  private readonly customerModule: CustomerModule | null;
+  private readonly invoiceItemModule: InvoiceItemModule | null;
+
+  constructor(
+    db: Database,
+    eventService?: EventService,
+    customerModule?: CustomerModule,
+    invoiceItemModule?: InvoiceItemModule
+  ) {
+    this.db = db;
+    this.eventService = eventService || null;
+    this.listHelper = new ListHelper<InvoiceType>(db, {
+      collection: 'Invoices',
+      orderByField: 'created',
+      orderDirection: 'desc',
+      urlPath: '/v1/invoices',
+      accountField: 'platform_account',
+    });
+    this.customerModule = customerModule || null;
+    this.invoiceItemModule = invoiceItemModule || null;
+  }
+
+  /**
+   * Create a new draft invoice.
+   * Emits `invoice.created` when EventService is configured.
+   */
+  async CreateInvoice(
+    platformAccountId: string,
+    input: CreateInvoiceInput
+  ): Promise<InvoiceType> {
+    const validatedInput = ValidateUpdate(CreateInvoiceSchema, input);
+
+    if (validatedInput.currency) {
+      this.AssertSupportedCurrency(validatedInput.currency);
+    }
+
+    let invoice: InvoiceType;
+
+    if (validatedInput.from_invoice) {
+      invoice = await this.CreateRevisionInvoice(
+        platformAccountId,
+        validatedInput
+      );
+    } else {
+      const customer = await this.RequireCustomer(
+        validatedInput.customer!,
+        platformAccountId
+      );
+      invoice = this.InvoiceObject(platformAccountId, validatedInput, customer);
+
+      const behavior =
+        validatedInput.pending_invoice_items_behavior ?? 'exclude';
+      if (behavior === 'include' && this.invoiceItemModule) {
+        await this.IncludePendingInvoiceItems(
+          platformAccountId,
+          customer.id,
+          invoice
+        );
+      }
+    }
+
+    await this.db.Set('Invoices', invoice.id, invoice);
+
+    if (this.eventService) {
+      await this.eventService.Emit(
+        'invoice.created',
+        invoice.platform_account,
+        invoice
+      );
+    }
+
+    return invoice;
+  }
+
+  /**
+   * Build an Invoice object from create input without persisting it.
+   */
+  InvoiceObject(
+    platformAccountId: string,
+    input: CreateInvoiceInput,
+    customer: CustomerType
+  ): InvoiceType {
+    const now = Now();
+    const id = GenerateId('in_z');
+    const collectionMethod = input.collection_method ?? 'charge_automatically';
+
+    const invoice: InvoiceType = {
+      id,
+      object: 'invoice',
+      account_country: null,
+      account_name: null,
+      account_tax_ids: input.account_tax_ids ?? null,
+      amount_due: 0,
+      amount_overpaid: 0,
+      amount_paid: 0,
+      amount_paid_off_stripe: 0,
+      amount_remaining: 0,
+      amount_shipping: 0,
+      application: null,
+      attempt_count: 0,
+      attempted: false,
+      auto_advance: input.auto_advance ?? false,
+      automatic_tax: {
+        disabled_reason: null,
+        enabled: input.automatic_tax?.enabled ?? false,
+        liability: input.automatic_tax?.liability
+          ? {
+              type: input.automatic_tax.liability.type,
+              account: input.automatic_tax.liability.account ?? null,
+            }
+          : null,
+        provider: null,
+        status: null,
+      },
+      automatically_finalizes_at: input.automatically_finalizes_at ?? null,
+      billing_reason: 'manual',
+      collection_method: collectionMethod,
+      confirmation_secret: null,
+      created: now,
+      currency: 'usdc',
+      custom_fields: input.custom_fields ?? null,
+      customer: customer.id,
+      customer_account: input.customer_account ?? null,
+      customer_address: customer.address,
+      customer_email: customer.email,
+      customer_name: customer.name,
+      customer_phone: customer.phone,
+      customer_shipping: customer.shipping,
+      customer_tax_exempt: customer.tax_exempt,
+      customer_tax_ids: this.SnapshotCustomerTaxIds(customer),
+      default_payment_method: input.default_payment_method ?? null,
+      default_source: input.default_source ?? null,
+      default_tax_rates: [],
+      description: input.description ?? null,
+      discounts: this.MapDiscountIds(input.discounts),
+      due_date:
+        collectionMethod === 'send_invoice'
+          ? this.ResolveDueDate(input, now)
+          : null,
+      effective_at: input.effective_at ?? null,
+      ending_balance: null,
+      footer: input.footer ?? null,
+      from_invoice: null,
+      hosted_invoice_url: null,
+      invoice_pdf: null,
+      issuer: input.issuer
+        ? {
+            type: input.issuer.type,
+            account: input.issuer.account ?? null,
+          }
+        : { type: 'self', account: null },
+      last_finalization_error: null,
+      latest_revision: null,
+      lines: this.EmptyLinesList(id),
+      livemode: GetAppConfig().livemode,
+      metadata: input.metadata ?? {},
+      next_payment_attempt:
+        collectionMethod === 'charge_automatically' ? null : null,
+      number: input.number ?? null,
+      on_behalf_of: input.on_behalf_of ?? null,
+      parent: input.subscription
+        ? {
+            type: 'subscription_details',
+            quote_details: null,
+            subscription_details: {
+              metadata: null,
+              subscription: input.subscription,
+              subscription_proration_date: null,
+            },
+          }
+        : null,
+      payment_settings: {
+        default_mandate: input.payment_settings?.default_mandate ?? null,
+        payment_method_options:
+          input.payment_settings?.payment_method_options ?? null,
+        payment_method_types:
+          input.payment_settings?.payment_method_types ?? null,
+      },
+      payments: this.EmptyPaymentsList(id),
+      period_end: now,
+      period_start: now,
+      post_payment_credit_notes_amount: 0,
+      pre_payment_credit_notes_amount: 0,
+      receipt_number: null,
+      rendering: input.rendering
+        ? {
+            amount_tax_display: input.rendering.amount_tax_display ?? null,
+            pdf: input.rendering.pdf
+              ? { page_size: input.rendering.pdf.page_size ?? null }
+              : null,
+            template: input.rendering.template ?? null,
+            template_version: input.rendering.template_version ?? null,
+          }
+        : null,
+      shipping_cost: null,
+      shipping_details: input.shipping_details
+        ? {
+            address: {
+              city: input.shipping_details.address.city ?? null,
+              country: input.shipping_details.address.country ?? null,
+              line1: input.shipping_details.address.line1 ?? null,
+              line2: input.shipping_details.address.line2 ?? null,
+              postal_code: input.shipping_details.address.postal_code ?? null,
+              state: input.shipping_details.address.state ?? null,
+            },
+            name: input.shipping_details.name,
+            phone: input.shipping_details.phone ?? null,
+          }
+        : null,
+      starting_balance: customer.balance ?? 0,
+      statement_descriptor: input.statement_descriptor ?? null,
+      status: 'draft',
+      status_transitions: {
+        finalized_at: null,
+        marked_uncollectible_at: null,
+        paid_at: null,
+        voided_at: null,
+      },
+      subtotal: 0,
+      subtotal_excluding_tax: 0,
+      test_clock: null,
+      threshold_reason: null,
+      total: 0,
+      total_discount_amounts: [],
+      total_excluding_tax: 0,
+      total_pretax_credit_amounts: [],
+      total_taxes: [],
+      transfer_data: input.transfer_data
+        ? {
+            destination: input.transfer_data.destination,
+            amount: input.transfer_data.amount ?? null,
+          }
+        : null,
+      webhooks_delivered_at: now,
+      platform_account: platformAccountId,
+    };
+
+    return invoice;
+  }
+
+  async GetInvoice(id: string): Promise<InvoiceType | null> {
+    return this.db.Get<InvoiceType>('Invoices', id);
+  }
+
+  async BatchGet(
+    ids: string[],
+    platformAccount: string
+  ): Promise<Map<string, InvoiceType>> {
+    if (ids.length === 0) return new Map();
+    const invoices = await this.db.Query<InvoiceType>({
+      collection: 'Invoices',
+      method: 'READ',
+      parameters: [
+        { key: 'id', operator: QueryOperators['in'], value: ids },
+        {
+          key: 'platform_account',
+          operator: QueryOperators['=='],
+          value: platformAccount,
+        },
+      ],
+    });
+    return new Map(invoices.map((invoice) => [invoice.id, invoice]));
+  }
+
+  /**
+   * Update an invoice.
+   * Emits `invoice.updated` with previous attributes when EventService is configured.
+   */
+  async UpdateInvoice(
+    id: string,
+    input: UpdateInvoiceInput
+  ): Promise<InvoiceType> {
+    const validatedUpdate = ValidateUpdate(UpdateInvoiceSchema, input);
+    const previous = await this.RequireInvoice(id);
+
+    this.AssertDraftOnlyUpdates(previous, validatedUpdate);
+
+    const updatePayload = this.BuildUpdatePayload(previous, validatedUpdate);
+
+    if (Object.keys(updatePayload).length > 0) {
+      await this.db.Update<InvoiceType>('Invoices', id, updatePayload);
+    }
+
+    const invoice = await this.RequireInvoice(id);
+
+    if (this.eventService) {
+      const previousAttributes = ExtractChangedFields(
+        previous as unknown as Record<string, unknown>,
+        updatePayload as Record<string, unknown>
+      );
+      await this.eventService.Emit(
+        'invoice.updated',
+        invoice.platform_account,
+        invoice,
+        { previousAttributes }
+      );
+    }
+
+    return invoice;
+  }
+
+  /**
+   * Delete a draft invoice.
+   * Emits `invoice.deleted` when EventService is configured.
+   */
+  async DeleteInvoice(id: string): Promise<InvoiceDeleted> {
+    const invoice = await this.RequireInvoice(id);
+    this.AssertStatus(invoice, ['draft'], 'delete');
+
+    await this.db.Delete('Invoices', id);
+
+    if (this.eventService) {
+      await this.eventService.Emit(
+        'invoice.deleted',
+        invoice.platform_account,
+        invoice
+      );
+    }
+
+    return { id, object: 'invoice', deleted: true };
+  }
+
+  /**
+   * Finalize a draft invoice (draft → open).
+   * Emits `invoice.finalized`.
+   */
+  async FinalizeInvoice(
+    id: string,
+    input: FinalizeInvoiceInput = {}
+  ): Promise<InvoiceType> {
+    const validatedInput = ValidateUpdate(FinalizeInvoiceSchema, input);
+    const previous = await this.RequireInvoice(id);
+    this.AssertStatus(previous, ['draft'], 'finalize');
+
+    const now = Now();
+    const updatePayload: Partial<InvoiceType> = {
+      status: 'open',
+      auto_advance:
+        validatedInput.auto_advance !== undefined
+          ? validatedInput.auto_advance
+          : previous.auto_advance,
+      ending_balance: previous.starting_balance,
+      number: previous.number ?? this.GenerateInvoiceNumber(previous),
+      status_transitions: {
+        ...previous.status_transitions,
+        finalized_at: now,
+      },
+      effective_at: previous.effective_at ?? now,
+      last_finalization_error: null,
+    };
+
+    await this.db.Update<InvoiceType>('Invoices', id, updatePayload);
+    const invoice = await this.RequireInvoice(id);
+
+    if (this.eventService) {
+      await this.eventService.Emit(
+        'invoice.finalized',
+        invoice.platform_account,
+        invoice
+      );
+    }
+
+    return invoice;
+  }
+
+  /**
+   * Mark an open invoice as uncollectible.
+   * Emits `invoice.marked_uncollectible`.
+   */
+  async MarkInvoiceUncollectible(id: string): Promise<InvoiceType> {
+    const previous = await this.RequireInvoice(id);
+    this.AssertStatus(previous, ['open'], 'mark uncollectible');
+
+    const now = Now();
+    await this.db.Update<InvoiceType>('Invoices', id, {
+      status: 'uncollectible',
+      status_transitions: {
+        ...previous.status_transitions,
+        marked_uncollectible_at: now,
+      },
+    });
+
+    const invoice = await this.RequireInvoice(id);
+
+    if (this.eventService) {
+      await this.eventService.Emit(
+        'invoice.marked_uncollectible',
+        invoice.platform_account,
+        invoice
+      );
+    }
+
+    return invoice;
+  }
+
+  /**
+   * Pay an invoice.
+   * v1: only `paid_out_of_band=true` is supported. Emits `invoice.paid` and
+   * `invoice.payment_succeeded`.
+   */
+  async PayInvoice(
+    id: string,
+    input: PayInvoiceInput = {}
+  ): Promise<InvoiceType> {
+    const validatedInput = ValidateUpdate(PayInvoiceSchema, input);
+    const previous = await this.RequireInvoice(id);
+    this.AssertStatus(previous, ['open', 'uncollectible'], 'pay');
+
+    if (!validatedInput.paid_out_of_band) {
+      throw new AppError(
+        'Automatic invoice payment collection is not implemented yet. Pass `paid_out_of_band=true` to mark the invoice as paid outside of Zoneless.',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    const now = Now();
+    await this.db.Update<InvoiceType>('Invoices', id, {
+      status: 'paid',
+      attempted: true,
+      attempt_count: previous.attempt_count + 1,
+      amount_paid: previous.amount_due,
+      amount_paid_off_stripe: previous.amount_due,
+      amount_remaining: 0,
+      amount_overpaid: 0,
+      status_transitions: {
+        ...previous.status_transitions,
+        paid_at: now,
+      },
+    });
+
+    const invoice = await this.RequireInvoice(id);
+
+    if (this.eventService) {
+      await this.eventService.Emit(
+        'invoice.paid',
+        invoice.platform_account,
+        invoice
+      );
+      await this.eventService.Emit(
+        'invoice.payment_succeeded',
+        invoice.platform_account,
+        invoice
+      );
+    }
+
+    return invoice;
+  }
+
+  /**
+   * Void a finalized invoice.
+   * Emits `invoice.voided`.
+   */
+  async VoidInvoice(id: string): Promise<InvoiceType> {
+    const previous = await this.RequireInvoice(id);
+    this.AssertStatus(previous, ['open', 'uncollectible'], 'void');
+
+    const now = Now();
+    await this.db.Update<InvoiceType>('Invoices', id, {
+      status: 'void',
+      status_transitions: {
+        ...previous.status_transitions,
+        voided_at: now,
+      },
+    });
+
+    const invoice = await this.RequireInvoice(id);
+
+    if (this.eventService) {
+      await this.eventService.Emit(
+        'invoice.voided',
+        invoice.platform_account,
+        invoice
+      );
+    }
+
+    return invoice;
+  }
+
+  async ListInvoices(
+    options: ListOptions & ListInvoicesFiltersInput
+  ): Promise<ListResult<InvoiceType>> {
+    const {
+      collection_method,
+      customer,
+      customer_account,
+      status,
+      subscription,
+      ...listOptions
+    } = options;
+
+    const filters: Record<string, unknown> = {};
+    if (collection_method !== undefined) {
+      filters.collection_method = collection_method;
+    }
+    if (customer !== undefined) filters.customer = customer;
+    if (customer_account !== undefined) {
+      filters.customer_account = customer_account;
+    }
+    if (status !== undefined) filters.status = status;
+    if (subscription !== undefined) {
+      filters['parent.subscription_details.subscription'] = subscription;
+    }
+
+    return this.listHelper.List({
+      ...listOptions,
+      filters: { ...listOptions.filters, ...filters },
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Pending invoice items / line items
+  // ─────────────────────────────────────────────────────────────────────────
+
+  private async IncludePendingInvoiceItems(
+    platformAccountId: string,
+    customerId: string,
+    invoice: InvoiceType
+  ): Promise<void> {
+    const pending = await this.invoiceItemModule!.ListAllPendingInvoiceItems(
+      platformAccountId,
+      customerId
+    );
+
+    if (pending.length === 0) {
+      return;
+    }
+
+    await this.invoiceItemModule!.AttachInvoiceItems(
+      pending.map((item) => item.id),
+      invoice.id
+    );
+
+    // Pending items are included in reverse chronological order (Stripe).
+    const sorted = [...pending].sort((a, b) => b.created - a.created);
+    const lineItems = sorted.map((item) =>
+      this.BuildLineItemFromInvoiceItem(item, invoice.id)
+    );
+
+    invoice.lines = {
+      object: 'list',
+      data: lineItems,
+      has_more: false,
+      total_count: lineItems.length,
+      url: `/v1/invoices/${invoice.id}/lines`,
+    };
+
+    this.RecalculateAmounts(invoice);
+  }
+
+  BuildLineItemFromInvoiceItem(
+    item: InvoiceItemType,
+    invoiceId: string
+  ): InvoiceLineItem {
+    const discounts = Array.isArray(item.discounts)
+      ? item.discounts.map((discount) =>
+          typeof discount === 'string' ? discount : discount.id
+        )
+      : [];
+
+    return {
+      id: GenerateId('il_z'),
+      object: 'line_item',
+      amount: item.amount,
+      currency: 'usdc',
+      description: item.description,
+      discount_amounts: null,
+      discountable: item.discountable,
+      discounts,
+      invoice: invoiceId,
+      livemode: item.livemode,
+      metadata: item.metadata ?? {},
+      parent: {
+        type: 'invoice_item_details',
+        invoice_item_details: {
+          invoice_item: item.id,
+          proration: item.proration,
+          proration_details: null,
+          subscription:
+            item.parent?.type === 'subscription_details'
+              ? item.parent.subscription_details?.subscription ?? null
+              : null,
+        },
+        subscription_item_details: null,
+      },
+      period: item.period,
+      pretax_credit_amounts: null,
+      pricing: item.pricing,
+      quantity: item.quantity,
+      quantity_decimal: item.quantity_decimal,
+      subtotal: item.amount,
+      taxes: null,
+    };
+  }
+
+  RecalculateAmounts(invoice: InvoiceType): void {
+    const subtotal = invoice.lines.data.reduce(
+      (sum, line) => sum + line.amount,
+      0
+    );
+    invoice.subtotal = subtotal;
+    invoice.subtotal_excluding_tax = subtotal;
+    invoice.total = subtotal;
+    invoice.total_excluding_tax = subtotal;
+    invoice.amount_due = subtotal;
+    invoice.amount_remaining = subtotal - invoice.amount_paid;
+    invoice.amount_shipping = 0;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Revision / helpers
+  // ─────────────────────────────────────────────────────────────────────────
+
+  private async CreateRevisionInvoice(
+    platformAccountId: string,
+    input: CreateInvoiceInput
+  ): Promise<InvoiceType> {
+    const sourceId = input.from_invoice!.invoice;
+    const source = await this.RequireInvoice(sourceId);
+
+    if (source.platform_account !== platformAccountId) {
+      throw new AppError(
+        ERRORS.INVOICE_NOT_FOUND.message,
+        ERRORS.INVOICE_NOT_FOUND.status,
+        ERRORS.INVOICE_NOT_FOUND.type
+      );
+    }
+
+    const now = Now();
+    const id = GenerateId('in_z');
+    const customerId =
+      typeof source.customer === 'string'
+        ? source.customer
+        : source.customer.id;
+
+    const invoice: InvoiceType = {
+      ...source,
+      id,
+      created: now,
+      status: 'draft',
+      billing_reason: 'manual',
+      from_invoice: {
+        action: 'revision',
+        invoice: sourceId,
+      },
+      number: null,
+      hosted_invoice_url: null,
+      invoice_pdf: null,
+      confirmation_secret: null,
+      ending_balance: null,
+      attempted: false,
+      attempt_count: 0,
+      amount_paid: 0,
+      amount_paid_off_stripe: 0,
+      amount_overpaid: 0,
+      receipt_number: null,
+      last_finalization_error: null,
+      latest_revision: null,
+      webhooks_delivered_at: now,
+      period_start: now,
+      period_end: now,
+      status_transitions: {
+        finalized_at: null,
+        marked_uncollectible_at: null,
+        paid_at: null,
+        voided_at: null,
+      },
+      lines: {
+        object: 'list',
+        data: source.lines.data.map((line) => ({
+          ...line,
+          id: GenerateId('il_z'),
+          invoice: id,
+        })),
+        has_more: false,
+        total_count: source.lines.total_count,
+        url: `/v1/invoices/${id}/lines`,
+      },
+      payments: this.EmptyPaymentsList(id),
+      customer: customerId,
+      metadata: input.metadata ?? source.metadata,
+      description: input.description ?? source.description,
+      auto_advance: input.auto_advance ?? source.auto_advance,
+      platform_account: platformAccountId,
+    };
+
+    this.RecalculateAmounts(invoice);
+    invoice.amount_remaining = invoice.amount_due;
+
+    return invoice;
+  }
+
+  private BuildUpdatePayload(
+    existing: InvoiceType,
+    input: UpdateInvoiceInput
+  ): Partial<InvoiceType> {
+    const payload: Partial<InvoiceType> = {};
+
+    if (input.account_tax_ids !== undefined) {
+      payload.account_tax_ids = input.account_tax_ids;
+    }
+    if (input.auto_advance !== undefined) {
+      payload.auto_advance = input.auto_advance;
+    }
+    if (input.automatic_tax !== undefined) {
+      payload.automatic_tax = {
+        disabled_reason: existing.automatic_tax.disabled_reason,
+        enabled: input.automatic_tax.enabled,
+        liability: input.automatic_tax.liability
+          ? {
+              type: input.automatic_tax.liability.type,
+              account: input.automatic_tax.liability.account ?? null,
+            }
+          : existing.automatic_tax.liability,
+        provider: existing.automatic_tax.provider,
+        status: existing.automatic_tax.status,
+      };
+    }
+    if (input.automatically_finalizes_at !== undefined) {
+      payload.automatically_finalizes_at = input.automatically_finalizes_at;
+    }
+    if (input.collection_method !== undefined) {
+      payload.collection_method = input.collection_method;
+    }
+    if (input.custom_fields !== undefined) {
+      payload.custom_fields =
+        input.custom_fields === '' ? null : input.custom_fields;
+    }
+    if (input.days_until_due !== undefined && existing.created) {
+      payload.due_date = existing.created + input.days_until_due * 86400;
+    }
+    if (input.default_payment_method !== undefined) {
+      payload.default_payment_method = input.default_payment_method;
+    }
+    if (input.default_source !== undefined) {
+      payload.default_source = input.default_source;
+    }
+    if (input.default_tax_rates !== undefined) {
+      // Tax rate objects are not resolved on write until a TaxRate module exists.
+      if (input.default_tax_rates === '') {
+        payload.default_tax_rates = [];
+      }
+    }
+    if (input.description !== undefined) {
+      payload.description = input.description;
+    }
+    if (input.discounts !== undefined) {
+      payload.discounts =
+        input.discounts === '' ? [] : this.MapDiscountIds(input.discounts);
+    }
+    if (input.due_date !== undefined) {
+      payload.due_date = input.due_date;
+    }
+    if (input.effective_at !== undefined) {
+      payload.effective_at = input.effective_at;
+    }
+    if (input.footer !== undefined) {
+      payload.footer = input.footer;
+    }
+    if (input.issuer !== undefined) {
+      payload.issuer = {
+        type: input.issuer.type,
+        account: input.issuer.account ?? null,
+      };
+    }
+    if (input.metadata !== undefined) {
+      payload.metadata = input.metadata;
+    }
+    if (input.number !== undefined) {
+      payload.number = input.number;
+    }
+    if (input.on_behalf_of !== undefined) {
+      payload.on_behalf_of = input.on_behalf_of;
+    }
+    if (input.payment_settings !== undefined) {
+      payload.payment_settings = {
+        default_mandate:
+          input.payment_settings.default_mandate ??
+          existing.payment_settings.default_mandate,
+        payment_method_options:
+          input.payment_settings.payment_method_options ??
+          existing.payment_settings.payment_method_options,
+        payment_method_types:
+          input.payment_settings.payment_method_types ??
+          existing.payment_settings.payment_method_types,
+      };
+    }
+    if (input.rendering !== undefined) {
+      payload.rendering = {
+        amount_tax_display: input.rendering.amount_tax_display ?? null,
+        pdf: input.rendering.pdf
+          ? { page_size: input.rendering.pdf.page_size ?? null }
+          : null,
+        template: input.rendering.template ?? null,
+        template_version: input.rendering.template_version ?? null,
+      };
+    }
+    if (input.shipping_details !== undefined) {
+      payload.shipping_details = {
+        address: {
+          city: input.shipping_details.address.city ?? null,
+          country: input.shipping_details.address.country ?? null,
+          line1: input.shipping_details.address.line1 ?? null,
+          line2: input.shipping_details.address.line2 ?? null,
+          postal_code: input.shipping_details.address.postal_code ?? null,
+          state: input.shipping_details.address.state ?? null,
+        },
+        name: input.shipping_details.name,
+        phone: input.shipping_details.phone ?? null,
+      };
+    }
+    if (input.statement_descriptor !== undefined) {
+      payload.statement_descriptor = input.statement_descriptor;
+    }
+    if (input.transfer_data !== undefined) {
+      payload.transfer_data =
+        input.transfer_data === ''
+          ? null
+          : {
+              destination: input.transfer_data.destination,
+              amount: input.transfer_data.amount ?? null,
+            };
+    }
+
+    return StripUndefined(
+      payload as Record<string, unknown>
+    ) as Partial<InvoiceType>;
+  }
+
+  private MapDiscountIds(discounts: unknown): string[] {
+    if (!discounts || discounts === '' || !Array.isArray(discounts)) {
+      return [];
+    }
+    return discounts
+      .map(
+        (discount: {
+          coupon?: string;
+          discount?: string;
+          promotion_code?: string;
+        }) => discount.discount ?? discount.coupon ?? discount.promotion_code
+      )
+      .filter((id): id is string => !!id);
+  }
+
+  private SnapshotCustomerTaxIds(
+    customer: CustomerType
+  ): InvoiceType['customer_tax_ids'] {
+    if (!customer.tax_ids?.data?.length) {
+      return [];
+    }
+    return customer.tax_ids.data.map((taxId) => ({
+      type: taxId.type,
+      value: taxId.value,
+    }));
+  }
+
+  private ResolveDueDate(
+    input: CreateInvoiceInput,
+    now: number
+  ): number | null {
+    if (input.due_date !== undefined) {
+      return input.due_date;
+    }
+    if (input.days_until_due !== undefined) {
+      return now + input.days_until_due * 86400;
+    }
+    return null;
+  }
+
+  private EmptyLinesList(invoiceId: string): InvoiceType['lines'] {
+    return {
+      object: 'list',
+      data: [],
+      has_more: false,
+      total_count: 0,
+      url: `/v1/invoices/${invoiceId}/lines`,
+    };
+  }
+
+  private EmptyPaymentsList(invoiceId: string): InvoiceType['payments'] {
+    return {
+      object: 'list',
+      data: [],
+      has_more: false,
+      total_count: 0,
+      url: `/v1/invoices/${invoiceId}/payments`,
+    };
+  }
+
+  private GenerateInvoiceNumber(invoice: InvoiceType): string {
+    const suffix = invoice.id
+      .replace(/^in_z_?/, '')
+      .slice(0, 8)
+      .toUpperCase();
+    return `${suffix}-0001`;
+  }
+
+  private AssertDraftOnlyUpdates(
+    invoice: InvoiceType,
+    update: UpdateInvoiceInput
+  ): void {
+    if (invoice.status === 'draft') {
+      return;
+    }
+    const attempted = Object.keys(update).filter((key) =>
+      DRAFT_ONLY_UPDATE_FIELDS.has(key)
+    );
+    if (attempted.length > 0) {
+      throw new AppError(
+        `Cannot update ${attempted.join(', ')} on a non-draft invoice`,
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+  }
+
+  private AssertStatus(
+    invoice: InvoiceType,
+    allowed: InvoiceStatus[],
+    action: string
+  ): void {
+    if (!invoice.status || !allowed.includes(invoice.status)) {
+      throw new AppError(
+        `Cannot ${action} invoice with status '${
+          invoice.status
+        }'. Allowed: ${allowed.join(', ')}.`,
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+  }
+
+  private AssertSupportedCurrency(currency: string): void {
+    if (currency !== 'usdc') {
+      throw new AppError(
+        `Currency '${currency}' is not supported. Only 'usdc' is accepted.`,
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+  }
+
+  private async RequireInvoice(id: string): Promise<InvoiceType> {
+    const invoice = await this.GetInvoice(id);
+    if (!invoice) {
+      throw new AppError(
+        ERRORS.INVOICE_NOT_FOUND.message,
+        ERRORS.INVOICE_NOT_FOUND.status,
+        ERRORS.INVOICE_NOT_FOUND.type
+      );
+    }
+    return invoice;
+  }
+
+  private async RequireCustomer(
+    customerId: string,
+    platformAccountId: string
+  ): Promise<CustomerType> {
+    if (!this.customerModule) {
+      throw new AppError(
+        'CustomerModule not configured',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+    const customer = await this.customerModule.GetCustomer(customerId);
+    if (!customer || customer.platform_account !== platformAccountId) {
+      throw new AppError(
+        ERRORS.CUSTOMER_NOT_FOUND.message,
+        ERRORS.CUSTOMER_NOT_FOUND.status,
+        ERRORS.CUSTOMER_NOT_FOUND.type
+      );
+    }
+    return customer;
+  }
+}
