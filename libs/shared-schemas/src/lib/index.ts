@@ -18,6 +18,8 @@ export * from './PersonSchema';
 export * from './PriceSchema';
 export * from './ProductSchema';
 export * from './SubscriptionItemSchema';
+export * from './SubscriptionSchema';
 export * from './TopUpSchema';
+
 export * from './TransferSchema';
 export * from './WebhookEndpointSchema';
