@@ -4,7 +4,6 @@ import {
   CustomerDiscount,
   CustomerInvoiceCustomField,
   CustomerShipping,
-  CustomerSubscription,
   CustomerTaxId,
   CustomerTaxRate,
 } from './Customer';
@@ -16,6 +15,7 @@ import {
 } from './InvoiceItem';
 import { InvoiceLineItem } from './InvoiceLineItem';
 import { InvoicePaymentsList } from './InvoicePayment';
+import type { Subscription } from './Subscription';
 
 /**
  * Stripe-compatible Invoice object for Zoneless.
@@ -534,7 +534,7 @@ export interface InvoiceSubscriptionDetails {
    */
   metadata: Record<string, string> | null;
   /** The subscription that generated this invoice. Expandable. */
-  subscription: string | CustomerSubscription;
+  subscription: string | Subscription;
   /**
    * Only set for upcoming invoices that preview prorations. The time used to calculate
    * prorations.
@@ -550,7 +550,7 @@ export interface InvoiceSubscriptionDetails {
  * Configuration settings for the PaymentIntent that is generated when the invoice is finalized.
  * @remarks Simplified from Stripe's payment_settings, which also exposes
  * payment_method_options for many fiat rails (ACH, cards, iDEAL, etc.) that Zoneless doesn't
- * support since all payments are settled in USDC. Matches the simplification on CustomerSubscription.
+ * support since all payments are settled in USDC. Matches the simplification on Subscription.
  */
 export interface InvoicePaymentSettings {
   /**
