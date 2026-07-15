@@ -164,6 +164,11 @@ export const ERRORS = {
     status: 404,
     type: 'resource_missing',
   },
+  INVOICE_NOT_FOUND: {
+    message: 'Invoice not found',
+    status: 404,
+    type: 'resource_missing',
+  },
 
   // Validation errors
   VALIDATION_ERROR: {

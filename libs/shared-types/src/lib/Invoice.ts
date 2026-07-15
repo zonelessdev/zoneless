@@ -327,6 +327,18 @@ export interface Invoice {
   platform_account: string;
 }
 
+/**
+ * Deleted invoice response object.
+ */
+export interface InvoiceDeleted {
+  /** Unique identifier for the object. */
+  id: string;
+  /** String representing the object's type. */
+  object: 'invoice';
+  /** Always true for a deleted object. */
+  deleted: true;
+}
+
 /** The status of an invoice. */
 export type InvoiceStatus =
   | 'draft'
