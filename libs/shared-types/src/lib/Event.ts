@@ -16,6 +16,7 @@ import { Payout } from './Payout';
 import { Person } from './Person';
 import { Price } from './Price';
 import { Product } from './Product';
+import { Subscription } from './Subscription';
 import { TopUp } from './TopUp';
 import { Transfer, TransferReversal } from './Transfer';
 
@@ -63,6 +64,14 @@ export const EVENT_TYPES = [
   'customer.created',
   'customer.updated',
   'customer.deleted',
+  'customer.subscription.created',
+  'customer.subscription.deleted',
+  'customer.subscription.paused',
+  'customer.subscription.pending_update_applied',
+  'customer.subscription.pending_update_expired',
+  'customer.subscription.resumed',
+  'customer.subscription.trial_will_end',
+  'customer.subscription.updated',
 
   // External account (wallet) events
   'external_account.created',
@@ -156,6 +165,7 @@ export type EventDataObject =
   | Person
   | Price
   | Product
+  | Subscription
   | TopUp
   | Transfer
   | TransferReversal

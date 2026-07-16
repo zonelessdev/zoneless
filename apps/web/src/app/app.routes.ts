@@ -51,13 +51,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'checkout-old',
-    loadComponent: () =>
-      import('./features/checkout-old/checkout-old.component').then(
-        (mod) => mod.CheckoutComponent
-      ),
-  },
-  {
     path: 'c/:checkoutSessionId',
     loadComponent: () =>
       import('./features/checkout/checkout.component').then(

@@ -17,6 +17,7 @@ import { GenerateId } from '../utils/IdGenerator';
 import {
   Customer as CustomerType,
   Invoice as InvoiceType,
+  InvoiceBillingReason,
   InvoiceDeleted,
   InvoiceItem as InvoiceItemType,
   InvoiceLineItem,
@@ -566,6 +567,144 @@ export class InvoiceModule {
       ...listOptions,
       filters: { ...listOptions.filters, ...filters },
     });
+  }
+
+  /**
+   * Create an invoice for a subscription, attach line items from subscription
+   * prices, optionally finalize, and optionally collect payment.
+   *
+   * Collection currently uses `paid_out_of_band` until PaymentIntent auto-pay /
+   * Solana USDC settlement is wired into finalize/pay.
+   */
+  async CreateSubscriptionInvoice(
+    platformAccountId: string,
+    options: {
+      customer: string;
+      subscription: string;
+      collection_method: 'charge_automatically' | 'send_invoice';
+      billing_reason: InvoiceBillingReason;
+      days_until_due?: number;
+      default_payment_method?: string | null;
+      description?: string | null;
+      lineItems: Array<{
+        price: string;
+        quantity: number;
+        period?: { start: number; end: number };
+        description?: string;
+        subscription_item?: string;
+      }>;
+      finalize?: boolean;
+      collect?: boolean;
+    }
+  ): Promise<InvoiceType> {
+    if (!this.invoiceItemModule) {
+      throw new AppError(
+        'InvoiceItemModule not configured',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    let invoice = await this.CreateInvoice(platformAccountId, {
+      customer: options.customer,
+      subscription: options.subscription,
+      collection_method: options.collection_method,
+      currency: 'usdc',
+      days_until_due: options.days_until_due,
+      default_payment_method: options.default_payment_method ?? undefined,
+      description: options.description ?? undefined,
+      pending_invoice_items_behavior: 'exclude',
+    });
+
+    await this.db.Update<InvoiceType>('Invoices', invoice.id, {
+      billing_reason: options.billing_reason,
+    });
+
+    const createdItems: InvoiceItemType[] = [];
+    for (const line of options.lineItems) {
+      const item = await this.invoiceItemModule.CreateInvoiceItem(
+        platformAccountId,
+        {
+          customer: options.customer,
+          invoice: invoice.id,
+          subscription: options.subscription,
+          pricing: { price: line.price },
+          quantity: line.quantity,
+          description: line.description,
+          period: line.period,
+          currency: 'usdc',
+        }
+      );
+
+      if (line.subscription_item) {
+        await this.db.Update<InvoiceItemType>('InvoiceItems', item.id, {
+          parent: {
+            type: 'subscription_details',
+            subscription_details: {
+              subscription: options.subscription,
+              subscription_item: line.subscription_item,
+            },
+          },
+        });
+        const refreshed = await this.invoiceItemModule.GetInvoiceItem(item.id);
+        if (refreshed) {
+          createdItems.push(refreshed);
+          continue;
+        }
+      }
+      createdItems.push(item);
+    }
+
+    invoice = await this.ApplyInvoiceItemsAsLines(invoice.id, createdItems);
+
+    if (options.finalize) {
+      invoice = await this.FinalizeInvoice(invoice.id, {
+        auto_advance: options.collect ?? false,
+      });
+    }
+
+    if (options.collect && invoice.status === 'open') {
+      // TODO: Replace with PaymentIntent confirmation + Solana USDC settlement
+      invoice = await this.PayInvoice(invoice.id, { paid_out_of_band: true });
+    }
+
+    return invoice;
+  }
+
+  /**
+   * Replace an invoice's line items from invoice items and persist totals.
+   */
+  async ApplyInvoiceItemsAsLines(
+    invoiceId: string,
+    items: InvoiceItemType[]
+  ): Promise<InvoiceType> {
+    const invoice = await this.RequireInvoice(invoiceId);
+    const sorted = [...items].sort((a, b) => b.created - a.created);
+    const lineItems = sorted.map((item) =>
+      this.BuildLineItemFromInvoiceItem(item, invoice.id)
+    );
+
+    invoice.lines = {
+      object: 'list',
+      data: lineItems,
+      has_more: false,
+      total_count: lineItems.length,
+      url: `/v1/invoices/${invoice.id}/lines`,
+    };
+    this.RecalculateAmounts(invoice);
+
+    await this.db.Update<InvoiceType>('Invoices', invoice.id, {
+      lines: invoice.lines,
+      subtotal: invoice.subtotal,
+      subtotal_excluding_tax: invoice.subtotal_excluding_tax,
+      total: invoice.total,
+      total_excluding_tax: invoice.total_excluding_tax,
+      amount_due: invoice.amount_due,
+      amount_remaining: invoice.amount_remaining,
+      amount_shipping: invoice.amount_shipping,
+    });
+
+    return this.RequireInvoice(invoiceId);
   }
 
   // ─────────────────────────────────────────────────────────────────────────

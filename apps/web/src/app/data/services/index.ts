@@ -16,4 +16,3 @@ export * from './setup.service';
 export * from './topup.service';
 export * from './transaction.service';
 export * from './webhook-endpoint.service';
-export * from './subscriptions.service';

@@ -53,6 +53,17 @@ const EVENT_TYPE_LABELS: Record<(typeof EVENT_TYPES)[number], string> = {
   'customer.created': 'Customer created',
   'customer.updated': 'Customer updated',
   'customer.deleted': 'Customer deleted',
+  'customer.subscription.created': 'Customer subscription created',
+  'customer.subscription.deleted': 'Customer subscription deleted',
+  'customer.subscription.paused': 'Customer subscription paused',
+  'customer.subscription.pending_update_applied':
+    'Customer subscription pending update applied',
+  'customer.subscription.pending_update_expired':
+    'Customer subscription pending update expired',
+  'customer.subscription.resumed': 'Customer subscription resumed',
+  'customer.subscription.trial_will_end':
+    'Customer subscription trial will end',
+  'customer.subscription.updated': 'Customer subscription updated',
   'external_account.created': 'External account created',
   'external_account.updated': 'External account updated',
   'external_account.deleted': 'External account deleted',
