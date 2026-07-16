@@ -169,6 +169,11 @@ export const ERRORS = {
     status: 404,
     type: 'resource_missing',
   },
+  SUBSCRIPTION_NOT_FOUND: {
+    message: 'Subscription not found',
+    status: 404,
+    type: 'resource_missing',
+  },
 
   // Validation errors
   VALIDATION_ERROR: {
