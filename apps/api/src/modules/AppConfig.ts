@@ -22,14 +22,15 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { randomBytes } from 'crypto';
-import { AppConfig, AppSecrets } from '@zoneless/shared-types';
+import type { AppConfig, AppSecrets } from '@zoneless/shared-types';
 import { DeriveKey } from './Encryption';
 
-// Load environment variables first
-dotenv.config({ path: path.join(__dirname, '../../../../.env') });
+// Load environment variables first.
+// Use cwd so this works for both `tsx` (src) and the webpack bundle (`dist/apps/api`).
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 // Re-export for convenience
-export { AppConfig, AppSecrets };
+export type { AppConfig, AppSecrets };
 
 // Singleton config instance
 let config: AppConfig | null = null;
@@ -114,6 +115,19 @@ export function IsOperatorMode(): boolean {
  */
 export function GetOperatorApiKey(): string {
   return process.env.OPERATOR_API_KEY || '';
+}
+
+/**
+ * Public key of the wallet authorized to pull recurring subscription payments.
+ */
+export function GetSubscriptionPullerPublicKey(): string {
+  const puller = process.env.SUBSCRIPTION_PULLER_PUBLIC_KEY;
+  if (!puller) {
+    throw new Error(
+      'SUBSCRIPTION_PULLER_PUBLIC_KEY is required for recurring subscription plans'
+    );
+  }
+  return puller;
 }
 
 /**

@@ -62,6 +62,7 @@ function BuildPrice(overrides: Partial<Price> = {}): Price {
     transform_quantity: null,
     unit_amount_decimal: '1000',
     platform_account: 'acct_z_platform',
+    subscription_plan_pda: null,
     ...overrides,
   };
 }

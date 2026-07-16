@@ -63,6 +63,7 @@ function MockRecurringPrice(overrides: Record<string, unknown> = {}) {
       usage_type: 'licensed',
       meter: null,
     },
+    subscription_plan_pda: null,
     ...overrides,
   };
 }

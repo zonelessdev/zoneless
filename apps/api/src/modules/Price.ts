@@ -11,6 +11,8 @@ import { GenerateId } from '../utils/IdGenerator';
 import { Price as PriceType, QueryOperators } from '@zoneless/shared-types';
 import { ValidateUpdate } from './Util';
 import { ExtractChangedFields } from './Event';
+import { Solana } from './chains/Solana';
+import { ExternalWalletModule } from './ExternalWallet';
 import type { ProductModule } from './Product';
 import {
   CreatePriceSchema,
@@ -21,7 +23,7 @@ import {
 } from '@zoneless/shared-schemas';
 import { ListHelper, ListOptions, ListResult } from '../utils/ListHelper';
 import { Now } from '../utils/Timestamp';
-import { GetAppConfig } from './AppConfig';
+import { GetAppConfig, GetSubscriptionPullerPublicKey } from './AppConfig';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
 export class PriceModule {
@@ -106,6 +108,28 @@ export class PriceModule {
       price.product = product.id;
     }
 
+    if (
+      price.type === 'recurring' &&
+      price.recurring &&
+      process.env.NODE_ENV !== 'test'
+    ) {
+      const solana = new Solana();
+      const amount = price.unit_amount as number;
+      const periodHours = this.PeriodToHours(price.recurring.interval);
+      const destinationAddress = await this.GetPlatformWalletPublicKey(
+        price.platform_account
+      );
+      const pullerAddress = GetSubscriptionPullerPublicKey();
+      const planPda = await solana.CreateSubscriptionPlan(
+        price.id,
+        periodHours,
+        amount,
+        destinationAddress,
+        pullerAddress
+      );
+      price.subscription_plan_pda = planPda;
+    }
+
     await this.db.Set('Prices', price.id, price);
 
     if (this.eventService) {
@@ -116,6 +140,45 @@ export class PriceModule {
       );
     }
     return price;
+  }
+
+  /**
+   * Gets the platform's wallet public key from ExternalWallet.
+   * Used for building batch payout transactions.
+   *
+   * @param platformAccountId - The platform account ID
+   * @returns The platform's wallet public key
+   */
+  private async GetPlatformWalletPublicKey(
+    platformAccountId: string
+  ): Promise<string> {
+    const externalWalletModule = new ExternalWalletModule(this.db);
+    const wallets = await externalWalletModule.GetExternalWalletsByAccount(
+      platformAccountId
+    );
+    const platformWallet =
+      wallets.find((w) => w.default_for_currency) || wallets[0];
+    if (!platformWallet) {
+      throw new AppError(
+        'Platform wallet not found. Please set up your wallet first.',
+        400,
+        'invalid_request_error'
+      );
+    }
+    return platformWallet.wallet_address;
+  }
+
+  PeriodToHours(period: 'day' | 'week' | 'month' | 'year'): number {
+    switch (period) {
+      case 'day':
+        return 24;
+      case 'week':
+        return 24 * 7;
+      case 'month':
+        return 24 * 30;
+      case 'year':
+        return 24 * 365;
+    }
   }
 
   /**
@@ -270,6 +333,7 @@ export class PriceModule {
       unit_amount_decimal:
         input.unit_amount_decimal ?? input.unit_amount.toString(),
       platform_account: platformAccountId,
+      subscription_plan_pda: null,
       recurring: null,
       type: 'one_time',
     };
