@@ -23,6 +23,7 @@ jest.mock('../modules/AppConfig', () => ({
     livemode: false,
     appSecret: 'test-secret',
   })),
+  GetSubscriptionPullerPublicKey: jest.fn(() => 'PullerPublicKey111'),
 }));
 
 describe('PriceModule', () => {
@@ -59,6 +60,7 @@ describe('PriceModule', () => {
       expect(price.tax_behavior).toBe('exclusive');
       expect(price.billing_scheme).toBe('per_unit');
       expect(price.currency_options).toEqual({ usdc: { unit_amount: 1000 } });
+      expect(price.subscription_plan_pda).toBeNull();
     });
 
     it('should accept provided input fields', () => {

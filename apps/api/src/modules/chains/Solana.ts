@@ -24,6 +24,24 @@ import {
   createAssociatedTokenAccountIdempotentInstruction,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
+import { createHash } from 'crypto';
+import {
+  address,
+  createClient,
+  createKeyPairSignerFromBytes,
+} from '@solana/kit';
+import { solanaRpc } from '@solana/kit-plugin-rpc';
+import { signer } from '@solana/kit-plugin-signer';
+import { findPlanPda, subscriptionsProgram } from '@solana/subscriptions';
+
+/**
+ * Derive a deterministic on-chain planId (u64) from an off-chain price id string.
+ * Same price id always maps to the same plan PDA for a given merchant.
+ */
+export function PlanIdFromPriceId(priceId: string): bigint {
+  const hash = createHash('sha256').update(priceId).digest();
+  return hash.readBigUInt64BE(0);
+}
 
 /** SPL Memo program, used to bind a payment transaction to a checkout session. */
 const MEMO_PROGRAM_ID = new PublicKey(
@@ -823,5 +841,65 @@ export class Solana {
       amount_cents: transferredCents,
       payer_address: payerAddress,
     };
+  }
+
+  async CreateSubscriptionPlan(
+    priceId: string,
+    periodHours: number,
+    amountCents: number,
+    destinationAddress: string,
+    pullerAddress: string
+  ): Promise<string> {
+    const secretKey = process.env.FEE_PAYER_KEY;
+
+    if (!secretKey) {
+      throw new Error('FEE_PAYER_KEY is required');
+    }
+
+    const merchantSigner = await createKeyPairSignerFromBytes(
+      bs58.decode(secretKey)
+    );
+
+    const merchantClient = createClient()
+      .use(signer(merchantSigner))
+      .use(
+        solanaRpc({
+          rpcUrl: process.env.SOLANA_RPC_URL || clusterApiUrl(this.network),
+        })
+      )
+      .use(subscriptionsProgram());
+
+    // USDC has 6 decimals → 10_000 base units = $0.01
+    const planId = PlanIdFromPriceId(priceId);
+    const usdcMintAddress =
+      this.network === 'mainnet-beta'
+        ? 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' // Mainnet USDC
+        : '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'; // Devnet USDC
+    const tokenMint = address(usdcMintAddress);
+    const amount = BigInt(amountCents * 10_000);
+    const periodHoursBigInt = BigInt(periodHours);
+    const metadataUri = '';
+    const destinations = [address(destinationAddress)];
+    const pullers = [address(pullerAddress)];
+
+    await merchantClient.subscriptions.instructions
+      .createPlan({
+        planId,
+        mint: tokenMint,
+        amount,
+        periodHours: periodHoursBigInt,
+        endTs: BigInt(0),
+        destinations,
+        pullers,
+        metadataUri,
+      })
+      .sendTransaction();
+
+    const [planPda] = await findPlanPda({
+      owner: merchantSigner.address,
+      planId,
+    });
+    console.log('PDA CREATED: ', planPda);
+    return planPda;
   }
 }
