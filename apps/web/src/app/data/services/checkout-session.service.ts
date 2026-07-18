@@ -17,8 +17,10 @@ export interface CheckoutPaymentTransaction {
   estimated_fee_lamports: number;
   blockhash: string;
   last_valid_block_height: number;
+  fee_sponsored?: boolean;
   already_subscribed?: boolean;
   subscription_delegation_pda?: string;
+  subscription_step?: 'init_authority' | 'subscribe';
 }
 
 @Injectable({
@@ -139,9 +141,9 @@ export class CheckoutSessionService {
   }
 
   /**
-   * Confirm a checkout transaction. One-time payments pass `signature`
-   * after the wallet broadcasts. Subscriptions pass `signed_transaction`
-   * for the API to broadcast (fee-payer sponsored).
+   * Confirm a checkout transaction. Fee-sponsored flows pass
+   * `signed_transaction` for the API to cosign and broadcast; buyer-pays
+   * flows pass `signature` after the wallet has already sent the tx.
    */
   async ConfirmPayment(
     urlSlug: string,
@@ -150,6 +152,7 @@ export class CheckoutSessionService {
       signed_transaction?: string;
       already_subscribed?: boolean;
       subscription_delegation_pda?: string;
+      subscription_step?: 'init_authority' | 'subscribe';
     }
   ): Promise<CheckoutSession> {
     return this.api.Call<CheckoutSession>(

@@ -43,6 +43,8 @@ export class Solana {
     blockhash: 'blockhash123',
     last_valid_block_height: 100000,
   });
+  BuildInitSubscriptionAuthorityTransaction = jest.fn().mockResolvedValue(null);
+  WaitForSubscriptionAuthority = jest.fn().mockResolvedValue(undefined);
   VerifyCheckoutPayment = jest.fn().mockResolvedValue({
     verified: true,
     amount_cents: 1000,
@@ -56,9 +58,10 @@ export class Solana {
   CollectSubscriptionPayment = jest.fn().mockResolvedValue({
     signature: 'collect_sig',
   });
-  FindExistingSubscriptionDelegation = jest
-    .fn()
-    .mockResolvedValue(null);
+  FindExistingSubscriptionDelegation = jest.fn().mockResolvedValue(null);
+  CosignAndBroadcastCheckoutTransaction = jest.fn().mockResolvedValue({
+    signature: 'checkout_sig',
+  });
   CosignAndBroadcastSubscribeTransaction = jest.fn().mockResolvedValue({
     signature: 'subscribe_sig',
   });

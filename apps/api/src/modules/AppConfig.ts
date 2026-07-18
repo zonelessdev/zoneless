@@ -118,16 +118,31 @@ export function GetOperatorApiKey(): string {
 }
 
 /**
- * Public key of the wallet authorized to pull recurring subscription payments.
+ * Optional secret key that sponsors Solana checkout network fees / rent.
+ * When unset, the buyer pays fees via signAndSend.
  */
-export function GetSubscriptionPullerPublicKey(): string {
-  const puller = process.env.SUBSCRIPTION_PULLER_PUBLIC_KEY;
-  if (!puller) {
+export function GetCheckoutFeePayerSecretKey(): string | null {
+  const secretKey = process.env.TRANSACTION_FEE_PAYER_KEY;
+  return secretKey && secretKey.length > 0 ? secretKey : null;
+}
+
+/** True when TRANSACTION_FEE_PAYER_KEY is configured. */
+export function IsCheckoutFeeSponsored(): boolean {
+  return !!GetCheckoutFeePayerSecretKey();
+}
+
+/**
+ * Secret key for on-chain subscription plan ownership and payment pulls.
+ * Required for recurring prices.
+ */
+export function RequireSubscriptionOperatorSecretKey(): string {
+  const secretKey = process.env.SUBSCRIPTION_OPERATOR_KEY;
+  if (!secretKey) {
     throw new Error(
-      'SUBSCRIPTION_PULLER_PUBLIC_KEY is required for recurring subscription plans'
+      'SUBSCRIPTION_OPERATOR_KEY is required for recurring subscription plans'
     );
   }
-  return puller;
+  return secretKey;
 }
 
 /**

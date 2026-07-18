@@ -112,8 +112,8 @@ router.get(
 /**
  * POST /v1/payment_pages/:urlSlug/prepare
  * Build an unsigned Solana transaction for the checkout session. Payment
- * mode returns a USDC transfer; subscription mode returns subscribe
- * (+ initSubscriptionAuthority when needed). The customer signs via wallet.
+ * mode returns a USDC transfer; subscription mode returns either
+ * initSubscriptionAuthority (first-time wallet) or subscribe.
  */
 router.post(
   '/:urlSlug/prepare',
@@ -146,11 +146,13 @@ router.post(
       signed_transaction: signedTransaction,
       already_subscribed: alreadySubscribed,
       subscription_delegation_pda: subscriptionDelegationPda,
+      subscription_step: subscriptionStep,
     } = req.body as {
       signature?: string;
       signed_transaction?: string;
       already_subscribed?: boolean;
       subscription_delegation_pda?: string;
+      subscription_step?: 'init_authority' | 'subscribe';
     };
 
     const session = await checkoutPaymentModule.ConfirmPayment(
@@ -160,6 +162,7 @@ router.post(
         signed_transaction: signedTransaction,
         already_subscribed: alreadySubscribed,
         subscription_delegation_pda: subscriptionDelegationPda,
+        subscription_step: subscriptionStep,
       }
     );
     res.json(session);

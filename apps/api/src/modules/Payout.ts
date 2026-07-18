@@ -680,10 +680,7 @@ export class PayoutModule {
     platformAccountId: string,
     input: BroadcastPayoutsBatchInput
   ): Promise<PayoutBatchBroadcastResponse> {
-    const {
-      signed_transaction,
-      payouts: payoutIds,
-    } = input;
+    const { signed_transaction, payouts: payoutIds } = input;
 
     // Fetch and validate all payouts
     const payouts: PayoutType[] = [];

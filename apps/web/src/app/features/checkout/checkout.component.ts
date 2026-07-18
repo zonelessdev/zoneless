@@ -141,9 +141,7 @@ export class CheckoutComponent implements OnInit {
         throw new Error('Connect a wallet to pay');
       }
 
-      const completedSession = this.IsSubscription()
-        ? await this.PaySubscription(session, payerWallet)
-        : await this.PayOneTime(session, payerWallet);
+      const completedSession = await this.PayWithWallet(session, payerWallet);
 
       this.checkoutSession.set(completedSession);
       this.paymentPhase.set('complete');
@@ -154,36 +152,18 @@ export class CheckoutComponent implements OnInit {
     }
   }
 
-  private async PayOneTime(
-    session: CheckoutSession,
-    payerWallet: string
-  ): Promise<CheckoutSession> {
-    const prepared = await this.checkoutSessionService.PreparePayment(
-      session.url_slug,
-      payerWallet,
-      this.email || undefined
-    );
-    const chain = session.livemode ? 'solana:mainnet' : 'solana:devnet';
-    const signatureBytes =
-      await this.solanaWalletService.SignAndSendUnsignedTransaction(
-        prepared.unsigned_transaction,
-        chain
-      );
-    this.paymentPhase.set('processing');
-    return this.checkoutSessionService.ConfirmPayment(session.url_slug, {
-      signature: bs58.encode(signatureBytes),
-    });
-  }
-
-  private async PaySubscription(
+  private async PayWithWallet(
     session: CheckoutSession,
     payerWallet: string
   ): Promise<CheckoutSession> {
     const chain = session.livemode ? 'solana:mainnet' : 'solana:devnet';
-
-    // One automatic retry if the blockhash expired while Phantom was open.
+    // First-time subscribers need init_authority then subscribe (2 wallet
+    // approvals). Allow a couple of blockhash retries on top of that.
+    const maxAttempts = this.IsSubscription() ? 5 : 2;
+    let initAuthorityDone = false;
     let lastError: unknown;
-    for (let attempt = 0; attempt < 2; attempt++) {
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
         this.paymentPhase.set('awaiting_wallet');
         const prepared = await this.checkoutSessionService.PreparePayment(
@@ -200,23 +180,22 @@ export class CheckoutComponent implements OnInit {
           });
         }
 
-        const signedTxBytes =
-          await this.solanaWalletService.SignUnsignedTransaction(
-            prepared.unsigned_transaction,
-            chain
-          );
-        this.paymentPhase.set('processing');
-        return await this.checkoutSessionService.ConfirmPayment(
-          session.url_slug,
-          {
-            signed_transaction:
-              this.solanaWalletService.BytesToBase64(signedTxBytes),
+        if (prepared.subscription_step === 'init_authority') {
+          if (initAuthorityDone) {
+            throw new Error(
+              'Subscription authority init did not land. Please try again.'
+            );
           }
-        );
+          await this.SignAndConfirmPrepared(session, prepared, chain);
+          initAuthorityDone = true;
+          continue;
+        }
+
+        return await this.SignAndConfirmPrepared(session, prepared, chain);
       } catch (error) {
         lastError = error;
         if (
-          attempt === 0 &&
+          this.IsSubscription() &&
           this.IsRetryableSubscribeBroadcastError(error)
         ) {
           continue;
@@ -225,6 +204,45 @@ export class CheckoutComponent implements OnInit {
       }
     }
     throw lastError;
+  }
+
+  private async SignAndConfirmPrepared(
+    session: CheckoutSession,
+    prepared: {
+      unsigned_transaction: string;
+      fee_sponsored?: boolean;
+      subscription_step?: 'init_authority' | 'subscribe';
+    },
+    chain: 'solana:mainnet' | 'solana:devnet'
+  ): Promise<CheckoutSession> {
+    if (prepared.fee_sponsored) {
+      const signedTxBytes =
+        await this.solanaWalletService.SignUnsignedTransaction(
+          prepared.unsigned_transaction,
+          chain
+        );
+      this.paymentPhase.set('processing');
+      return this.checkoutSessionService.ConfirmPayment(session.url_slug, {
+        signed_transaction:
+          this.solanaWalletService.BytesToBase64(signedTxBytes),
+        ...(prepared.subscription_step
+          ? { subscription_step: prepared.subscription_step }
+          : {}),
+      });
+    }
+
+    const signatureBytes =
+      await this.solanaWalletService.SignAndSendUnsignedTransaction(
+        prepared.unsigned_transaction,
+        chain
+      );
+    this.paymentPhase.set('processing');
+    return this.checkoutSessionService.ConfirmPayment(session.url_slug, {
+      signature: bs58.encode(signatureBytes),
+      ...(prepared.subscription_step
+        ? { subscription_step: prepared.subscription_step }
+        : {}),
+    });
   }
 
   private IsRetryableSubscribeBroadcastError(error: unknown): boolean {
@@ -320,8 +338,8 @@ export class CheckoutComponent implements OnInit {
     if (this.IsSubscription()) {
       const cadence = this.RecurringIntervalLabel();
       return cadence
-        ? `Connect your wallet to authorize recurring ${amount} USDC every ${cadence}. Network fees are covered for you.`
-        : `Connect your wallet to authorize this recurring USDC subscription. Network fees are covered for you.`;
+        ? `Connect your wallet to authorize recurring ${amount} USDC every ${cadence}. First-time wallets approve twice.`
+        : `Connect your wallet to authorize this recurring USDC subscription. First-time wallets approve twice.`;
     }
     return `Connect your wallet and approve the payment of ${amount} in USDC.`;
   }

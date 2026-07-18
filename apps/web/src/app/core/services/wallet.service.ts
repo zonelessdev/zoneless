@@ -88,7 +88,7 @@ export class SolanaWalletService {
 
   /**
    * Sign a (possibly partially signed) transaction without broadcasting.
-   * Used for fee-payer-sponsored subscribe txs that the API relays.
+   * Used when TRANSACTION_FEE_PAYER_KEY sponsors fees and the API relays.
    */
   async SignUnsignedTransaction(
     unsignedTxBase64: string,

@@ -20,6 +20,7 @@ import type { PaymentIntentModule } from './PaymentIntent';
 import type { ChargeModule } from './Charge';
 import type { PaymentLinkModule } from './PaymentLink';
 import { Solana, SolanaExplorerUrl } from './chains/Solana';
+import { IsCheckoutFeeSponsored } from './AppConfig';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
 import { Logger } from '../utils/Logger';
@@ -46,11 +47,21 @@ export interface PreparedCheckoutPayment {
   blockhash: string;
   last_valid_block_height: number;
   /**
+   * True when TRANSACTION_FEE_PAYER_KEY is set and the API will cosign/broadcast.
+   */
+  fee_sponsored?: boolean;
+  /**
    * True when the wallet is already subscribed on-chain (e.g. a prior attempt
    * landed but checkout confirm failed). Frontend should confirm without signing.
    */
   already_subscribed?: boolean;
   subscription_delegation_pda?: string;
+  /**
+   * Subscription checkout is two on-chain steps for first-time wallets:
+   * `init_authority` (create SubscriptionAuthority) then `subscribe`.
+   * Omitted for one-time payments.
+   */
+  subscription_step?: 'init_authority' | 'subscribe';
 }
 
 export class CheckoutPaymentModule {
@@ -193,8 +204,8 @@ export class CheckoutPaymentModule {
 
   /**
    * Build an unsigned transaction for the checkout session. One-time sessions
-   * get a USDC transfer; subscription sessions get a Solana `subscribe`
-   * (plus `initSubscriptionAuthority` when needed).
+   * get a USDC transfer; subscription sessions get either an
+   * `initSubscriptionAuthority` tx (first-time wallet) or a `subscribe` tx.
    */
   async PreparePayment(
     urlSlug: string,
@@ -226,14 +237,20 @@ export class CheckoutPaymentModule {
       amountTotal: session.amount_total,
     });
 
+    const feeSponsored = IsCheckoutFeeSponsored();
     const prepared =
       session.mode === 'subscription'
-        ? await this.PrepareSubscribeTransaction(session, payerWallet)
+        ? await this.PrepareSubscribeTransaction(
+            session,
+            payerWallet,
+            feeSponsored
+          )
         : await this.solana.BuildCheckoutPaymentTransaction(
             payerWallet,
             merchantWallet.wallet_address,
             session.amount_total!,
-            session.id
+            session.id,
+            { feeSponsored }
           );
 
     await this.MarkPaymentIntentRequiresConfirmation(session, payerWallet);
@@ -245,12 +262,14 @@ export class CheckoutPaymentModule {
       currency: session.currency,
       merchant_wallet_address: merchantWallet.wallet_address,
       ...prepared,
+      fee_sponsored: feeSponsored,
     };
   }
 
   private async PrepareSubscribeTransaction(
     session: CheckoutSession,
-    payerWallet: string
+    payerWallet: string,
+    feeSponsored: boolean
   ): Promise<
     Omit<
       PreparedCheckoutPayment,
@@ -259,6 +278,7 @@ export class CheckoutPaymentModule {
       | 'amount_total'
       | 'currency'
       | 'merchant_wallet_address'
+      | 'fee_sponsored'
     >
   > {
     const price = this.RequireRecurringCheckoutPrice(session);
@@ -286,11 +306,26 @@ export class CheckoutPaymentModule {
       };
     }
 
-    return this.solana.BuildSubscribeTransaction(
+    const initTx = await this.solana.BuildInitSubscriptionAuthorityTransaction(
       payerWallet,
-      price.id,
-      price.subscription_plan_pda
+      { feeSponsored }
     );
+    if (initTx) {
+      return {
+        ...initTx,
+        subscription_step: 'init_authority',
+      };
+    }
+
+    return {
+      ...(await this.solana.BuildSubscribeTransaction(
+        payerWallet,
+        price.id,
+        price.subscription_plan_pda,
+        { feeSponsored }
+      )),
+      subscription_step: 'subscribe',
+    };
   }
 
   /**
@@ -299,8 +334,11 @@ export class CheckoutPaymentModule {
    * subscription mode it verifies the subscribe PDA, creates the off-chain
    * Subscription, and collects the first period (unless trialing).
    *
-   * Subscription confirms may pass `signed_transaction` instead of
-   * `signature`: the API cosigns with FEE_PAYER and broadcasts.
+   * Fee-sponsored confirms may pass `signed_transaction` instead of
+   * `signature`: the API cosigns with TRANSACTION_FEE_PAYER_KEY and broadcasts.
+   *
+   * For subscription first-time wallets, pass `subscription_step: 'init_authority'`
+   * after the init tx; the session stays open so the client can prepare subscribe.
    */
   async ConfirmPayment(
     urlSlug: string,
@@ -309,17 +347,19 @@ export class CheckoutPaymentModule {
       signed_transaction?: string;
       already_subscribed?: boolean;
       subscription_delegation_pda?: string;
+      subscription_step?: 'init_authority' | 'subscribe';
     }
   ): Promise<CheckoutSession> {
     const session = await this.GetSessionOrThrow(urlSlug);
 
-    // Idempotency: already completed with this signature
-    if (
-      session.status === 'complete' &&
-      signature &&
-      session.payment_details?.transaction_signature === signature
-    ) {
-      if (session.mode === 'payment' && session.amount_total) {
+    // Idempotency: already completed (duplicate / overlapping confirms).
+    if (session.status === 'complete') {
+      if (
+        session.mode === 'payment' &&
+        session.amount_total &&
+        signature &&
+        session.payment_details?.transaction_signature === signature
+      ) {
         await this.RecordPaymentOnLedger(
           session,
           session.amount_total,
@@ -341,13 +381,12 @@ export class CheckoutPaymentModule {
 
     let resolvedSignature = signature;
     if (
-      session.mode === 'subscription' &&
       options?.signed_transaction &&
       typeof options.signed_transaction === 'string'
     ) {
       try {
         const broadcast =
-          await this.solana.CosignAndBroadcastSubscribeTransaction(
+          await this.solana.CosignAndBroadcastCheckoutTransaction(
             options.signed_transaction
           );
         resolvedSignature = broadcast.signature;
@@ -355,7 +394,7 @@ export class CheckoutPaymentModule {
         throw new AppError(
           error instanceof Error
             ? error.message
-            : 'Failed to broadcast subscribe transaction',
+            : 'Failed to broadcast checkout transaction',
           ERRORS.INVALID_REQUEST.status,
           ERRORS.INVALID_REQUEST.type
         );
@@ -368,6 +407,13 @@ export class CheckoutPaymentModule {
         ERRORS.VALIDATION_ERROR.status,
         ERRORS.VALIDATION_ERROR.type
       );
+    }
+
+    if (
+      session.mode === 'subscription' &&
+      options?.subscription_step === 'init_authority'
+    ) {
+      return this.ConfirmSubscriptionAuthorityInit(session, resolvedSignature);
     }
 
     const existingSession =
@@ -387,6 +433,39 @@ export class CheckoutPaymentModule {
     }
 
     return this.ConfirmOneTimePayment(session, resolvedSignature);
+  }
+
+  /**
+   * Land the SubscriptionAuthority init tx without completing checkout.
+   * Client must prepare+confirm subscribe next.
+   */
+  private async ConfirmSubscriptionAuthorityInit(
+    session: CheckoutSession,
+    signature: string
+  ): Promise<CheckoutSession> {
+    const subscriberWallet = await this.ResolvePreparedSubscriberWallet(
+      session
+    );
+
+    Logger.info('Confirming subscription authority init', {
+      checkoutSessionId: session.id,
+      signature,
+      subscriberWallet,
+    });
+
+    try {
+      await this.solana.WaitForSubscriptionAuthority(subscriberWallet);
+    } catch (error) {
+      throw new AppError(
+        error instanceof Error
+          ? error.message
+          : 'Subscription authority init did not confirm on-chain',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    return this.SanitizeCheckoutSession(session);
   }
 
   private async ConfirmOneTimePayment(
@@ -620,8 +699,7 @@ export class CheckoutPaymentModule {
       } catch (error) {
         // Subscribe already landed — surface the collect error instead of
         // pretending checkout collected USDC (collectionSignature === signature).
-        const message =
-          error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : String(error);
         Logger.error('First-period subscription collect failed', {
           checkoutSessionId: session.id,
           error: message,

@@ -23,7 +23,6 @@ jest.mock('../modules/AppConfig', () => ({
     livemode: false,
     appSecret: 'test-secret',
   })),
-  GetSubscriptionPullerPublicKey: jest.fn(() => 'PullerPublicKey111'),
 }));
 
 describe('PriceModule', () => {
