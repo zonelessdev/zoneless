@@ -852,6 +852,7 @@ export class SubscriptionModule {
           },
       trial_start: timing.trialStart,
       platform_account: platformAccountId,
+      subscription_delegation_pda: null,
     };
   }
 
@@ -1411,6 +1412,38 @@ export class SubscriptionModule {
     }
     await this.DeleteItems(items.map((item) => item.id));
     await this.db.Delete('Subscriptions', subscriptionId);
+  }
+
+  /**
+   * Persist the on-chain subscription delegation PDA after a successful
+   * hosted checkout subscribe.
+   */
+  async SetSubscriptionDelegationPda(
+    id: string,
+    subscriptionDelegationPda: string
+  ): Promise<SubscriptionType> {
+    const subscription = await this.GetSubscription(id);
+    if (!subscription) {
+      throw new AppError(
+        ERRORS.SUBSCRIPTION_NOT_FOUND.message,
+        ERRORS.SUBSCRIPTION_NOT_FOUND.status,
+        ERRORS.SUBSCRIPTION_NOT_FOUND.type
+      );
+    }
+
+    await this.db.Update<SubscriptionType>('Subscriptions', id, {
+      subscription_delegation_pda: subscriptionDelegationPda,
+    });
+
+    const updated = await this.GetSubscription(id);
+    if (!updated) {
+      throw new AppError(
+        ERRORS.SUBSCRIPTION_NOT_FOUND.message,
+        ERRORS.SUBSCRIPTION_NOT_FOUND.status,
+        ERRORS.SUBSCRIPTION_NOT_FOUND.type
+      );
+    }
+    return updated;
   }
 
   // ───────────────────────────────────────────────────────────────────────────

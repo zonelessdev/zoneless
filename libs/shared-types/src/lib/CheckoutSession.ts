@@ -464,9 +464,9 @@ export interface CheckoutSession {
    * @zoneless_extension
    */
   payment_details?: {
-    /** The Solana transaction signature of the payment. */
-    transaction_signature: string;
-    /** The customer wallet that paid. */
+    /** The Solana transaction signature of the payment. Null after prepare, before confirm. */
+    transaction_signature: string | null;
+    /** The customer wallet that paid / subscribed. */
     payer_wallet: string | null;
   } | null;
 

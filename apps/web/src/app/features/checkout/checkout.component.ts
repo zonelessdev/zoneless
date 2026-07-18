@@ -16,6 +16,7 @@ import { LoaderComponent, PageLoaderComponent } from '../../shared';
 import {
   CheckoutSession,
   CheckoutSessionLineItem,
+  Price,
   Product,
 } from '@zoneless/shared-types';
 
@@ -87,6 +88,34 @@ export class CheckoutComponent implements OnInit {
     return this.checkoutSession()?.merchant_wallet?.wallet_address ?? '';
   }
 
+  IsSubscription(): boolean {
+    return this.checkoutSession()?.mode === 'subscription';
+  }
+
+  RecurringIntervalLabel(): string | null {
+    const price = this.PrimaryPrice();
+    const interval = price?.recurring?.interval;
+    if (!interval) return null;
+    const count = price?.recurring?.interval_count ?? 1;
+    if (count === 1) return interval;
+    return `${count} ${interval}s`;
+  }
+
+  PrimaryPrice(): Price | null {
+    const price = this.LineItems()[0]?.price;
+    if (!price || typeof price === 'string') return null;
+    return price;
+  }
+
+  LineItemCadence(item: CheckoutSessionLineItem): string | null {
+    const price = item.price;
+    if (!price || typeof price === 'string' || !price.recurring) return null;
+    const count = price.recurring.interval_count ?? 1;
+    const interval = price.recurring.interval;
+    if (count === 1) return `every ${interval}`;
+    return `every ${count} ${interval}s`;
+  }
+
   IsBusy(): boolean {
     const phase = this.paymentPhase();
     return phase === 'awaiting_wallet' || phase === 'processing';
@@ -112,25 +141,7 @@ export class CheckoutComponent implements OnInit {
         throw new Error('Connect a wallet to pay');
       }
 
-      const prepared = await this.checkoutSessionService.PreparePayment(
-        session.url_slug,
-        payerWallet,
-        this.email || undefined
-      );
-
-      const signatureBytes =
-        await this.solanaWalletService.SignAndSendUnsignedTransaction(
-          prepared.unsigned_transaction,
-          session.livemode ? 'solana:mainnet' : 'solana:devnet'
-        );
-      const signature = bs58.encode(signatureBytes);
-
-      this.paymentPhase.set('processing');
-
-      const completedSession = await this.checkoutSessionService.ConfirmPayment(
-        session.url_slug,
-        signature
-      );
+      const completedSession = await this.PayWithWallet(session, payerWallet);
 
       this.checkoutSession.set(completedSession);
       this.paymentPhase.set('complete');
@@ -139,6 +150,109 @@ export class CheckoutComponent implements OnInit {
       this.paymentError.set(this.ErrorMessage(error));
       this.paymentPhase.set('idle');
     }
+  }
+
+  private async PayWithWallet(
+    session: CheckoutSession,
+    payerWallet: string
+  ): Promise<CheckoutSession> {
+    const chain = session.livemode ? 'solana:mainnet' : 'solana:devnet';
+    // First-time subscribers need init_authority then subscribe (2 wallet
+    // approvals). Allow a couple of blockhash retries on top of that.
+    const maxAttempts = this.IsSubscription() ? 5 : 2;
+    let initAuthorityDone = false;
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        this.paymentPhase.set('awaiting_wallet');
+        const prepared = await this.checkoutSessionService.PreparePayment(
+          session.url_slug,
+          payerWallet,
+          this.email || undefined
+        );
+
+        if (prepared.already_subscribed) {
+          this.paymentPhase.set('processing');
+          return this.checkoutSessionService.ConfirmPayment(session.url_slug, {
+            already_subscribed: true,
+            subscription_delegation_pda: prepared.subscription_delegation_pda,
+          });
+        }
+
+        if (prepared.subscription_step === 'init_authority') {
+          if (initAuthorityDone) {
+            throw new Error(
+              'Subscription authority init did not land. Please try again.'
+            );
+          }
+          await this.SignAndConfirmPrepared(session, prepared, chain);
+          initAuthorityDone = true;
+          continue;
+        }
+
+        return await this.SignAndConfirmPrepared(session, prepared, chain);
+      } catch (error) {
+        lastError = error;
+        if (
+          this.IsSubscription() &&
+          this.IsRetryableSubscribeBroadcastError(error)
+        ) {
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw lastError;
+  }
+
+  private async SignAndConfirmPrepared(
+    session: CheckoutSession,
+    prepared: {
+      unsigned_transaction: string;
+      fee_sponsored?: boolean;
+      subscription_step?: 'init_authority' | 'subscribe';
+    },
+    chain: 'solana:mainnet' | 'solana:devnet'
+  ): Promise<CheckoutSession> {
+    if (prepared.fee_sponsored) {
+      const signedTxBytes =
+        await this.solanaWalletService.SignUnsignedTransaction(
+          prepared.unsigned_transaction,
+          chain
+        );
+      this.paymentPhase.set('processing');
+      return this.checkoutSessionService.ConfirmPayment(session.url_slug, {
+        signed_transaction:
+          this.solanaWalletService.BytesToBase64(signedTxBytes),
+        ...(prepared.subscription_step
+          ? { subscription_step: prepared.subscription_step }
+          : {}),
+      });
+    }
+
+    const signatureBytes =
+      await this.solanaWalletService.SignAndSendUnsignedTransaction(
+        prepared.unsigned_transaction,
+        chain
+      );
+    this.paymentPhase.set('processing');
+    return this.checkoutSessionService.ConfirmPayment(session.url_slug, {
+      signature: bs58.encode(signatureBytes),
+      ...(prepared.subscription_step
+        ? { subscription_step: prepared.subscription_step }
+        : {}),
+    });
+  }
+
+  private IsRetryableSubscribeBroadcastError(error: unknown): boolean {
+    const message =
+      error instanceof Error
+        ? error.message
+        : typeof error === 'string'
+        ? error
+        : '';
+    return /blockhash not found|expired|already been processed/i.test(message);
   }
 
   private RedirectToSuccessUrl(session: CheckoutSession): void {
@@ -152,7 +266,9 @@ export class CheckoutComponent implements OnInit {
 
   private ErrorMessage(error: unknown): string {
     if (error instanceof Error && error.message) return error.message;
-    return 'Something went wrong processing your payment. Please try again.';
+    return this.IsSubscription()
+      ? 'Something went wrong starting your subscription. Please try again.'
+      : 'Something went wrong processing your payment. Please try again.';
   }
 
   LineItemImage(item: CheckoutSessionLineItem): string | null {
@@ -186,6 +302,7 @@ export class CheckoutComponent implements OnInit {
   }
 
   SubmitLabel(): string {
+    if (this.IsSubscription()) return 'Subscribe';
     switch (this.checkoutSession()?.submit_type) {
       case 'book':
         return 'Book';
@@ -202,5 +319,36 @@ export class CheckoutComponent implements OnInit {
     return this.paymentPhase() === 'awaiting_wallet'
       ? 'Confirm in wallet'
       : 'Processing';
+  }
+
+  SummaryHeading(): string {
+    return this.IsSubscription()
+      ? `Subscribe to ${this.MerchantName()}`
+      : `Pay ${this.MerchantName()}`;
+  }
+
+  MethodDetailLabel(): string {
+    return this.IsSubscription()
+      ? 'Subscribing with USDC on Solana'
+      : 'Paying with USDC on Solana to';
+  }
+
+  MethodHelpText(): string {
+    const amount = this.FormatAmount(this.checkoutSession()?.amount_total);
+    if (this.IsSubscription()) {
+      const cadence = this.RecurringIntervalLabel();
+      return cadence
+        ? `Connect your wallet to authorize recurring ${amount} USDC every ${cadence}. First-time wallets approve twice.`
+        : `Connect your wallet to authorize this recurring USDC subscription. First-time wallets approve twice.`;
+    }
+    return `Connect your wallet and approve the payment of ${amount} in USDC.`;
+  }
+
+  FinePrintVerb(): string {
+    return this.IsSubscription() ? 'subscribing' : 'paying';
+  }
+
+  TotalDueLabel(): string {
+    return this.IsSubscription() ? 'Total due today' : 'Total due';
   }
 }

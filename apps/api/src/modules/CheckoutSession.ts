@@ -619,6 +619,9 @@ export class CheckoutSessionModule {
     paymentDetails: {
       transaction_signature: string;
       payer_wallet: string | null;
+    },
+    options?: {
+      subscription?: string | null;
     }
   ): Promise<CheckoutSessionType> {
     const previousSession = await this.GetCheckoutSession(id);
@@ -644,6 +647,9 @@ export class CheckoutSessionModule {
       payment_status: 'paid',
       url: null,
       payment_details: paymentDetails,
+      ...(options?.subscription !== undefined
+        ? { subscription: options.subscription }
+        : {}),
     });
 
     const session = await this.GetCheckoutSession(id);

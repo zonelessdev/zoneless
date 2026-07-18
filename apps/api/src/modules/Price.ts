@@ -23,7 +23,7 @@ import {
 } from '@zoneless/shared-schemas';
 import { ListHelper, ListOptions, ListResult } from '../utils/ListHelper';
 import { Now } from '../utils/Timestamp';
-import { GetAppConfig, GetSubscriptionPullerPublicKey } from './AppConfig';
+import { GetAppConfig } from './AppConfig';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
 export class PriceModule {
@@ -119,7 +119,7 @@ export class PriceModule {
       const destinationAddress = await this.GetPlatformWalletPublicKey(
         price.platform_account
       );
-      const pullerAddress = GetSubscriptionPullerPublicKey();
+      const pullerAddress = solana.GetPlanOwnerPublicKey();
       const planPda = await solana.CreateSubscriptionPlan(
         price.id,
         periodHours,

@@ -12,6 +12,9 @@ import { ExternalWalletModule } from '../modules/ExternalWallet';
 import { PaymentIntentModule } from '../modules/PaymentIntent';
 import { ChargeModule } from '../modules/Charge';
 import { PaymentLinkModule } from '../modules/PaymentLink';
+import { InvoiceItemModule } from '../modules/InvoiceItem';
+import { InvoiceModule } from '../modules/Invoice';
+import { SubscriptionModule } from '../modules/Subscription';
 
 const router = express.Router();
 
@@ -41,6 +44,25 @@ const paymentLinkModule = new PaymentLinkModule(
   checkoutSessionModule
 );
 const externalWalletModule = new ExternalWalletModule(db, eventService);
+const invoiceItemModule = new InvoiceItemModule(
+  db,
+  eventService,
+  customerModule,
+  priceModule
+);
+const invoiceModule = new InvoiceModule(
+  db,
+  eventService,
+  customerModule,
+  invoiceItemModule
+);
+const subscriptionModule = new SubscriptionModule(
+  db,
+  eventService,
+  customerModule,
+  priceModule,
+  invoiceModule
+);
 const checkoutPaymentModule = new CheckoutPaymentModule(
   db,
   checkoutSessionModule,
@@ -48,7 +70,10 @@ const checkoutPaymentModule = new CheckoutPaymentModule(
   productModule,
   paymentIntentModule,
   chargeModule,
-  paymentLinkModule
+  paymentLinkModule,
+  undefined,
+  customerModule,
+  subscriptionModule
 );
 
 /**
@@ -86,9 +111,9 @@ router.get(
 
 /**
  * POST /v1/payment_pages/:urlSlug/prepare
- * Build an unsigned USDC payment transaction for the checkout session,
- * transferring the session total from the customer's wallet to the
- * merchant's wallet. The customer signs and broadcasts it via their wallet.
+ * Build an unsigned Solana transaction for the checkout session. Payment
+ * mode returns a USDC transfer; subscription mode returns either
+ * initSubscriptionAuthority (first-time wallet) or subscribe.
  */
 router.post(
   '/:urlSlug/prepare',
@@ -109,18 +134,36 @@ router.post(
 
 /**
  * POST /v1/payment_pages/:urlSlug/confirm
- * Verify a broadcast payment transaction on-chain and complete the checkout
- * session. Emits 'checkout.session.completed' on success. Idempotent: if the
- * session was already completed with the same signature, it is returned as-is.
+ * Verify a broadcast transaction on-chain and complete the checkout
+ * session. Subscription mode creates the off-chain Subscription and
+ * collects the first period (unless trialing). Idempotent on signature.
  */
 router.post(
   '/:urlSlug/confirm',
   AsyncHandler(async (req: express.Request, res: express.Response) => {
-    const { signature } = req.body as { signature?: string };
+    const {
+      signature,
+      signed_transaction: signedTransaction,
+      already_subscribed: alreadySubscribed,
+      subscription_delegation_pda: subscriptionDelegationPda,
+      subscription_step: subscriptionStep,
+    } = req.body as {
+      signature?: string;
+      signed_transaction?: string;
+      already_subscribed?: boolean;
+      subscription_delegation_pda?: string;
+      subscription_step?: 'init_authority' | 'subscribe';
+    };
 
     const session = await checkoutPaymentModule.ConfirmPayment(
       req.params.urlSlug,
-      signature
+      signature,
+      {
+        signed_transaction: signedTransaction,
+        already_subscribed: alreadySubscribed,
+        subscription_delegation_pda: subscriptionDelegationPda,
+        subscription_step: subscriptionStep,
+      }
     );
     res.json(session);
   })

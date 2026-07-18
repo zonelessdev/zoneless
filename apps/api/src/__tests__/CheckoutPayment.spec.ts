@@ -37,6 +37,7 @@ jest.mock('../modules/AppConfig', () => ({
     livemode: false,
     appSecret: 'test-secret',
   })),
+  IsCheckoutFeeSponsored: jest.fn(() => false),
 }));
 
 function BuildPrice(overrides: Partial<Price> = {}): Price {
@@ -100,7 +101,14 @@ describe('CheckoutPaymentModule', () => {
     Pick<
       Solana,
       | 'BuildCheckoutPaymentTransaction'
+      | 'BuildInitSubscriptionAuthorityTransaction'
+      | 'BuildSubscribeTransaction'
       | 'VerifyCheckoutPayment'
+      | 'VerifySubscribeTransaction'
+      | 'CollectSubscriptionPayment'
+      | 'CosignAndBroadcastCheckoutTransaction'
+      | 'FindExistingSubscriptionDelegation'
+      | 'WaitForSubscriptionAuthority'
       | 'GetUSDCMintAddress'
     >
   >;
@@ -149,7 +157,25 @@ describe('CheckoutPaymentModule', () => {
         blockhash: 'blockhash_1',
         last_valid_block_height: 100,
       }),
+      BuildInitSubscriptionAuthorityTransaction: jest
+        .fn()
+        .mockResolvedValue(null),
+      BuildSubscribeTransaction: jest.fn().mockResolvedValue({
+        unsigned_transaction: 'unsigned_subscribe_base64',
+        estimated_fee_lamports: 5000,
+        blockhash: 'blockhash_1',
+        last_valid_block_height: 100,
+      }),
       VerifyCheckoutPayment: jest.fn(),
+      VerifySubscribeTransaction: jest.fn(),
+      CollectSubscriptionPayment: jest.fn().mockResolvedValue({
+        signature: 'collect_sig',
+      }),
+      CosignAndBroadcastCheckoutTransaction: jest.fn().mockResolvedValue({
+        signature: 'cosign_sig',
+      }),
+      FindExistingSubscriptionDelegation: jest.fn().mockResolvedValue(null),
+      WaitForSubscriptionAuthority: jest.fn().mockResolvedValue(undefined),
       GetUSDCMintAddress: jest.fn().mockReturnValue('UsdcMint111'),
     };
 
@@ -232,7 +258,8 @@ describe('CheckoutPaymentModule', () => {
         'PayerWallet111',
         'MerchantWallet111',
         1000,
-        session.id
+        session.id,
+        { feeSponsored: false }
       );
       expect(eventService.Emit).toHaveBeenCalledWith(
         'payment_intent.updated',
@@ -252,6 +279,105 @@ describe('CheckoutPaymentModule', () => {
           unsigned_transaction: 'unsigned_tx_base64',
         })
       );
+    });
+
+    it('should build a subscribe transaction for subscription mode', async () => {
+      const recurringPrice = BuildPrice({
+        type: 'recurring',
+        recurring: {
+          interval: 'month',
+          interval_count: 1,
+          meter: null,
+          trial_period_days: null,
+          usage_type: 'licensed',
+        },
+        subscription_plan_pda: 'PlanPda111',
+      });
+      const session = BuildOpenSession({
+        mode: 'subscription',
+        payment_intent: null,
+        line_items: {
+          object: 'list',
+          data: [BuildLineItem({ price: recurringPrice })],
+          has_more: false,
+          url: '/v1/checkout/sessions/cs_z_1/line_items',
+        },
+      });
+
+      jest
+        .spyOn(checkoutSessionModule, 'GetCheckoutSessionByUrlSlug')
+        .mockResolvedValue(session);
+      jest
+        .spyOn(checkoutSessionModule, 'GetCheckoutSession')
+        .mockResolvedValue(session);
+      mockDb.Update = jest.fn().mockResolvedValue(undefined);
+
+      const result = await module.PreparePayment(
+        session.url_slug,
+        'PayerWallet111',
+        'buyer@example.com'
+      );
+
+      expect(
+        mockSolana.BuildInitSubscriptionAuthorityTransaction
+      ).toHaveBeenCalledWith('PayerWallet111', { feeSponsored: false });
+      expect(mockSolana.BuildSubscribeTransaction).toHaveBeenCalledWith(
+        'PayerWallet111',
+        recurringPrice.id,
+        'PlanPda111',
+        { feeSponsored: false }
+      );
+      expect(mockSolana.BuildCheckoutPaymentTransaction).not.toHaveBeenCalled();
+      expect(result.unsigned_transaction).toBe('unsigned_subscribe_base64');
+      expect(result.subscription_step).toBe('subscribe');
+    });
+
+    it('should return init_authority step when subscription authority is missing', async () => {
+      const recurringPrice = BuildPrice({
+        type: 'recurring',
+        recurring: {
+          interval: 'month',
+          interval_count: 1,
+          meter: null,
+          trial_period_days: null,
+          usage_type: 'licensed',
+        },
+        subscription_plan_pda: 'PlanPda111',
+      });
+      const session = BuildOpenSession({
+        mode: 'subscription',
+        payment_intent: null,
+        line_items: {
+          object: 'list',
+          data: [BuildLineItem({ price: recurringPrice })],
+          has_more: false,
+          url: '/v1/checkout/sessions/cs_z_1/line_items',
+        },
+      });
+
+      mockSolana.BuildInitSubscriptionAuthorityTransaction.mockResolvedValue({
+        unsigned_transaction: 'unsigned_init_base64',
+        estimated_fee_lamports: 5000,
+        blockhash: 'blockhash_1',
+        last_valid_block_height: 100,
+      });
+
+      jest
+        .spyOn(checkoutSessionModule, 'GetCheckoutSessionByUrlSlug')
+        .mockResolvedValue(session);
+      jest
+        .spyOn(checkoutSessionModule, 'GetCheckoutSession')
+        .mockResolvedValue(session);
+      mockDb.Update = jest.fn().mockResolvedValue(undefined);
+
+      const result = await module.PreparePayment(
+        session.url_slug,
+        'PayerWallet111'
+      );
+
+      expect(mockSolana.BuildSubscribeTransaction).not.toHaveBeenCalled();
+      expect(result.unsigned_transaction).toBe('unsigned_init_base64');
+      expect(result.subscription_step).toBe('init_authority');
     });
   });
 

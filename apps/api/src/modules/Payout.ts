@@ -680,12 +680,7 @@ export class PayoutModule {
     platformAccountId: string,
     input: BroadcastPayoutsBatchInput
   ): Promise<PayoutBatchBroadcastResponse> {
-    const {
-      signed_transaction,
-      payouts: payoutIds,
-      blockhash,
-      last_valid_block_height,
-    } = input;
+    const { signed_transaction, payouts: payoutIds } = input;
 
     // Fetch and validate all payouts
     const payouts: PayoutType[] = [];
@@ -746,10 +741,7 @@ export class PayoutModule {
 
     // Broadcast the transaction
     const result = await this.solana.BroadcastSignedTransaction(
-      signed_transaction,
-      blockhash && last_valid_block_height
-        ? { blockhash, lastValidBlockHeight: last_valid_block_height }
-        : undefined
+      signed_transaction
     );
 
     // Update all payouts based on result
