@@ -1,7 +1,7 @@
 /**
  * @fileOverview Methods for the public hosted checkout payment flow:
  * bootstrapping the payment page, preparing the unsigned USDC payment
- * transaction, and confirming/completing the payment on-chain.
+ * or subscribe transaction, and confirming/completing on-chain.
  *
  * @module CheckoutPayment
  */
@@ -14,6 +14,8 @@ import { ExternalWalletModule } from './ExternalWallet';
 import { BalanceModule } from './Balance';
 import { BalanceTransactionModule } from './BalanceTransaction';
 import { ProductModule } from './Product';
+import type { CustomerModule } from './Customer';
+import type { SubscriptionModule } from './Subscription';
 import type { PaymentIntentModule } from './PaymentIntent';
 import type { ChargeModule } from './Charge';
 import type { PaymentLinkModule } from './PaymentLink';
@@ -31,7 +33,8 @@ import {
   Price,
   Product,
 } from '@zoneless/shared-types';
-/** Unsigned payment transaction bundle returned by PreparePayment. */
+
+/** Unsigned payment / subscribe transaction bundle returned by PreparePayment. */
 export interface PreparedCheckoutPayment {
   object: 'checkout.payment_transaction';
   checkout_session: string;
@@ -42,6 +45,12 @@ export interface PreparedCheckoutPayment {
   estimated_fee_lamports: number;
   blockhash: string;
   last_valid_block_height: number;
+  /**
+   * True when the wallet is already subscribed on-chain (e.g. a prior attempt
+   * landed but checkout confirm failed). Frontend should confirm without signing.
+   */
+  already_subscribed?: boolean;
+  subscription_delegation_pda?: string;
 }
 
 export class CheckoutPaymentModule {
@@ -55,6 +64,8 @@ export class CheckoutPaymentModule {
   private readonly paymentIntentModule: PaymentIntentModule | null;
   private readonly chargeModule: ChargeModule | null;
   private readonly paymentLinkModule: PaymentLinkModule | null;
+  private readonly customerModule: CustomerModule | null;
+  private readonly subscriptionModule: SubscriptionModule | null;
   private readonly solana: Solana;
 
   constructor(
@@ -65,7 +76,9 @@ export class CheckoutPaymentModule {
     paymentIntentModule?: PaymentIntentModule,
     chargeModule?: ChargeModule,
     paymentLinkModule?: PaymentLinkModule,
-    solana?: Solana
+    solana?: Solana,
+    customerModule?: CustomerModule,
+    subscriptionModule?: SubscriptionModule
   ) {
     this.db = db;
     this.accountModule = new AccountModule(db);
@@ -77,6 +90,8 @@ export class CheckoutPaymentModule {
     this.paymentIntentModule = paymentIntentModule || null;
     this.chargeModule = chargeModule || null;
     this.paymentLinkModule = paymentLinkModule || null;
+    this.customerModule = customerModule || null;
+    this.subscriptionModule = subscriptionModule || null;
     this.solana = solana || new Solana();
   }
 
@@ -177,18 +192,9 @@ export class CheckoutPaymentModule {
   }
 
   /**
-   * Build an unsigned USDC payment transaction transferring the session
-   * total from the customer's wallet to the merchant's wallet. The customer
-   * signs and broadcasts it via their wallet.
-   *
-   * Transitions the linked PaymentIntent to `requires_confirmation` once the
-   * customer has provided a wallet (Stripe: payment details attached, ready
-   * to confirm). Emits `payment_intent.updated`.
-   *
-   * @param id - The checkout session ID
-   * @param payerWallet - The customer's wallet address
-   * @param email - Optional customer email to record on the session
-   * @returns The unsigned transaction bundle
+   * Build an unsigned transaction for the checkout session. One-time sessions
+   * get a USDC transfer; subscription sessions get a Solana `subscribe`
+   * (plus `initSubscriptionAuthority` when needed).
    */
   async PreparePayment(
     urlSlug: string,
@@ -214,17 +220,21 @@ export class CheckoutPaymentModule {
       await this.checkoutSessionModule.SetCustomerEmail(session.id, email);
     }
 
-    Logger.info('Preparing checkout payment transaction', {
+    Logger.info('Preparing checkout transaction', {
       checkoutSessionId: session.id,
+      mode: session.mode,
       amountTotal: session.amount_total,
     });
 
-    const prepared = await this.solana.BuildCheckoutPaymentTransaction(
-      payerWallet,
-      merchantWallet.wallet_address,
-      session.amount_total!,
-      session.id
-    );
+    const prepared =
+      session.mode === 'subscription'
+        ? await this.PrepareSubscribeTransaction(session, payerWallet)
+        : await this.solana.BuildCheckoutPaymentTransaction(
+            payerWallet,
+            merchantWallet.wallet_address,
+            session.amount_total!,
+            session.id
+          );
 
     await this.MarkPaymentIntentRequiresConfirmation(session, payerWallet);
 
@@ -238,21 +248,121 @@ export class CheckoutPaymentModule {
     };
   }
 
+  private async PrepareSubscribeTransaction(
+    session: CheckoutSession,
+    payerWallet: string
+  ): Promise<
+    Omit<
+      PreparedCheckoutPayment,
+      | 'object'
+      | 'checkout_session'
+      | 'amount_total'
+      | 'currency'
+      | 'merchant_wallet_address'
+    >
+  > {
+    const price = this.RequireRecurringCheckoutPrice(session);
+    if (!price.subscription_plan_pda) {
+      throw new AppError(
+        'This subscription price has no on-chain plan. Recreate the price and try again.',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    const existingPda = await this.solana.FindExistingSubscriptionDelegation(
+      price.subscription_plan_pda,
+      payerWallet
+    );
+    if (existingPda) {
+      // Prior attempt likely landed on-chain while confirm failed (stale blockhash).
+      return {
+        unsigned_transaction: '',
+        estimated_fee_lamports: 0,
+        blockhash: '',
+        last_valid_block_height: 0,
+        already_subscribed: true,
+        subscription_delegation_pda: existingPda,
+      };
+    }
+
+    return this.solana.BuildSubscribeTransaction(
+      payerWallet,
+      price.id,
+      price.subscription_plan_pda
+    );
+  }
+
   /**
-   * Verify a broadcast payment transaction on-chain and complete the
-   * checkout session. Emits Charge + PaymentIntent lifecycle events then
-   * `checkout.session.completed`. Idempotent: if the session was already
-   * completed with the same signature, it is returned as-is.
+   * Verify a broadcast transaction on-chain and complete the checkout
+   * session. For payment mode this verifies a USDC transfer; for
+   * subscription mode it verifies the subscribe PDA, creates the off-chain
+   * Subscription, and collects the first period (unless trialing).
    *
-   * @param urlSlug - The opaque public URL slug for the checkout session
-   * @param signature - The Solana transaction signature of the payment
-   * @returns The completed public checkout session
+   * Subscription confirms may pass `signed_transaction` instead of
+   * `signature`: the API cosigns with FEE_PAYER and broadcasts.
    */
   async ConfirmPayment(
     urlSlug: string,
-    signature: string | undefined
+    signature: string | undefined,
+    options?: {
+      signed_transaction?: string;
+      already_subscribed?: boolean;
+      subscription_delegation_pda?: string;
+    }
   ): Promise<CheckoutSession> {
-    if (!signature || typeof signature !== 'string') {
+    const session = await this.GetSessionOrThrow(urlSlug);
+
+    // Idempotency: already completed with this signature
+    if (
+      session.status === 'complete' &&
+      signature &&
+      session.payment_details?.transaction_signature === signature
+    ) {
+      if (session.mode === 'payment' && session.amount_total) {
+        await this.RecordPaymentOnLedger(
+          session,
+          session.amount_total,
+          session.payment_details.payer_wallet,
+          signature
+        );
+      }
+      return this.SanitizeCheckoutSession(session);
+    }
+
+    this.AssertSessionPayable(session);
+
+    if (session.mode === 'subscription' && options?.already_subscribed) {
+      return this.ConfirmSubscriptionFromExistingOnChain(
+        session,
+        options.subscription_delegation_pda
+      );
+    }
+
+    let resolvedSignature = signature;
+    if (
+      session.mode === 'subscription' &&
+      options?.signed_transaction &&
+      typeof options.signed_transaction === 'string'
+    ) {
+      try {
+        const broadcast =
+          await this.solana.CosignAndBroadcastSubscribeTransaction(
+            options.signed_transaction
+          );
+        resolvedSignature = broadcast.signature;
+      } catch (error) {
+        throw new AppError(
+          error instanceof Error
+            ? error.message
+            : 'Failed to broadcast subscribe transaction',
+          ERRORS.INVALID_REQUEST.status,
+          ERRORS.INVALID_REQUEST.type
+        );
+      }
+    }
+
+    if (!resolvedSignature || typeof resolvedSignature !== 'string') {
       throw new AppError(
         'signature is required',
         ERRORS.VALIDATION_ERROR.status,
@@ -260,30 +370,9 @@ export class CheckoutPaymentModule {
       );
     }
 
-    const session = await this.GetSessionOrThrow(urlSlug);
-
-    // Idempotency: the session was already completed with this signature.
-    // Re-run the ledger recording (a no-op when already recorded) so a
-    // retry can heal a confirm that failed between completion and ledgering.
-    if (
-      session.status === 'complete' &&
-      session.payment_details?.transaction_signature === signature
-    ) {
-      await this.RecordPaymentOnLedger(
-        session,
-        session.amount_total!,
-        session.payment_details.payer_wallet,
-        signature
-      );
-      return this.SanitizeCheckoutSession(session);
-    }
-
-    this.AssertSessionPayable(session);
-
-    // A transaction can only ever complete one checkout session
     const existingSession =
       await this.checkoutSessionModule.GetCheckoutSessionByTransactionSignature(
-        signature
+        resolvedSignature
       );
     if (existingSession) {
       throw new AppError(
@@ -293,6 +382,17 @@ export class CheckoutPaymentModule {
       );
     }
 
+    if (session.mode === 'subscription') {
+      return this.ConfirmSubscription(session, resolvedSignature);
+    }
+
+    return this.ConfirmOneTimePayment(session, resolvedSignature);
+  }
+
+  private async ConfirmOneTimePayment(
+    session: CheckoutSession,
+    signature: string
+  ): Promise<CheckoutSession> {
     const merchantWallet = await this.ResolveMerchantWallet(
       session.platform_account
     );
@@ -379,6 +479,315 @@ export class CheckoutPaymentModule {
     });
 
     return this.SanitizeCheckoutSession(completedSession);
+  }
+
+  private async ConfirmSubscription(
+    session: CheckoutSession,
+    signature: string
+  ): Promise<CheckoutSession> {
+    const price = this.RequireRecurringCheckoutPrice(session);
+    if (!price.subscription_plan_pda) {
+      throw new AppError(
+        'This subscription price has no on-chain plan',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    const subscriberWallet = await this.ResolvePreparedSubscriberWallet(
+      session
+    );
+
+    Logger.info('Verifying checkout subscribe transaction', {
+      checkoutSessionId: session.id,
+      signature,
+    });
+
+    const verification = await this.solana.VerifySubscribeTransaction(
+      signature,
+      {
+        planPda: price.subscription_plan_pda,
+        subscriberWallet,
+      }
+    );
+
+    if (!verification.verified || !verification.subscription_delegation_pda) {
+      throw new AppError(
+        verification.failure_reason || 'Subscription verification failed',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    return this.FinalizeSubscriptionCheckout(session, {
+      subscriberWallet,
+      subscriptionDelegationPda: verification.subscription_delegation_pda,
+      signature,
+    });
+  }
+
+  /**
+   * Complete checkout when the on-chain subscribe already exists (e.g. a prior
+   * broadcast succeeded but confirm failed on a stale blockhash).
+   */
+  private async ConfirmSubscriptionFromExistingOnChain(
+    session: CheckoutSession,
+    subscriptionDelegationPda?: string
+  ): Promise<CheckoutSession> {
+    const price = this.RequireRecurringCheckoutPrice(session);
+    if (!price.subscription_plan_pda) {
+      throw new AppError(
+        'This subscription price has no on-chain plan',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    const subscriberWallet = await this.ResolvePreparedSubscriberWallet(
+      session
+    );
+    const delegationPda =
+      subscriptionDelegationPda ||
+      (await this.solana.FindExistingSubscriptionDelegation(
+        price.subscription_plan_pda,
+        subscriberWallet
+      ));
+
+    if (!delegationPda) {
+      throw new AppError(
+        'No on-chain subscription found for this wallet and plan',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    Logger.info('Completing checkout from existing on-chain subscription', {
+      checkoutSessionId: session.id,
+      subscriptionDelegationPda: delegationPda,
+    });
+
+    return this.FinalizeSubscriptionCheckout(session, {
+      subscriberWallet,
+      subscriptionDelegationPda: delegationPda,
+      signature: `onchain:${delegationPda}`,
+    });
+  }
+
+  private async FinalizeSubscriptionCheckout(
+    session: CheckoutSession,
+    details: {
+      subscriberWallet: string;
+      subscriptionDelegationPda: string;
+      signature: string;
+    }
+  ): Promise<CheckoutSession> {
+    if (!this.subscriptionModule || !this.customerModule) {
+      throw new AppError(
+        'Subscription checkout is not configured',
+        ERRORS.INTERNAL_ERROR.status,
+        ERRORS.INTERNAL_ERROR.type
+      );
+    }
+
+    const price = this.RequireRecurringCheckoutPrice(session);
+    if (!price.subscription_plan_pda) {
+      throw new AppError(
+        'This subscription price has no on-chain plan',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    const merchantWallet = await this.ResolveMerchantWallet(
+      session.platform_account
+    );
+    const { subscriberWallet, subscriptionDelegationPda, signature } = details;
+
+    const trialPeriodDays = price.recurring?.trial_period_days ?? null;
+    const hasTrial = !!trialPeriodDays && trialPeriodDays > 0;
+    let collectionSignature = signature;
+
+    if (!hasTrial) {
+      try {
+        const collection = await this.solana.CollectSubscriptionPayment({
+          subscriberWallet,
+          planPda: price.subscription_plan_pda,
+          subscriptionPda: subscriptionDelegationPda,
+          destinationWallet: merchantWallet.wallet_address,
+          amountCents: price.unit_amount ?? session.amount_total!,
+        });
+        collectionSignature = collection.signature;
+      } catch (error) {
+        // Subscribe already landed — surface the collect error instead of
+        // pretending checkout collected USDC (collectionSignature === signature).
+        const message =
+          error instanceof Error ? error.message : String(error);
+        Logger.error('First-period subscription collect failed', {
+          checkoutSessionId: session.id,
+          error: message,
+        });
+        throw new AppError(
+          `Subscription authorized on-chain, but the first payment could not be collected: ${message}`,
+          ERRORS.INVALID_REQUEST.status,
+          ERRORS.INVALID_REQUEST.type
+        );
+      }
+    }
+
+    const customerId = await this.EnsureCheckoutCustomer(
+      session,
+      subscriberWallet
+    );
+
+    const subscription = await this.subscriptionModule.CreateSubscription(
+      session.platform_account,
+      {
+        customer: customerId,
+        items: [
+          {
+            price: price.id,
+            quantity: session.line_items?.data?.[0]?.quantity ?? 1,
+          },
+        ],
+        ...(hasTrial ? { trial_period_days: trialPeriodDays! } : {}),
+        default_payment_method: subscriberWallet,
+        metadata: {
+          checkout_session: session.id,
+          wallet_address: subscriberWallet,
+        },
+      }
+    );
+
+    await this.subscriptionModule.SetSubscriptionDelegationPda(
+      subscription.id,
+      subscriptionDelegationPda
+    );
+
+    const completedSession =
+      await this.checkoutSessionModule.CompleteCheckoutSession(
+        session.id,
+        {
+          transaction_signature: signature,
+          payer_wallet: subscriberWallet,
+        },
+        { subscription: subscription.id }
+      );
+
+    if (completedSession.payment_link && this.paymentLinkModule) {
+      await this.paymentLinkModule.RecordCompletedSession(
+        completedSession.payment_link
+      );
+    }
+
+    if (
+      !hasTrial &&
+      collectionSignature !== signature &&
+      collectionSignature !== 'already_collected'
+    ) {
+      await this.RecordPaymentOnLedger(
+        completedSession,
+        price.unit_amount ?? session.amount_total!,
+        subscriberWallet,
+        collectionSignature
+      );
+    }
+
+    Logger.info('Checkout session completed via subscription', {
+      checkoutSessionId: completedSession.id,
+      subscriptionId: subscription.id,
+      signature,
+      collectionSignature,
+    });
+
+    return this.SanitizeCheckoutSession(completedSession);
+  }
+
+  private async ResolvePreparedSubscriberWallet(
+    session: CheckoutSession
+  ): Promise<string> {
+    if (session.payment_details?.payer_wallet) {
+      return session.payment_details.payer_wallet;
+    }
+
+    if (session.payment_intent && this.paymentIntentModule) {
+      const paymentIntent = await this.paymentIntentModule.GetPaymentIntent(
+        session.payment_intent
+      );
+      if (paymentIntent?.payment_method) {
+        return paymentIntent.payment_method;
+      }
+    }
+
+    throw new AppError(
+      'Missing subscriber wallet for this Checkout Session. Call prepare again.',
+      ERRORS.INVALID_REQUEST.status,
+      ERRORS.INVALID_REQUEST.type
+    );
+  }
+
+  private async EnsureCheckoutCustomer(
+    session: CheckoutSession,
+    subscriberWallet: string
+  ): Promise<string> {
+    if (session.customer) return session.customer;
+    if (!this.customerModule) {
+      throw new AppError(
+        'Customer module is not configured',
+        ERRORS.INTERNAL_ERROR.status,
+        ERRORS.INTERNAL_ERROR.type
+      );
+    }
+
+    const email =
+      session.customer_email ?? session.customer_details?.email ?? undefined;
+
+    const customer = await this.customerModule.CreateCustomer(
+      session.platform_account,
+      {
+        email,
+        description: `Checkout subscriber ${subscriberWallet}`,
+        metadata: {
+          wallet_address: subscriberWallet,
+          checkout_session: session.id,
+        },
+      }
+    );
+
+    await this.db.Update<CheckoutSession>('CheckoutSessions', session.id, {
+      customer: customer.id,
+    });
+
+    return customer.id;
+  }
+
+  private RequireRecurringCheckoutPrice(session: CheckoutSession): Price {
+    const lineItems = session.line_items?.data ?? [];
+    if (lineItems.length !== 1) {
+      throw new AppError(
+        'Subscription checkout currently supports exactly one line item',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    const price = lineItems[0]?.price;
+    if (!price || typeof price === 'string') {
+      throw new AppError(
+        'Subscription checkout requires an expanded recurring price',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    if (price.type !== 'recurring' || !price.recurring) {
+      throw new AppError(
+        'Subscription checkout requires a recurring price',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    return price;
   }
 
   /**
@@ -546,7 +955,10 @@ export class CheckoutPaymentModule {
       );
     }
 
-    if (!session.amount_total || session.amount_total <= 0) {
+    if (
+      session.mode !== 'subscription' &&
+      (!session.amount_total || session.amount_total <= 0)
+    ) {
       throw new AppError(
         'This Checkout Session has no amount due',
         ERRORS.INVALID_REQUEST.status,
@@ -559,6 +971,16 @@ export class CheckoutPaymentModule {
     session: CheckoutSession,
     payerWallet: string
   ): Promise<void> {
+    // Persist payer wallet on the open session so subscription confirm can
+    // resolve the subscriber without relying on a PaymentIntent.
+    await this.db.Update<CheckoutSession>('CheckoutSessions', session.id, {
+      payment_details: {
+        transaction_signature:
+          session.payment_details?.transaction_signature ?? null,
+        payer_wallet: payerWallet,
+      },
+    });
+
     if (!session.payment_intent || !this.paymentIntentModule) return;
 
     // Until crypto PaymentMethods exist, store the payer wallet address as

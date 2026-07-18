@@ -17,6 +17,8 @@ export interface CheckoutPaymentTransaction {
   estimated_fee_lamports: number;
   blockhash: string;
   last_valid_block_height: number;
+  already_subscribed?: boolean;
+  subscription_delegation_pda?: string;
 }
 
 @Injectable({
@@ -137,17 +139,23 @@ export class CheckoutSessionService {
   }
 
   /**
-   * Confirm a broadcast payment transaction. The backend verifies it
-   * on-chain and completes the checkout session.
+   * Confirm a checkout transaction. One-time payments pass `signature`
+   * after the wallet broadcasts. Subscriptions pass `signed_transaction`
+   * for the API to broadcast (fee-payer sponsored).
    */
   async ConfirmPayment(
     urlSlug: string,
-    signature: string
+    payload: {
+      signature?: string;
+      signed_transaction?: string;
+      already_subscribed?: boolean;
+      subscription_delegation_pda?: string;
+    }
   ): Promise<CheckoutSession> {
     return this.api.Call<CheckoutSession>(
       'POST',
       `payment_pages/${urlSlug}/confirm`,
-      { signature }
+      payload
     );
   }
 }

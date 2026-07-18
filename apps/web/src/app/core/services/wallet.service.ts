@@ -81,9 +81,51 @@ export class SolanaWalletService {
     const result = await feature.signAndSendTransaction({
       account: connectedAccount,
       transaction: transactionBytes,
-      chain: 'solana:devnet', // match backend network
+      chain,
     });
     return result[0].signature;
+  }
+
+  /**
+   * Sign a (possibly partially signed) transaction without broadcasting.
+   * Used for fee-payer-sponsored subscribe txs that the API relays.
+   */
+  async SignUnsignedTransaction(
+    unsignedTxBase64: string,
+    chain: 'solana:devnet' | 'solana:mainnet' = 'solana:devnet'
+  ): Promise<Uint8Array> {
+    const selectedWallet = this.wallet();
+    const connectedAccount = this.account();
+    if (!selectedWallet || !connectedAccount) {
+      throw new Error('Connect wallet first');
+    }
+    const feature = selectedWallet.features['solana:signTransaction'] as
+      | {
+          signTransaction: (input: {
+            account: WalletAccount;
+            transaction: Uint8Array;
+            chain?: string;
+          }) => Promise<readonly { signedTransaction: Uint8Array }[]>;
+        }
+      | undefined;
+    if (!feature) {
+      throw new Error('Wallet does not support solana:signTransaction');
+    }
+    const transactionBytes = this.Base64ToBytes(unsignedTxBase64);
+    const result = await feature.signTransaction({
+      account: connectedAccount,
+      transaction: transactionBytes,
+      chain,
+    });
+    return result[0].signedTransaction;
+  }
+
+  BytesToBase64(bytes: Uint8Array): string {
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += 1) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
   }
 
   private Base64ToBytes(base64: string): Uint8Array {

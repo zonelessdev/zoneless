@@ -22,8 +22,13 @@
         }
       </div>
 
-      <div class="summary-merchant">Pay {{ MerchantName() }}</div>
-      <div class="summary-total">{{ FormatAmount(session.amount_total) }}</div>
+      <div class="summary-merchant">{{ SummaryHeading() }}</div>
+      <div class="summary-total">
+        {{ FormatAmount(session.amount_total) }}
+        @if (IsSubscription() && RecurringIntervalLabel(); as cadence) {
+        <span class="summary-cadence">/ {{ cadence }}</span>
+        }
+      </div>
 
       <div class="line-items">
         @for (item of LineItems(); track item.id) {
@@ -39,6 +44,8 @@
             <div class="line-item-name">{{ item.description }}</div>
             @if ((item.quantity ?? 1) > 1) {
             <div class="line-item-quantity">Qty {{ item.quantity }}</div>
+            } @if (LineItemCadence(item); as cadence) {
+            <div class="line-item-quantity">Billed {{ cadence }}</div>
             }
           </div>
           <div class="line-item-amount">
@@ -72,7 +79,7 @@
         }
 
         <div class="summary-row summary-row-total">
-          <span>Total due</span>
+          <span>{{ TotalDueLabel() }}</span>
           <span>{{ FormatAmount(session.amount_total) }}</span>
         </div>
       </div>
@@ -104,11 +111,12 @@
           </label>
 
           <div class="method-detail">
-            <div class="method-detail-label">Paying with USDC on Solana to</div>
+            <div class="method-detail-label">{{ MethodDetailLabel() }}</div>
+            @if (!IsSubscription()) {
             <div class="wallet-address">{{ MerchantWalletAddress() }}</div>
+            }
             <div class="method-detail-help">
-              Connect your wallet and approve the payment of
-              {{ FormatAmount(session.amount_total) }} in USDC.
+              {{ MethodHelpText() }}
             </div>
           </div>
         </div>
@@ -143,8 +151,8 @@
       }
 
       <div class="fine-print">
-        By paying, you agree to {{ MerchantName() }}'s @if (MerchantTermsUrl();
-        as termsUrl) {
+        By {{ FinePrintVerb() }}, you agree to {{ MerchantName() }}'s @if
+        (MerchantTermsUrl(); as termsUrl) {
         <a [href]="termsUrl" target="_blank" rel="noopener">Terms</a>
         } @else {
         <a>Terms</a>

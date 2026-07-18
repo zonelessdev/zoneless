@@ -92,6 +92,14 @@
   margin-bottom: $spacing-extra-large;
 }
 
+.summary-cadence {
+  font-family: inherit;
+  font-weight: $text-weight;
+  font-size: $font-size-med;
+  opacity: $dimmed-extra;
+  margin-left: $spacing-extra-small;
+}
+
 .line-items {
   display: flex;
   flex-direction: column;

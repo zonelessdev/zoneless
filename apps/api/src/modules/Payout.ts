@@ -683,8 +683,6 @@ export class PayoutModule {
     const {
       signed_transaction,
       payouts: payoutIds,
-      blockhash,
-      last_valid_block_height,
     } = input;
 
     // Fetch and validate all payouts
@@ -746,10 +744,7 @@ export class PayoutModule {
 
     // Broadcast the transaction
     const result = await this.solana.BroadcastSignedTransaction(
-      signed_transaction,
-      blockhash && last_valid_block_height
-        ? { blockhash, lastValidBlockHeight: last_valid_block_height }
-        : undefined
+      signed_transaction
     );
 
     // Update all payouts based on result

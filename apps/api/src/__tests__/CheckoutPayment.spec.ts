@@ -100,7 +100,10 @@ describe('CheckoutPaymentModule', () => {
     Pick<
       Solana,
       | 'BuildCheckoutPaymentTransaction'
+      | 'BuildSubscribeTransaction'
       | 'VerifyCheckoutPayment'
+      | 'VerifySubscribeTransaction'
+      | 'CollectSubscriptionPayment'
       | 'GetUSDCMintAddress'
     >
   >;
@@ -149,7 +152,17 @@ describe('CheckoutPaymentModule', () => {
         blockhash: 'blockhash_1',
         last_valid_block_height: 100,
       }),
+      BuildSubscribeTransaction: jest.fn().mockResolvedValue({
+        unsigned_transaction: 'unsigned_subscribe_base64',
+        estimated_fee_lamports: 5000,
+        blockhash: 'blockhash_1',
+        last_valid_block_height: 100,
+      }),
       VerifyCheckoutPayment: jest.fn(),
+      VerifySubscribeTransaction: jest.fn(),
+      CollectSubscriptionPayment: jest.fn().mockResolvedValue({
+        signature: 'collect_sig',
+      }),
       GetUSDCMintAddress: jest.fn().mockReturnValue('UsdcMint111'),
     };
 
@@ -252,6 +265,52 @@ describe('CheckoutPaymentModule', () => {
           unsigned_transaction: 'unsigned_tx_base64',
         })
       );
+    });
+
+    it('should build a subscribe transaction for subscription mode', async () => {
+      const recurringPrice = BuildPrice({
+        type: 'recurring',
+        recurring: {
+          interval: 'month',
+          interval_count: 1,
+          meter: null,
+          trial_period_days: null,
+          usage_type: 'licensed',
+        },
+        subscription_plan_pda: 'PlanPda111',
+      });
+      const session = BuildOpenSession({
+        mode: 'subscription',
+        payment_intent: null,
+        line_items: {
+          object: 'list',
+          data: [BuildLineItem({ price: recurringPrice })],
+          has_more: false,
+          url: '/v1/checkout/sessions/cs_z_1/line_items',
+        },
+      });
+
+      jest
+        .spyOn(checkoutSessionModule, 'GetCheckoutSessionByUrlSlug')
+        .mockResolvedValue(session);
+      jest
+        .spyOn(checkoutSessionModule, 'GetCheckoutSession')
+        .mockResolvedValue(session);
+      mockDb.Update = jest.fn().mockResolvedValue(undefined);
+
+      const result = await module.PreparePayment(
+        session.url_slug,
+        'PayerWallet111',
+        'buyer@example.com'
+      );
+
+      expect(mockSolana.BuildSubscribeTransaction).toHaveBeenCalledWith(
+        'PayerWallet111',
+        recurringPrice.id,
+        'PlanPda111'
+      );
+      expect(mockSolana.BuildCheckoutPaymentTransaction).not.toHaveBeenCalled();
+      expect(result.unsigned_transaction).toBe('unsigned_subscribe_base64');
     });
   });
 
