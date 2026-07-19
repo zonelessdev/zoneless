@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ExpandableSchema } from './ExpandableSchema';
+import { RecurringIntervalSchema } from './PriceSchema';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reusable nested object schemas
@@ -179,7 +180,7 @@ export const CheckoutSessionPriceDataSchema = z
     product_data: CheckoutSessionProductDataSchema.optional(),
     recurring: z
       .object({
-        interval: z.enum(['day', 'week', 'month', 'year']),
+        interval: RecurringIntervalSchema,
         interval_count: z.number().int().positive().optional(),
       })
       .optional(),

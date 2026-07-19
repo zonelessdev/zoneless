@@ -6,6 +6,7 @@ import type {
   CustomerTaxRate,
 } from './Customer';
 import type { Invoice } from './Invoice';
+import type { RecurringInterval } from './Price';
 import type {
   SubscriptionItem,
   SubscriptionItemList,
@@ -362,8 +363,11 @@ export interface SubscriptionBillingScheduleBillUntil {
 
 /** Specifies a billing schedule duration. */
 export interface SubscriptionBillingScheduleDuration {
-  /** Specifies billing duration. Either day, week, month or year. */
-  interval: 'day' | 'week' | 'month' | 'year';
+  /**
+   * Specifies billing duration. Either hour, day, week, month or year.
+   * @zoneless_extension `hour` is supported for Solana subscription periods.
+   */
+  interval: RecurringInterval;
   /** The multiplier applied to the interval. */
   interval_count: number | null;
 }
@@ -516,8 +520,11 @@ export interface SubscriptionPaymentSettings {
  * calling Create an invoice for the given subscription at the specified interval.
  */
 export interface SubscriptionPendingInvoiceItemInterval {
-  /** Specifies invoicing frequency. Either day, week, month or year. */
-  interval: 'day' | 'week' | 'month' | 'year';
+  /**
+   * Specifies invoicing frequency. Either hour, day, week, month or year.
+   * @zoneless_extension `hour` is supported for Solana subscription periods.
+   */
+  interval: RecurringInterval;
   /**
    * The number of intervals between invoices. For example, interval=month and interval_count=3
    * bills every 3 months. Maximum of one year interval allowed (1 year, 12 months, or 52 weeks).

@@ -48,11 +48,14 @@ import {
   UpdateSubscriptionSchema,
 } from '@zoneless/shared-schemas';
 import { z } from 'zod';
+import {
+  AddRecurringInterval,
+  SECONDS_PER_DAY,
+} from '../utils/RecurringInterval';
 
 type CreateItemInput = z.infer<typeof SubscriptionCreateItemSchema>;
 type UpdateItemInput = z.infer<typeof SubscriptionUpdateItemSchema>;
 
-const SECONDS_PER_DAY = 24 * 60 * 60;
 const THREE_DAYS_SECONDS = 3 * SECONDS_PER_DAY;
 
 export class SubscriptionModule {
@@ -1054,7 +1057,7 @@ export class SubscriptionModule {
     periodStart: number
   ): Promise<SubscriptionItemType> {
     const price = await this.ResolvePrice(platformAccountId, itemInput);
-    const periodEnd = this.AddInterval(
+    const periodEnd = AddRecurringInterval(
       periodStart,
       price.recurring?.interval ?? 'month',
       price.recurring?.interval_count ?? 1
@@ -1322,20 +1325,6 @@ export class SubscriptionModule {
     return trialEnd - now <= THREE_DAYS_SECONDS;
   }
 
-  private AddInterval(
-    start: number,
-    interval: 'day' | 'week' | 'month' | 'year',
-    intervalCount: number
-  ): number {
-    const multipliers: Record<typeof interval, number> = {
-      day: SECONDS_PER_DAY,
-      week: 7 * SECONDS_PER_DAY,
-      month: 30 * SECONDS_PER_DAY,
-      year: 365 * SECONDS_PER_DAY,
-    };
-    return start + multipliers[interval] * intervalCount;
-  }
-
   // ───────────────────────────────────────────────────────────────────────────
   // Invoicing
   // ───────────────────────────────────────────────────────────────────────────
@@ -1433,7 +1422,7 @@ export class SubscriptionModule {
         price: typeof item.price === 'string' ? item.price : item.price.id,
       } as CreateItemInput);
       const periodStart = item.current_period_end;
-      const periodEnd = this.AddInterval(
+      const periodEnd = AddRecurringInterval(
         periodStart,
         price.recurring?.interval ?? 'month',
         price.recurring?.interval_count ?? 1

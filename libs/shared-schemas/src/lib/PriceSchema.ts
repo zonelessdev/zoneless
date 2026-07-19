@@ -2,6 +2,19 @@ import { z } from 'zod';
 import { ExpandableSchema } from './ExpandableSchema';
 
 /**
+ * Billing frequency for a recurring price.
+ * @zoneless_extension Includes `hour` (not in Stripe) for Solana subscription periods.
+ */
+export const RecurringIntervalSchema = z.enum([
+  'hour',
+  'day',
+  'week',
+  'month',
+  'year',
+]);
+export type RecurringIntervalInput = z.infer<typeof RecurringIntervalSchema>;
+
+/**
  * Schema for retrieving a price.
  */
 export const RetrievePriceSchema = ExpandableSchema;
@@ -19,7 +32,7 @@ export const CreatePriceSchema = z
     product: z.string().min(1).max(32).optional(),
     recurring: z
       .object({
-        interval: z.enum(['day', 'week', 'month', 'year']),
+        interval: RecurringIntervalSchema,
         interval_count: z.number().int().positive().optional(),
         trial_period_days: z.number().int().positive().optional(),
         usage_type: z.enum(['metered', 'licensed']).optional(),
@@ -179,7 +192,7 @@ export const ListPricesSchema = z
     lookup_keys: z.array(z.string()).optional(),
     recurring: z
       .object({
-        interval: z.enum(['day', 'week', 'month', 'year']).optional(),
+        interval: RecurringIntervalSchema.optional(),
         meter: z.string().optional(),
         usage_type: z.enum(['metered', 'licensed']).optional(),
       })
@@ -198,7 +211,7 @@ export const ListPricesFiltersSchema = z.object({
   lookup_keys: z.array(z.string()).optional(),
   recurring: z
     .object({
-      interval: z.enum(['day', 'week', 'month', 'year']).optional(),
+      interval: RecurringIntervalSchema.optional(),
       meter: z.string().optional(),
       usage_type: z.enum(['metered', 'licensed']).optional(),
     })

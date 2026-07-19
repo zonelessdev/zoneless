@@ -20,6 +20,7 @@ import { ProductActionsService } from '../../services/product-actions.service';
 import { ProductActionsHostComponent } from '../../components/product-actions-host/product-actions-host.component';
 import { Subscription } from 'rxjs';
 import { MetaService } from '../../../../../core';
+import { FormatPriceDisplay } from '../../util/price-display';
 
 @Component({
   selector: 'app-product-catalogue',
@@ -59,23 +60,7 @@ export class ProductCatalogueComponent implements OnInit, OnDestroy {
         if (product.default_price === null) {
           return 'No prices';
         }
-        const unitAmount = (product.default_price as Price)?.unit_amount ?? 0;
-        if ((product.default_price as Price)?.recurring) {
-          const recurringData = (product.default_price as Price)?.recurring;
-          if (recurringData?.interval === 'day') {
-            return `$${(unitAmount / 100).toFixed(2)} / day`;
-          }
-          if (recurringData?.interval === 'week') {
-            return `$${(unitAmount / 100).toFixed(2)} / week`;
-          }
-          if (recurringData?.interval === 'month') {
-            return `$${(unitAmount / 100).toFixed(2)} / month`;
-          }
-          if (recurringData?.interval === 'year') {
-            return `$${(unitAmount / 100).toFixed(2)} / year`;
-          }
-        }
-        return `$${(unitAmount / 100).toFixed(2)}`;
+        return FormatPriceDisplay(product.default_price as Price);
       },
     },
     {

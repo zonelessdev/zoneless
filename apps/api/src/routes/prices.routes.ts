@@ -18,6 +18,7 @@ import {
   ParseOptionalQueryBoolean,
 } from '../utils/ListHelper';
 import { ApplyExpand, RegisterExpansions } from '../utils/Expand';
+import type { RecurringInterval } from '@zoneless/shared-types';
 
 const router = express.Router();
 
@@ -172,7 +173,7 @@ router.get(
     }
     const recurring = req.query.recurring as
       | {
-          interval: 'day' | 'week' | 'month' | 'year';
+          interval: RecurringInterval;
           meter: string | undefined;
           usage_type: 'metered' | 'licensed';
         }

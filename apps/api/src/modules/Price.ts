@@ -8,7 +8,11 @@
 import { Database } from './Database';
 import { EventService } from './EventService';
 import { GenerateId } from '../utils/IdGenerator';
-import { Price as PriceType, QueryOperators } from '@zoneless/shared-types';
+import {
+  Price as PriceType,
+  QueryOperators,
+  RecurringInterval,
+} from '@zoneless/shared-types';
 import { ValidateUpdate } from './Util';
 import { ExtractChangedFields } from './Event';
 import { Solana } from './chains/Solana';
@@ -26,6 +30,7 @@ import { Now } from '../utils/Timestamp';
 import { GetAppConfig } from './AppConfig';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
+import { RecurringIntervalToHours } from '../utils/RecurringInterval';
 export class PriceModule {
   private readonly db: Database;
   private readonly eventService: EventService | null;
@@ -115,7 +120,10 @@ export class PriceModule {
     ) {
       const solana = new Solana();
       const amount = price.unit_amount as number;
-      const periodHours = this.PeriodToHours(price.recurring.interval);
+      const periodHours = this.PeriodToHours(
+        price.recurring.interval,
+        price.recurring.interval_count
+      );
       const destinationAddress = await this.GetPlatformWalletPublicKey(
         price.platform_account
       );
@@ -168,17 +176,8 @@ export class PriceModule {
     return platformWallet.wallet_address;
   }
 
-  PeriodToHours(period: 'day' | 'week' | 'month' | 'year'): number {
-    switch (period) {
-      case 'day':
-        return 24;
-      case 'week':
-        return 24 * 7;
-      case 'month':
-        return 24 * 30;
-      case 'year':
-        return 24 * 365;
-    }
+  PeriodToHours(period: RecurringInterval, intervalCount = 1): number {
+    return RecurringIntervalToHours(period, intervalCount);
   }
 
   /**

@@ -27,6 +27,10 @@ import { PriceActionsHostComponent } from '../../components/price-actions-host/p
 import { MetadataToArray } from '../../../util/metadata';
 import { MetaService } from '../../../../../core';
 import { Subscription } from 'rxjs';
+import {
+  FormatPriceDisplay,
+  FormatIntervalPerLabel,
+} from '../../util/price-display';
 
 @Component({
   selector: 'app-product-detail',
@@ -52,6 +56,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   readonly actions = inject(ProductActionsService);
   readonly priceActions = inject(PriceActionsService);
   readonly MetadataToArray = MetadataToArray;
+  readonly FormatIntervalPerLabel = FormatIntervalPerLabel;
 
   @ViewChild('pricesList') pricesList?: PaginatedListComponent<any>;
 
@@ -168,27 +173,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
         type: 'text',
         bolded: true,
         formatter: (item: unknown) => {
-          const price = item as Price;
-          if (price === null) {
-            return 'No prices';
-          }
-          const unitAmount = price.unit_amount ?? 0;
-          if (price.recurring) {
-            const recurringData = price.recurring;
-            if (recurringData?.interval === 'day') {
-              return `$${(unitAmount / 100).toFixed(2)} / day`;
-            }
-            if (recurringData?.interval === 'week') {
-              return `$${(unitAmount / 100).toFixed(2)} / week`;
-            }
-            if (recurringData?.interval === 'month') {
-              return `$${(unitAmount / 100).toFixed(2)} / month`;
-            }
-            if (recurringData?.interval === 'year') {
-              return `$${(unitAmount / 100).toFixed(2)} / year`;
-            }
-          }
-          return `$${(unitAmount / 100).toFixed(2)}`;
+          return FormatPriceDisplay(item as Price);
         },
       },
       {

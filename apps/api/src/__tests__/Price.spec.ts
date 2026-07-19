@@ -37,6 +37,21 @@ describe('PriceModule', () => {
     module = new PriceModule(mockDb, null, productModule);
   });
 
+  describe('PeriodToHours', () => {
+    it('should convert each recurring interval to hours', () => {
+      expect(module.PeriodToHours('hour')).toBe(1);
+      expect(module.PeriodToHours('day')).toBe(24);
+      expect(module.PeriodToHours('week')).toBe(168);
+      expect(module.PeriodToHours('month')).toBe(720);
+      expect(module.PeriodToHours('year')).toBe(8760);
+    });
+
+    it('should multiply by interval_count', () => {
+      expect(module.PeriodToHours('hour', 3)).toBe(3);
+      expect(module.PeriodToHours('day', 2)).toBe(48);
+    });
+  });
+
   describe('PriceObject', () => {
     it('should create a price with sensible defaults', () => {
       const price = module.PriceObject('acct_z_platform', {

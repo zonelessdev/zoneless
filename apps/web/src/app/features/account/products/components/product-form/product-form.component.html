@@ -220,6 +220,7 @@
   <div class="field-title">Billing Period</div>
   <div class="field-value">
     <select [ngModel]="interval()" (ngModelChange)="OnIntervalChange($event)">
+      <option value="hour">Hourly</option>
       <option value="day">Daily</option>
       <option value="week">Weekly</option>
       <option value="month">Monthly</option>

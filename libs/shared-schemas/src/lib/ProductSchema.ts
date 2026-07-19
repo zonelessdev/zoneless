@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { MarketingFeature } from '@zoneless/shared-types';
 import { ExpandableSchema } from './ExpandableSchema';
+import { RecurringIntervalSchema } from './PriceSchema';
 
 const PackageDimensionsSchema = z.object({
   height: z.number().min(0).max(100000),
@@ -88,7 +89,7 @@ export const CreateProductSchema = z
         metadata: z.record(z.string(), z.string()).optional(),
         recurring: z
           .object({
-            interval: z.enum(['day', 'week', 'month', 'year']),
+            interval: RecurringIntervalSchema,
             interval_count: z.number().int().positive().optional(),
             trial_period_days: z.number().int().positive().optional(),
             usage_type: z.enum(['metered', 'licensed']).optional(),

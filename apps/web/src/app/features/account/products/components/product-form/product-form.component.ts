@@ -13,7 +13,12 @@ import {
   ViewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Product, Price, MarketingFeature } from '@zoneless/shared-types';
+import {
+  Product,
+  Price,
+  MarketingFeature,
+  RecurringInterval,
+} from '@zoneless/shared-types';
 import { ConfigService } from '../../../../../data';
 import {
   CreateProductInput,
@@ -27,6 +32,7 @@ import { PriceActionsHostComponent } from '../price-actions-host/price-actions-h
 import { PriceActionsService } from '../../services/price-actions.service';
 import { MetadataEditorComponent } from '../../../components';
 import { Subscription } from 'rxjs';
+import { FormatPriceDisplay } from '../../util/price-display';
 export type ProductFormMode = 'create' | 'edit';
 
 @Component({
@@ -83,8 +89,7 @@ export class ProductFormComponent implements OnInit, OnChanges {
   selectedPricing: WritableSignal<'one-time' | 'recurring'> =
     signal('recurring');
 
-  interval: WritableSignal<'day' | 'week' | 'month' | 'year'> = signal('month');
-  intervalError: WritableSignal<string> = signal('');
+  interval: WritableSignal<RecurringInterval> = signal('month');
 
   detailsExpanded: WritableSignal<boolean> = signal(false);
 
@@ -191,7 +196,7 @@ export class ProductFormComponent implements OnInit, OnChanges {
     }
   }
 
-  OnIntervalChange(value: 'day' | 'week' | 'month' | 'year'): void {
+  OnIntervalChange(value: RecurringInterval): void {
     this.interval.set(value);
     this.EmitFormChange();
   }
@@ -305,27 +310,7 @@ export class ProductFormComponent implements OnInit, OnChanges {
         type: 'text',
         bolded: true,
         formatter: (item: unknown) => {
-          const price = item as Price;
-          if (price === null) {
-            return 'No prices';
-          }
-          const unitAmount = price.unit_amount ?? 0;
-          if (price.recurring) {
-            const recurringData = price.recurring;
-            if (recurringData?.interval === 'day') {
-              return `$${(unitAmount / 100).toFixed(2)} / day`;
-            }
-            if (recurringData?.interval === 'week') {
-              return `$${(unitAmount / 100).toFixed(2)} / week`;
-            }
-            if (recurringData?.interval === 'month') {
-              return `$${(unitAmount / 100).toFixed(2)} / month`;
-            }
-            if (recurringData?.interval === 'year') {
-              return `$${(unitAmount / 100).toFixed(2)} / year`;
-            }
-          }
-          return `$${(unitAmount / 100).toFixed(2)}`;
+          return FormatPriceDisplay(item as Price);
         },
       },
       {
