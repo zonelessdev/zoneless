@@ -32,6 +32,7 @@ import chargesRouter from './charges.routes';
 import invoiceItemsRouter from './invoiceItems.routes';
 import invoicesRouter from './invoices.routes';
 import reportingRouter from './reporting.routes';
+import billingRouter from './billing.routes';
 
 const router = express.Router();
 
@@ -45,6 +46,9 @@ router.use('/payment_pages', paymentPagesRouter);
 // --- Operator Routes ---
 // Guarded by the operator API key (managed hosting only)
 router.use('/operator', operatorRouter);
+
+// Billing run: operator key (Cloud Scheduler) or platform API key endpoints.
+router.use('/billing', billingRouter);
 
 // --- Authenticated Routes ---
 // All routes below this line require an API Key

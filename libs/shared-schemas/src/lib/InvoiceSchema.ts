@@ -429,6 +429,12 @@ export const PayInvoiceSchema = z
     paid_out_of_band: z.boolean().optional(),
     payment_method: z.string().optional(),
     source: z.string().optional(),
+    /**
+     * When set, skip on-chain collect and record settlement with this signature
+     * (e.g. checkout already collected the first period).
+     * @zoneless_extension
+     */
+    settlement_signature: z.string().optional(),
   })
   .merge(ExpandableSchema);
 

@@ -3,6 +3,8 @@
  *
  * Invoices are statements of amounts owed by a customer. They contain invoice
  * items (and later, subscription line items / prorations). Settled in USDC.
+ * Finalizing a charge_automatically invoice creates a PaymentIntent; paying
+ * collects via Solana subscription pull (or paid_out_of_band).
  *
  * @module Invoice
  * @see https://docs.stripe.com/api/invoices
@@ -13,18 +15,29 @@ import { EventService } from './EventService';
 import { ExtractChangedFields } from './Event';
 import type { CustomerModule } from './Customer';
 import type { InvoiceItemModule } from './InvoiceItem';
+import type { PaymentIntentModule } from './PaymentIntent';
+import type { ChargeModule } from './Charge';
+import type { PriceModule } from './Price';
+import { BalanceModule } from './Balance';
+import { BalanceTransactionModule } from './BalanceTransaction';
+import { Solana, SolanaExplorerUrl } from './chains/Solana';
 import { GenerateId } from '../utils/IdGenerator';
 import {
+  BalanceTransaction as BalanceTransactionType,
   Customer as CustomerType,
   Invoice as InvoiceType,
   InvoiceBillingReason,
   InvoiceDeleted,
   InvoiceItem as InvoiceItemType,
   InvoiceLineItem,
+  InvoicePayment,
   InvoiceStatus,
+  Price as PriceType,
   QueryOperators,
+  Subscription as SubscriptionType,
+  SubscriptionItem as SubscriptionItemType,
 } from '@zoneless/shared-types';
-import { StripUndefined, ValidateUpdate } from './Util';
+import { StripUndefined, ValidateUpdate, ExpandableId } from './Util';
 import {
   CreateInvoiceSchema,
   CreateInvoiceInput,
@@ -41,6 +54,8 @@ import { Now } from '../utils/Timestamp';
 import { GetAppConfig } from './AppConfig';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
+import { Logger } from '../utils/Logger';
+import { ClientSession } from 'mongoose';
 
 /** Fields that may only be changed while the invoice is a draft. */
 const DRAFT_ONLY_UPDATE_FIELDS = new Set([
@@ -55,18 +70,40 @@ const DRAFT_ONLY_UPDATE_FIELDS = new Set([
   'automatically_finalizes_at',
 ]);
 
+/** Max automatic payment attempts before the invoice is exhausted. */
+export const INVOICE_MAX_PAYMENT_ATTEMPTS = 4;
+
+const SECONDS_PER_DAY = 24 * 60 * 60;
+
+/** Delays after attempts 1, 2, and 3 before the next retry. */
+const RETRY_DELAYS_SECONDS = [
+  1 * SECONDS_PER_DAY,
+  3 * SECONDS_PER_DAY,
+  5 * SECONDS_PER_DAY,
+];
+
 export class InvoiceModule {
   private readonly db: Database;
   private readonly eventService: EventService | null;
   private readonly listHelper: ListHelper<InvoiceType>;
   private readonly customerModule: CustomerModule | null;
   private readonly invoiceItemModule: InvoiceItemModule | null;
+  private readonly paymentIntentModule: PaymentIntentModule | null;
+  private readonly chargeModule: ChargeModule | null;
+  private readonly priceModule: PriceModule | null;
+  private readonly balanceModule: BalanceModule;
+  private readonly balanceTransactionModule: BalanceTransactionModule;
+  private readonly solana: Solana;
 
   constructor(
     db: Database,
     eventService?: EventService,
     customerModule?: CustomerModule,
-    invoiceItemModule?: InvoiceItemModule
+    invoiceItemModule?: InvoiceItemModule,
+    paymentIntentModule?: PaymentIntentModule,
+    chargeModule?: ChargeModule,
+    priceModule?: PriceModule,
+    solana?: Solana
   ) {
     this.db = db;
     this.eventService = eventService || null;
@@ -79,6 +116,12 @@ export class InvoiceModule {
     });
     this.customerModule = customerModule || null;
     this.invoiceItemModule = invoiceItemModule || null;
+    this.paymentIntentModule = paymentIntentModule || null;
+    this.chargeModule = chargeModule || null;
+    this.priceModule = priceModule || null;
+    this.balanceModule = new BalanceModule(db);
+    this.balanceTransactionModule = new BalanceTransactionModule(db);
+    this.solana = solana || new Solana();
   }
 
   /**
@@ -383,6 +426,8 @@ export class InvoiceModule {
 
   /**
    * Finalize a draft invoice (draft → open).
+   * For charge_automatically invoices with amount_due > 0, creates a
+   * PaymentIntent and default InvoicePayment, and sets confirmation_secret.
    * Emits `invoice.finalized`.
    */
   async FinalizeInvoice(
@@ -410,6 +455,32 @@ export class InvoiceModule {
       last_finalization_error: null,
     };
 
+    if (
+      previous.collection_method === 'charge_automatically' &&
+      previous.amount_due > 0
+    ) {
+      const paymentIntent = await this.CreateInvoicePaymentIntent(previous);
+      const invoicePayment = this.BuildDefaultInvoicePayment(
+        previous,
+        paymentIntent.id,
+        paymentIntent.amount
+      );
+      updatePayload.confirmation_secret = {
+        type: 'payment_intent',
+        client_secret: paymentIntent.client_secret!,
+      };
+      updatePayload.payments = {
+        object: 'list',
+        data: [invoicePayment],
+        has_more: false,
+        total_count: 1,
+        url: `/v1/invoices/${previous.id}/payments`,
+      };
+      if (previous.collection_method === 'charge_automatically') {
+        updatePayload.next_payment_attempt = now;
+      }
+    }
+
     await this.db.Update<InvoiceType>('Invoices', id, updatePayload);
     const invoice = await this.RequireInvoice(id);
 
@@ -435,6 +506,7 @@ export class InvoiceModule {
     const now = Now();
     await this.db.Update<InvoiceType>('Invoices', id, {
       status: 'uncollectible',
+      next_payment_attempt: null,
       status_transitions: {
         ...previous.status_transitions,
         marked_uncollectible_at: now,
@@ -456,8 +528,10 @@ export class InvoiceModule {
 
   /**
    * Pay an invoice.
-   * v1: only `paid_out_of_band=true` is supported. Emits `invoice.paid` and
-   * `invoice.payment_succeeded`.
+   * Supports `paid_out_of_band`, zero-amount invoices, and automatic Solana
+   * subscription collection (or `settlement_signature` when already collected).
+   * Emits `invoice.paid` / `invoice.payment_succeeded` on success, or
+   * `invoice.payment_failed` on failure.
    */
   async PayInvoice(
     id: string,
@@ -467,45 +541,111 @@ export class InvoiceModule {
     const previous = await this.RequireInvoice(id);
     this.AssertStatus(previous, ['open', 'uncollectible'], 'pay');
 
-    if (!validatedInput.paid_out_of_band) {
+    if (validatedInput.paid_out_of_band) {
+      return this.MarkInvoicePaid(previous, {
+        amountPaidOffStripe: previous.amount_due,
+      });
+    }
+
+    if (previous.amount_due === 0) {
+      return this.MarkInvoicePaid(previous, { amountPaidOffStripe: 0 });
+    }
+
+    const paymentIntentId = this.GetDefaultPaymentIntentId(previous);
+    if (!paymentIntentId) {
       throw new AppError(
-        'Automatic invoice payment collection is not implemented yet. Pass `paid_out_of_band=true` to mark the invoice as paid outside of Zoneless.',
+        'Invoice has no PaymentIntent. Finalize the invoice before paying, or pass `paid_out_of_band=true`.',
         ERRORS.INVALID_REQUEST.status,
         ERRORS.INVALID_REQUEST.type
       );
     }
 
-    const now = Now();
-    await this.db.Update<InvoiceType>('Invoices', id, {
-      status: 'paid',
-      attempted: true,
-      attempt_count: previous.attempt_count + 1,
-      amount_paid: previous.amount_due,
-      amount_paid_off_stripe: previous.amount_due,
-      amount_remaining: 0,
-      amount_overpaid: 0,
-      status_transitions: {
-        ...previous.status_transitions,
-        paid_at: now,
-      },
-    });
-
-    const invoice = await this.RequireInvoice(id);
-
-    if (this.eventService) {
-      await this.eventService.Emit(
-        'invoice.paid',
-        invoice.platform_account,
-        invoice
+    try {
+      const settlement = await this.SettleInvoicePayment(
+        previous,
+        validatedInput.settlement_signature
       );
-      await this.eventService.Emit(
-        'invoice.payment_succeeded',
-        invoice.platform_account,
-        invoice
-      );
+
+      if (this.chargeModule && this.paymentIntentModule) {
+        const charge = await this.chargeModule.CreateFromPaymentAttempt(
+          previous.platform_account,
+          {
+            amount: previous.amount_due,
+            currency: previous.currency,
+            payment_intent: paymentIntentId,
+            payment_method:
+              previous.default_payment_method ??
+              settlement.subscriberWallet ??
+              null,
+            customer: ExpandableId(previous.customer),
+            description: previous.description,
+            metadata: previous.metadata ?? {},
+            crypto: {
+              buyer_address: settlement.subscriberWallet,
+              transaction_hash: settlement.signature,
+            },
+            outcome: 'succeeded',
+          }
+        );
+
+        await this.paymentIntentModule.MarkSucceeded(paymentIntentId, {
+          amountReceived: previous.amount_due,
+          latestCharge: charge.id,
+        });
+
+        await this.SyncInvoicePaymentPaid(
+          previous,
+          paymentIntentId,
+          charge.id,
+          previous.amount_due
+        );
+
+        const balanceTransaction = await this.RecordPaymentOnLedger(
+          previous,
+          settlement.subscriberWallet,
+          settlement.signature
+        );
+        await this.chargeModule.AttachBalanceTransaction(
+          charge.id,
+          balanceTransaction.id
+        );
+      }
+
+      return this.MarkInvoicePaid(previous, {
+        amountPaidOffStripe: 0,
+        paymentIntentId,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      Logger.warn('Invoice payment failed', {
+        invoiceId: previous.id,
+        error: message,
+      });
+
+      if (this.paymentIntentModule) {
+        try {
+          await this.paymentIntentModule.MarkPaymentFailed(paymentIntentId, {
+            advice_code: null,
+            charge: null,
+            code: 'payment_intent_payment_attempt_failed',
+            decline_code: null,
+            doc_url: null,
+            message,
+            network_advice_code: null,
+            network_decline_code: null,
+            param: null,
+            payment_method: null,
+            payment_method_type: 'crypto',
+            source: null,
+            type: 'invalid_request_error',
+          });
+        } catch {
+          // Best-effort PI failure update
+        }
+      }
+
+      return this.RecordInvoicePaymentFailure(previous, message);
     }
-
-    return invoice;
   }
 
   /**
@@ -519,6 +659,7 @@ export class InvoiceModule {
     const now = Now();
     await this.db.Update<InvoiceType>('Invoices', id, {
       status: 'void',
+      next_payment_attempt: null,
       status_transitions: {
         ...previous.status_transitions,
         voided_at: now,
@@ -571,10 +712,8 @@ export class InvoiceModule {
 
   /**
    * Create an invoice for a subscription, attach line items from subscription
-   * prices, optionally finalize, and optionally collect payment.
-   *
-   * Collection currently uses `paid_out_of_band` until PaymentIntent auto-pay /
-   * Solana USDC settlement is wired into finalize/pay.
+   * prices, optionally finalize, and optionally collect payment via Solana
+   * (or record an already-collected `settlementSignature`).
    */
   async CreateSubscriptionInvoice(
     platformAccountId: string,
@@ -595,6 +734,8 @@ export class InvoiceModule {
       }>;
       finalize?: boolean;
       collect?: boolean;
+      /** Skip on-chain collect; record this signature as settlement. */
+      settlementSignature?: string;
     }
   ): Promise<InvoiceType> {
     if (!this.invoiceItemModule) {
@@ -616,8 +757,14 @@ export class InvoiceModule {
       pending_invoice_items_behavior: 'exclude',
     });
 
+    const periodStart =
+      options.lineItems[0]?.period?.start ?? invoice.period_start;
+    const periodEnd = options.lineItems[0]?.period?.end ?? invoice.period_end;
+
     await this.db.Update<InvoiceType>('Invoices', invoice.id, {
       billing_reason: options.billing_reason,
+      period_start: periodStart,
+      period_end: periodEnd,
     });
 
     const createdItems: InvoiceItemType[] = [];
@@ -664,8 +811,9 @@ export class InvoiceModule {
     }
 
     if (options.collect && invoice.status === 'open') {
-      // TODO: Replace with PaymentIntent confirmation + Solana USDC settlement
-      invoice = await this.PayInvoice(invoice.id, { paid_out_of_band: true });
+      invoice = await this.PayInvoice(invoice.id, {
+        settlement_signature: options.settlementSignature,
+      });
     }
 
     return invoice;
@@ -1171,5 +1319,388 @@ export class InvoiceModule {
       );
     }
     return customer;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Settlement helpers
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Credit the merchant platform balance after a successful on-chain invoice
+   * settlement. Idempotent per invoice id (source).
+   */
+  private async RecordPaymentOnLedger(
+    invoice: InvoiceType,
+    payerWallet: string | null,
+    signature: string
+  ): Promise<BalanceTransactionType> {
+    const existing = await this.db.Find2Custom<BalanceTransactionType>(
+      'BalanceTransactions',
+      'source',
+      '==',
+      invoice.id,
+      'type',
+      '==',
+      'payment'
+    );
+    if (existing.length > 0) return existing[0];
+
+    const merchantAccountId = invoice.platform_account;
+    const timestamp = Now();
+    const explorerUrl =
+      signature && signature !== 'already_collected'
+        ? SolanaExplorerUrl('tx', signature)
+        : '';
+
+    const balanceTransaction =
+      this.balanceTransactionModule.BalanceTransactionObject({
+        amount: invoice.amount_due,
+        currency: invoice.currency,
+        account: merchantAccountId,
+        platformAccountId: merchantAccountId,
+        type: 'payment',
+        source: invoice.id,
+        description: `Payment for Invoice ${invoice.id}`,
+        metadata: {
+          blockchain_tx: signature,
+          network: 'solana',
+          sender_address: payerWallet ?? '',
+          explorer_url: explorerUrl,
+        },
+        status: 'available',
+        available_on: timestamp,
+      });
+
+    const balanceData =
+      (await this.balanceModule.GetBalance(merchantAccountId)) ??
+      (await this.balanceModule.CreateBalance(merchantAccountId));
+
+    await this.db.RunTransaction(async (mongoSession: ClientSession) => {
+      await this.db.Set(
+        'BalanceTransactions',
+        balanceTransaction.id,
+        balanceTransaction,
+        mongoSession
+      );
+
+      const updatedBalance = this.balanceModule.UpdateBalance(
+        balanceData,
+        invoice.amount_due,
+        balanceTransaction.currency,
+        'available'
+      );
+      await this.db.Update(
+        'Balances',
+        updatedBalance.id,
+        { available: updatedBalance.available },
+        mongoSession
+      );
+    });
+
+    Logger.info('Recorded invoice payment on ledger', {
+      invoiceId: invoice.id,
+      balanceTransactionId: balanceTransaction.id,
+      amountCents: invoice.amount_due,
+    });
+
+    return balanceTransaction;
+  }
+
+  private async CreateInvoicePaymentIntent(invoice: InvoiceType) {
+    if (!this.paymentIntentModule) {
+      throw new AppError(
+        'PaymentIntentModule not configured for invoice finalization',
+        ERRORS.INTERNAL_ERROR.status,
+        ERRORS.INTERNAL_ERROR.type
+      );
+    }
+
+    const customerId = ExpandableId(invoice.customer)!;
+
+    const subscriptionId = ExpandableId(
+      invoice.parent?.subscription_details?.subscription
+    );
+
+    return this.paymentIntentModule.CreatePaymentIntent(
+      invoice.platform_account,
+      {
+        amount: invoice.amount_due,
+        currency: 'usdc',
+        customer: customerId,
+        description: invoice.description ?? `Invoice ${invoice.id}`,
+        payment_method: invoice.default_payment_method ?? undefined,
+        metadata: {
+          invoice: invoice.id,
+          ...(subscriptionId ? { subscription: subscriptionId } : {}),
+        },
+      }
+    );
+  }
+
+  private BuildDefaultInvoicePayment(
+    invoice: InvoiceType,
+    paymentIntentId: string,
+    amountRequested: number
+  ): InvoicePayment {
+    return {
+      id: GenerateId('inpay_z'),
+      object: 'invoice_payment',
+      amount_paid: null,
+      amount_requested: amountRequested,
+      created: Now(),
+      currency: 'usdc',
+      invoice: invoice.id,
+      is_default: true,
+      livemode: GetAppConfig().livemode,
+      payment: {
+        charge: null,
+        payment_intent: paymentIntentId,
+        payment_record: null,
+        type: 'payment_intent',
+      },
+      status: 'open',
+      status_transitions: {
+        canceled_at: null,
+        paid_at: null,
+      },
+      platform_account: invoice.platform_account,
+    };
+  }
+
+  private GetDefaultPaymentIntentId(invoice: InvoiceType): string | null {
+    const defaultPayment = invoice.payments?.data?.find((p) => p.is_default);
+    return ExpandableId(defaultPayment?.payment?.payment_intent ?? null);
+  }
+
+  private async SyncInvoicePaymentPaid(
+    invoice: InvoiceType,
+    paymentIntentId: string,
+    chargeId: string,
+    amountPaid: number
+  ): Promise<void> {
+    const payments = invoice.payments?.data ?? [];
+    const updated = payments.map((payment) => {
+      const pi = ExpandableId(payment.payment.payment_intent);
+      if (pi !== paymentIntentId) return payment;
+      return {
+        ...payment,
+        amount_paid: amountPaid,
+        status: 'paid' as const,
+        payment: {
+          ...payment.payment,
+          charge: chargeId,
+          payment_intent: paymentIntentId,
+          type: 'payment_intent' as const,
+        },
+        status_transitions: {
+          ...payment.status_transitions,
+          paid_at: Now(),
+        },
+      };
+    });
+
+    await this.db.Update<InvoiceType>('Invoices', invoice.id, {
+      payments: {
+        object: 'list',
+        data: updated,
+        has_more: false,
+        total_count: updated.length,
+        url: `/v1/invoices/${invoice.id}/payments`,
+      },
+    });
+  }
+
+  private async MarkInvoicePaid(
+    previous: InvoiceType,
+    options: {
+      amountPaidOffStripe: number;
+      paymentIntentId?: string;
+    }
+  ): Promise<InvoiceType> {
+    const now = Now();
+    await this.db.Update<InvoiceType>('Invoices', previous.id, {
+      status: 'paid',
+      attempted: true,
+      attempt_count: previous.attempt_count + 1,
+      amount_paid: previous.amount_due,
+      amount_paid_off_stripe: options.amountPaidOffStripe,
+      amount_remaining: 0,
+      amount_overpaid: 0,
+      next_payment_attempt: null,
+      status_transitions: {
+        ...previous.status_transitions,
+        paid_at: now,
+      },
+    });
+
+    const invoice = await this.RequireInvoice(previous.id);
+
+    if (this.eventService) {
+      await this.eventService.Emit(
+        'invoice.paid',
+        invoice.platform_account,
+        invoice
+      );
+      await this.eventService.Emit(
+        'invoice.payment_succeeded',
+        invoice.platform_account,
+        invoice
+      );
+    }
+
+    return invoice;
+  }
+
+  private async RecordInvoicePaymentFailure(
+    previous: InvoiceType,
+    message: string
+  ): Promise<InvoiceType> {
+    const now = Now();
+    const attemptCount = previous.attempt_count + 1;
+    const nextPaymentAttempt = this.ComputeNextPaymentAttempt(
+      attemptCount,
+      now
+    );
+
+    await this.db.Update<InvoiceType>('Invoices', previous.id, {
+      attempted: true,
+      attempt_count: attemptCount,
+      next_payment_attempt: nextPaymentAttempt,
+      metadata: {
+        ...(previous.metadata ?? {}),
+        last_payment_error: message.slice(0, 500),
+      },
+    });
+
+    const invoice = await this.RequireInvoice(previous.id);
+
+    if (this.eventService) {
+      await this.eventService.Emit(
+        'invoice.payment_failed',
+        invoice.platform_account,
+        invoice
+      );
+    }
+
+    return invoice;
+  }
+
+  ComputeNextPaymentAttempt(attemptCount: number, now: number): number | null {
+    if (attemptCount >= INVOICE_MAX_PAYMENT_ATTEMPTS) {
+      return null;
+    }
+    const delay = RETRY_DELAYS_SECONDS[attemptCount - 1];
+    if (delay === undefined) {
+      return null;
+    }
+    return now + delay;
+  }
+
+  private async SettleInvoicePayment(
+    invoice: InvoiceType,
+    settlementSignature?: string
+  ): Promise<{ signature: string; subscriberWallet: string | null }> {
+    if (settlementSignature) {
+      return {
+        signature: settlementSignature,
+        subscriberWallet: invoice.default_payment_method,
+      };
+    }
+
+    const subscriptionId = ExpandableId(
+      invoice.parent?.subscription_details?.subscription
+    );
+    if (!subscriptionId) {
+      throw new AppError(
+        'Automatic collection requires a subscription invoice, paid_out_of_band, or settlement_signature',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    const subscription = await this.db.Get<SubscriptionType>(
+      'Subscriptions',
+      subscriptionId
+    );
+    if (!subscription) {
+      throw new AppError(
+        ERRORS.SUBSCRIPTION_NOT_FOUND.message,
+        ERRORS.SUBSCRIPTION_NOT_FOUND.status,
+        ERRORS.SUBSCRIPTION_NOT_FOUND.type
+      );
+    }
+
+    if (!subscription.subscription_delegation_pda) {
+      throw new Error(
+        'Subscription has no on-chain delegation PDA; cannot collect'
+      );
+    }
+
+    const items = await this.db.Find<SubscriptionItemType>(
+      'SubscriptionItems',
+      'subscription',
+      subscriptionId
+    );
+    if (items.length === 0) {
+      throw new Error('Subscription has no items to collect');
+    }
+
+    const priceId = ExpandableId(items[0].price)!;
+    const price = await this.ResolvePrice(
+      subscription.platform_account,
+      priceId
+    );
+    if (!price.subscription_plan_pda) {
+      throw new Error('Subscription price has no on-chain plan PDA');
+    }
+
+    const subscriberWallet =
+      subscription.default_payment_method ||
+      invoice.default_payment_method ||
+      subscription.metadata?.['wallet_address'] ||
+      null;
+    if (!subscriberWallet) {
+      throw new Error('Subscription has no subscriber wallet for collection');
+    }
+
+    const amountCents = invoice.amount_due;
+    const collection = await this.solana.CollectSubscriptionPayment({
+      subscriberWallet,
+      planPda: price.subscription_plan_pda,
+      subscriptionPda: subscription.subscription_delegation_pda,
+      amountCents,
+    });
+
+    return {
+      signature: collection.signature,
+      subscriberWallet,
+    };
+  }
+
+  private async ResolvePrice(
+    platformAccountId: string,
+    priceId: string
+  ): Promise<PriceType> {
+    if (this.priceModule) {
+      const price = await this.priceModule.GetPrice(priceId);
+      if (!price || price.platform_account !== platformAccountId) {
+        throw new AppError(
+          ERRORS.PRICE_NOT_FOUND.message,
+          ERRORS.PRICE_NOT_FOUND.status,
+          ERRORS.PRICE_NOT_FOUND.type
+        );
+      }
+      return price;
+    }
+
+    const price = await this.db.Get<PriceType>('Prices', priceId);
+    if (!price || price.platform_account !== platformAccountId) {
+      throw new AppError(
+        ERRORS.PRICE_NOT_FOUND.message,
+        ERRORS.PRICE_NOT_FOUND.status,
+        ERRORS.PRICE_NOT_FOUND.type
+      );
+    }
+    return price;
   }
 }

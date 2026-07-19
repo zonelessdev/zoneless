@@ -22,6 +22,8 @@ import { ProductModule } from '../modules/Product';
 import { InvoiceItemModule } from '../modules/InvoiceItem';
 import { InvoiceModule } from '../modules/Invoice';
 import { SubscriptionModule } from '../modules/Subscription';
+import { PaymentIntentModule } from '../modules/PaymentIntent';
+import { ChargeModule } from '../modules/Charge';
 
 import { ValidateRequest } from '../middleware/ValidateRequest';
 import { RequirePlatform } from '../middleware/Authorization';
@@ -41,6 +43,12 @@ const eventService = new EventService(db);
 const customerModule = new CustomerModule(db, eventService);
 const productModule = new ProductModule(db, eventService);
 const priceModule = new PriceModule(db, eventService, productModule);
+const paymentIntentModule = new PaymentIntentModule(
+  db,
+  eventService,
+  customerModule
+);
+const chargeModule = new ChargeModule(db, eventService, customerModule);
 const invoiceItemModule = new InvoiceItemModule(
   db,
   eventService,
@@ -51,7 +59,10 @@ const invoiceModule = new InvoiceModule(
   db,
   eventService,
   customerModule,
-  invoiceItemModule
+  invoiceItemModule,
+  paymentIntentModule,
+  chargeModule,
+  priceModule
 );
 const subscriptionModule = new SubscriptionModule(
   db,

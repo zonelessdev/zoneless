@@ -230,6 +230,13 @@ export interface Subscription {
    * @zoneless_extension
    */
   subscription_delegation_pda: string | null;
+
+  /**
+   * Unix timestamp until which this subscription is claimed by a billing runner.
+   * Used to prevent duplicate cycle invoices across multiple API instances.
+   * @zoneless_extension
+   */
+  billing_lock_until: number | null;
 }
 
 /** A list of subscriptions. */

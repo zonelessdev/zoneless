@@ -72,3 +72,13 @@ export function StripUndefined<T extends Record<string, unknown>>(
   }
   return result;
 }
+
+/**
+ * Resolve a Stripe-style expandable field to its id string.
+ */
+export function ExpandableId(
+  value: string | { id: string } | null | undefined
+): string | null {
+  if (!value) return null;
+  return typeof value === 'string' ? value : value.id;
+}

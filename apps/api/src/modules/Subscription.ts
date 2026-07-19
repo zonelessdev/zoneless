@@ -3,8 +3,7 @@
  *
  * Stripe-compatible subscription CRUD and lifecycle actions. Nested subscription
  * items are persisted in `SubscriptionItems`. Billing runs through invoices:
- * create → line items → finalize → collect (out-of-band until PaymentIntent /
- * Solana USDC settlement is wired). On-chain delegation is stubbed.
+ * create → line items → finalize → collect via PaymentIntent / Solana USDC.
  *
  * @module Subscription
  * @see https://docs.stripe.com/api/subscriptions
@@ -94,7 +93,8 @@ export class SubscriptionModule {
    */
   async CreateSubscription(
     platformAccountId: string,
-    input: CreateSubscriptionInput
+    input: CreateSubscriptionInput,
+    options?: { settlementSignature?: string }
   ): Promise<SubscriptionType> {
     const validatedInput = ValidateUpdate(CreateSubscriptionSchema, input);
 
@@ -151,9 +151,6 @@ export class SubscriptionModule {
 
     await this.db.Set('Subscriptions', subscription.id, subscription);
 
-    // TODO: Solana USDC delegation — approve/delegate for recurring pulls
-    await this.StubEnsureUsdcDelegation(id, customer.id);
-
     let latestInvoiceId: string | null = null;
 
     if (!trial.trial_end) {
@@ -168,6 +165,7 @@ export class SubscriptionModule {
             collect:
               collectionMethod === 'charge_automatically' &&
               paymentBehavior !== 'default_incomplete',
+            settlementSignature: options?.settlementSignature,
           }
         );
         latestInvoiceId = invoice.id;
@@ -487,7 +485,6 @@ export class SubscriptionModule {
     const now = Now();
 
     // TODO: Solana USDC — cancel on-chain delegation / subscription PDA
-    await this.StubCancelOnChainDelegation(id);
 
     let latestInvoiceId =
       typeof previous.latest_invoice === 'string'
@@ -853,6 +850,7 @@ export class SubscriptionModule {
       trial_start: timing.trialStart,
       platform_account: platformAccountId,
       subscription_delegation_pda: null,
+      billing_lock_until: null,
     };
   }
 
@@ -1350,7 +1348,11 @@ export class SubscriptionModule {
       | 'subscription_create'
       | 'subscription_update'
       | 'subscription_cycle',
-    options: { finalize: boolean; collect: boolean }
+    options: {
+      finalize: boolean;
+      collect: boolean;
+      settlementSignature?: string;
+    }
   ): Promise<InvoiceType> {
     if (!this.invoiceModule) {
       throw new AppError(
@@ -1390,6 +1392,178 @@ export class SubscriptionModule {
       lineItems,
       finalize: options.finalize,
       collect: options.collect,
+      settlementSignature: options.settlementSignature,
+    });
+  }
+
+  /**
+   * Create and optionally collect a subscription_cycle invoice for renewals.
+   */
+  async CreateCycleInvoice(
+    platformAccountId: string,
+    subscriptionId: string,
+    options: { finalize?: boolean; collect?: boolean } = {}
+  ): Promise<InvoiceType> {
+    const subscription = await this.RequireSubscription(subscriptionId);
+    const items = subscription.items.data;
+    return this.CreateAndProcessInvoice(
+      platformAccountId,
+      subscription,
+      items,
+      'subscription_cycle',
+      {
+        finalize: options.finalize ?? true,
+        collect: options.collect ?? true,
+      }
+    );
+  }
+
+  /**
+   * Advance each subscription item into the next billing period after a
+   * successful cycle payment. Clears the billing lock and sets status active.
+   */
+  async AdvanceSubscriptionPeriod(
+    subscriptionId: string,
+    latestInvoiceId?: string
+  ): Promise<SubscriptionType> {
+    const subscription = await this.RequireSubscription(subscriptionId);
+
+    for (const item of subscription.items.data) {
+      const price = await this.ResolvePrice(subscription.platform_account, {
+        price: typeof item.price === 'string' ? item.price : item.price.id,
+      } as CreateItemInput);
+      const periodStart = item.current_period_end;
+      const periodEnd = this.AddInterval(
+        periodStart,
+        price.recurring?.interval ?? 'month',
+        price.recurring?.interval_count ?? 1
+      );
+      await this.db.Update<SubscriptionItemType>('SubscriptionItems', item.id, {
+        current_period_start: periodStart,
+        current_period_end: periodEnd,
+      });
+    }
+
+    return this.UpdateSubscriptionBillingState(subscription, {
+      status: 'active',
+      latestInvoiceId,
+    });
+  }
+
+  /**
+   * Mark a subscription past_due after a failed invoice payment attempt.
+   */
+  async MarkSubscriptionPastDue(
+    subscriptionId: string,
+    latestInvoiceId?: string
+  ): Promise<SubscriptionType> {
+    const previous = await this.RequireSubscription(subscriptionId);
+    return this.UpdateSubscriptionBillingState(previous, {
+      status: 'past_due',
+      latestInvoiceId,
+    });
+  }
+
+  /**
+   * After payment retries are exhausted, mark the subscription unpaid.
+   */
+  async MarkSubscriptionUnpaid(
+    subscriptionId: string,
+    latestInvoiceId?: string
+  ): Promise<SubscriptionType> {
+    const previous = await this.RequireSubscription(subscriptionId);
+    return this.UpdateSubscriptionBillingState(previous, {
+      status: 'unpaid',
+      latestInvoiceId,
+    });
+  }
+
+  private async UpdateSubscriptionBillingState(
+    previous: SubscriptionType,
+    options: {
+      status: SubscriptionStatus;
+      latestInvoiceId?: string;
+    }
+  ): Promise<SubscriptionType> {
+    const updatePayload: Partial<SubscriptionType> = {
+      status: options.status,
+      billing_lock_until: null,
+    };
+    if (options.latestInvoiceId) {
+      updatePayload.latest_invoice = options.latestInvoiceId;
+    }
+
+    await this.db.Update<SubscriptionType>(
+      'Subscriptions',
+      previous.id,
+      updatePayload
+    );
+
+    const updated = await this.RequireSubscription(previous.id);
+
+    if (this.eventService) {
+      await this.eventService.Emit(
+        'customer.subscription.updated',
+        updated.platform_account,
+        updated,
+        {
+          previousAttributes: ExtractChangedFields(
+            previous as unknown as Record<string, unknown>,
+            updatePayload as Record<string, unknown>
+          ),
+        }
+      );
+    }
+
+    return updated;
+  }
+
+  /**
+   * Persist the on-chain subscription delegation PDA after a successful
+   * hosted checkout subscribe.
+   */
+  async SetSubscriptionDelegationPda(
+    id: string,
+    subscriptionDelegationPda: string
+  ): Promise<SubscriptionType> {
+    await this.RequireSubscription(id);
+    await this.db.Update<SubscriptionType>('Subscriptions', id, {
+      subscription_delegation_pda: subscriptionDelegationPda,
+    });
+    return this.RequireSubscription(id);
+  }
+
+  /**
+   * Atomically claim a subscription for billing work. Returns null if another
+   * runner already holds the lock.
+   */
+  async ClaimForBilling(
+    subscriptionId: string,
+    lockUntil: number
+  ): Promise<SubscriptionType | null> {
+    const now = Now();
+    const claimed = await this.db.FindOneAndUpdateByFilter<SubscriptionType>(
+      'Subscriptions',
+      {
+        id: subscriptionId,
+        $or: [
+          { billing_lock_until: null },
+          { billing_lock_until: { $exists: false } },
+          { billing_lock_until: { $lte: now } },
+        ],
+      },
+      { $set: { billing_lock_until: lockUntil } }
+    );
+    if (!claimed) {
+      return null;
+    }
+    claimed.items = await this.LoadItemsList(subscriptionId);
+    return claimed;
+  }
+
+  async ReleaseBillingLock(subscriptionId: string): Promise<void> {
+    await this.db.Update<SubscriptionType>('Subscriptions', subscriptionId, {
+      billing_lock_until: null,
     });
   }
 
@@ -1412,62 +1586,6 @@ export class SubscriptionModule {
     }
     await this.DeleteItems(items.map((item) => item.id));
     await this.db.Delete('Subscriptions', subscriptionId);
-  }
-
-  /**
-   * Persist the on-chain subscription delegation PDA after a successful
-   * hosted checkout subscribe.
-   */
-  async SetSubscriptionDelegationPda(
-    id: string,
-    subscriptionDelegationPda: string
-  ): Promise<SubscriptionType> {
-    const subscription = await this.GetSubscription(id);
-    if (!subscription) {
-      throw new AppError(
-        ERRORS.SUBSCRIPTION_NOT_FOUND.message,
-        ERRORS.SUBSCRIPTION_NOT_FOUND.status,
-        ERRORS.SUBSCRIPTION_NOT_FOUND.type
-      );
-    }
-
-    await this.db.Update<SubscriptionType>('Subscriptions', id, {
-      subscription_delegation_pda: subscriptionDelegationPda,
-    });
-
-    const updated = await this.GetSubscription(id);
-    if (!updated) {
-      throw new AppError(
-        ERRORS.SUBSCRIPTION_NOT_FOUND.message,
-        ERRORS.SUBSCRIPTION_NOT_FOUND.status,
-        ERRORS.SUBSCRIPTION_NOT_FOUND.type
-      );
-    }
-    return updated;
-  }
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // Solana stubs
-  // ───────────────────────────────────────────────────────────────────────────
-
-  /**
-   * TODO: Solana USDC delegation — approve/delegate for recurring pulls via the
-   * official Solana subscriptions program.
-   */
-  private async StubEnsureUsdcDelegation(
-    _subscriptionId: string,
-    _customerId: string
-  ): Promise<void> {
-    return;
-  }
-
-  /**
-   * TODO: Solana USDC — cancel on-chain delegation / subscription account.
-   */
-  private async StubCancelOnChainDelegation(
-    _subscriptionId: string
-  ): Promise<void> {
-    return;
   }
 
   // ───────────────────────────────────────────────────────────────────────────
