@@ -19,6 +19,7 @@ import {
   CopyTextComponent,
 } from '../../../../../shared';
 import { MetaService } from '../../../../../core';
+import { FormatIntervalLabel } from '../../util/price-display';
 
 import { Subscription } from 'rxjs';
 
@@ -43,6 +44,7 @@ export class PriceDetailComponent {
   private readonly priceService = inject(PriceService);
   readonly priceActions = inject(PriceActionsService);
   readonly MetadataToArray = MetadataToArray;
+  readonly FormatIntervalLabel = FormatIntervalLabel;
   private readonly metaService = inject(MetaService);
 
   loading: WritableSignal<boolean> = signal(false);

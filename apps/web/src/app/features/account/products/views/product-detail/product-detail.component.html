@@ -35,15 +35,8 @@
             class="icon small-icon"
             alt="Autorenew icon"
           />
-          @switch (price.recurring.interval) { @case ('day') {
-          <span>Per day</span>
-          } @case ('week') {
-          <span>Per week</span>
-          } @case ('month') {
-          <span>Per month</span>
-          } @case ('year') {
-          <span>Per year</span>
-          } } }
+          <span>{{ FormatIntervalPerLabel(price.recurring.interval) }}</span>
+          }
         </div>
         } @else {
         <div>No prices</div>

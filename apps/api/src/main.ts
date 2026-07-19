@@ -25,6 +25,7 @@ import {
 } from './modules/AppConfig';
 import { db } from './modules/Database';
 import { GetTopUpMonitor, TopUpMonitor } from './modules/TopUpMonitor';
+import { GetBillingMonitor, BillingMonitor } from './modules/BillingMonitor';
 import { AccountModule } from './modules/Account';
 import { ExternalWalletModule } from './modules/ExternalWallet';
 
@@ -197,6 +198,15 @@ async function StartServer() {
       }
     }
 
+    // Start Billing Monitor if enabled (single-instance only)
+    if (BillingMonitor.IsEnabled()) {
+      const billingMonitor = GetBillingMonitor(db);
+      billingMonitor.Start();
+      console.log(
+        `🧾 Billing Monitor started (interval ${BillingMonitor.GetPollInterval()}ms)`
+      );
+    }
+
     const server = app.listen(port, () => {
       console.log(`🚀 API running at http://localhost:${port}/v1`);
       console.log(`📊 Health check at http://localhost:${port}/api/health`);
@@ -224,6 +234,11 @@ async function StartServer() {
       if (TopUpMonitor.IsEnabled()) {
         const topUpMonitor = GetTopUpMonitor(db);
         topUpMonitor.Stop();
+      }
+
+      if (BillingMonitor.IsEnabled()) {
+        const billingMonitor = GetBillingMonitor(db);
+        billingMonitor.Stop();
       }
 
       server.close(async () => {

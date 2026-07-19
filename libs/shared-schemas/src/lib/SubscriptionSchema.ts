@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { CheckoutSessionAutomaticTaxSchema } from './CheckoutSessionSchema';
 import { ExpandableSchema } from './ExpandableSchema';
 import { InvoiceItemDiscountSchema } from './InvoiceItemSchema';
+import { RecurringIntervalSchema } from './PriceSchema';
 import {
   SubscriptionItemBillingThresholdsSchema,
   SubscriptionItemPriceDataSchema,
@@ -69,7 +70,7 @@ export const SubscriptionBillingModeSchema = z.object({
 });
 
 const SubscriptionBillingScheduleDurationSchema = z.object({
-  interval: z.enum(['day', 'week', 'month', 'year']),
+  interval: RecurringIntervalSchema,
   interval_count: z.number().int().positive().optional(),
 });
 
@@ -376,7 +377,7 @@ export const SubscriptionPaymentSettingsSchema = z.object({
  * Specifies an interval for how often to bill for any pending invoice items.
  */
 export const SubscriptionPendingInvoiceItemIntervalSchema = z.object({
-  interval: z.enum(['day', 'week', 'month', 'year']),
+  interval: RecurringIntervalSchema,
   interval_count: z.number().int().positive().optional(),
 });
 

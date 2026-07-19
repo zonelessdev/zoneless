@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ExpandableSchema } from './ExpandableSchema';
 import { InvoiceItemDiscountSchema } from './InvoiceItemSchema';
+import { RecurringIntervalSchema } from './PriceSchema';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reusable nested object schemas
@@ -48,7 +49,7 @@ export const SubscriptionItemPriceDataSchema = z
     currency: z.string().min(1).max(4).toLowerCase(),
     product: z.string().min(1),
     recurring: z.object({
-      interval: z.enum(['day', 'week', 'month', 'year']),
+      interval: RecurringIntervalSchema,
       interval_count: z.number().int().positive().optional(),
     }),
     tax_behavior: z.enum(['exclusive', 'inclusive', 'unspecified']).optional(),

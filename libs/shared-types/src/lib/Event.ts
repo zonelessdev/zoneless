@@ -84,6 +84,7 @@ export const EVENT_TYPES = [
   'invoice.finalized',
   'invoice.marked_uncollectible',
   'invoice.paid',
+  'invoice.payment_failed',
   'invoice.payment_succeeded',
   'invoice.updated',
   'invoice.voided',

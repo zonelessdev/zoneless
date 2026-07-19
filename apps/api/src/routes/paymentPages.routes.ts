@@ -54,7 +54,10 @@ const invoiceModule = new InvoiceModule(
   db,
   eventService,
   customerModule,
-  invoiceItemModule
+  invoiceItemModule,
+  paymentIntentModule,
+  chargeModule,
+  priceModule
 );
 const subscriptionModule = new SubscriptionModule(
   db,

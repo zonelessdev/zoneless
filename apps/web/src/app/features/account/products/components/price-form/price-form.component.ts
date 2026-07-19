@@ -12,7 +12,7 @@ import {
   inject,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Price } from '@zoneless/shared-types';
+import { Price, RecurringInterval } from '@zoneless/shared-types';
 import { ConfigService } from '../../../../../data';
 import { CreatePriceInput, UpdatePriceInput } from '@zoneless/shared-schemas';
 
@@ -45,8 +45,7 @@ export class PriceFormComponent implements OnInit, OnChanges {
   unitAmount: WritableSignal<number> = signal(0);
   unitAmountError: WritableSignal<string> = signal('');
 
-  interval: WritableSignal<'day' | 'week' | 'month' | 'year'> = signal('month');
-  intervalError: WritableSignal<string> = signal('');
+  interval: WritableSignal<RecurringInterval> = signal('month');
 
   nickname: WritableSignal<string> = signal('');
   NICKNAME_MAX_LENGTH = 22;
@@ -111,7 +110,7 @@ export class PriceFormComponent implements OnInit, OnChanges {
     }
   }
 
-  OnIntervalChange(value: 'day' | 'week' | 'month' | 'year'): void {
+  OnIntervalChange(value: RecurringInterval): void {
     this.interval.set(value);
     this.EmitFormChange();
   }

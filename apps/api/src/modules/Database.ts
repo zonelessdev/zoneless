@@ -46,6 +46,26 @@ export class Database {
   }
 
   /**
+   * Atomically find and update a document matching an arbitrary filter.
+   * Returns null when no document matches (e.g. claim already taken).
+   */
+  async FindOneAndUpdateByFilter<T>(
+    collection: string,
+    filter: Record<string, unknown>,
+    data: Record<string, unknown>,
+    session?: ClientSession
+  ): Promise<T | null> {
+    const model = this.GetModel(collection);
+    const options: mongoose.QueryOptions = { new: true };
+    if (session) options.session = session;
+    const result = await model
+      .findOneAndUpdate(filter, data, options)
+      .lean()
+      .exec();
+    return result ? this.StripMongoFields(result as T) : null;
+  }
+
+  /**
    * Add a new document with auto-generated MongoDB _id
    */
   async Add<T>(collection: string, data: Partial<T>): Promise<T> {

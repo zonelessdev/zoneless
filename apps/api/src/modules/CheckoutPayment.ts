@@ -733,6 +733,9 @@ export class CheckoutPaymentModule {
           checkout_session: session.id,
           wallet_address: subscriberWallet,
         },
+      },
+      {
+        settlementSignature: !hasTrial ? collectionSignature : undefined,
       }
     );
 
@@ -754,19 +757,6 @@ export class CheckoutPaymentModule {
     if (completedSession.payment_link && this.paymentLinkModule) {
       await this.paymentLinkModule.RecordCompletedSession(
         completedSession.payment_link
-      );
-    }
-
-    if (
-      !hasTrial &&
-      collectionSignature !== signature &&
-      collectionSignature !== 'already_collected'
-    ) {
-      await this.RecordPaymentOnLedger(
-        completedSession,
-        price.unit_amount ?? session.amount_total!,
-        subscriberWallet,
-        collectionSignature
       );
     }
 

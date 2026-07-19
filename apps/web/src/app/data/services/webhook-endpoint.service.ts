@@ -73,6 +73,7 @@ const EVENT_TYPE_LABELS: Record<(typeof EVENT_TYPES)[number], string> = {
   'invoice.marked_uncollectible': 'Invoice marked uncollectible',
   'invoice.paid': 'Invoice paid',
   'invoice.payment_succeeded': 'Invoice payment succeeded',
+  'invoice.payment_failed': 'Invoice payment failed',
   'invoice.updated': 'Invoice updated',
   'invoice.voided': 'Invoice voided',
   'invoiceitem.created': 'Invoice item created',

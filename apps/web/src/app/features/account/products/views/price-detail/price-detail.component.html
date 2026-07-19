@@ -91,17 +91,8 @@
       <span>${{ (price.unit_amount ?? 0) / 100 | number : '1.2-2' }}</span>
       @if (price.recurring) {
       <span>/</span>
-      } @switch (price.recurring?.interval) { @case ('day') {
-      <span>day</span>
-      } @case ('week') {
-      <span>week</span>
-      } @case ('month') {
-      <span>month</span>
-      } @case ('year') {
-      <span>year</span>
-      } @default {
-      <span>—</span>
-      } }
+      <span>{{ price.recurring.interval }}</span>
+      }
     </div>
   </div>
   <div class="vertical-line"></div>
@@ -194,17 +185,9 @@
     </tr>
     <tr>
       <td class="dimmed-extra">Interval</td>
-      @if(price.recurring){ @switch (price.recurring.interval) { @case ('day') {
-      <td>Daily</td>
-      } @case ('week') {
-      <td>Weekly</td>
-      } @case ('month') {
-      <td>Monthly</td>
-      } @case ('year') {
-      <td>Yearly</td>
-      } @default {
-      <td>—</td>
-      } } } @else {
+      @if (price.recurring) {
+      <td>{{ FormatIntervalLabel(price.recurring.interval) }}</td>
+      } @else {
       <td>One-time</td>
       }
     </tr>

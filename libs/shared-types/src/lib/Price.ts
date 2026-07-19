@@ -1,6 +1,12 @@
 import { Product } from './Product';
 
 /**
+ * Billing frequency for a recurring price.
+ * @zoneless_extension Includes `hour` (not in Stripe) for Solana subscription periods.
+ */
+export type RecurringInterval = 'hour' | 'day' | 'week' | 'month' | 'year';
+
+/**
  * Stripe-compatible Price object for Zoneless.
  * Represents the price of a product.
  *
@@ -21,8 +27,12 @@ export interface Price {
   product: string | Product | null;
   /** The recurring components of a price such as interval and usage_type. */
   recurring: {
-    /** The frequency at which a subscription is billed. One of day, week, month or year. */
-    interval: 'day' | 'week' | 'month' | 'year';
+    /**
+     * The frequency at which a subscription is billed.
+     * One of hour, day, week, month or year.
+     * @zoneless_extension `hour` is supported for Solana subscription periods.
+     */
+    interval: RecurringInterval;
     /** The number of intervals (specified in the interval attribute) between subscription billings. For example, interval=month and interval_count=3 bills every 3 months. */
     interval_count: number;
     /** The number of trial days before the customer is charged for the first time. */

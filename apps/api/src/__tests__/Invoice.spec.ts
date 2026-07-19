@@ -386,7 +386,7 @@ describe('InvoiceModule', () => {
 
   describe('FinalizeInvoice', () => {
     it('should move draft to open and emit invoice.finalized', async () => {
-      const existing = DraftInvoice({ number: null });
+      const existing = DraftInvoice({ number: null, amount_due: 0 });
       mockDb.Get = jest
         .fn()
         .mockResolvedValueOnce(existing)
@@ -418,10 +418,70 @@ describe('InvoiceModule', () => {
       expect(result.status).toBe('open');
     });
 
+    it('should create a PaymentIntent and confirmation_secret when amount_due > 0', async () => {
+      const existing = DraftInvoice({
+        number: null,
+        amount_due: 1099,
+        collection_method: 'charge_automatically',
+      });
+      const paymentIntentModule = {
+        CreatePaymentIntent: jest.fn().mockResolvedValue({
+          id: 'pi_z_1',
+          client_secret: 'pi_z_1_secret_abc',
+          amount: 1099,
+        }),
+      };
+
+      module = new InvoiceModule(
+        mockDb,
+        eventService,
+        customerModule,
+        invoiceItemModule,
+        paymentIntentModule as never
+      );
+
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValueOnce(existing)
+        .mockResolvedValueOnce({
+          ...existing,
+          status: 'open',
+          confirmation_secret: {
+            type: 'payment_intent',
+            client_secret: 'pi_z_1_secret_abc',
+          },
+        });
+
+      await module.FinalizeInvoice(existing.id);
+
+      expect(paymentIntentModule.CreatePaymentIntent).toHaveBeenCalledWith(
+        PLATFORM,
+        expect.objectContaining({
+          amount: 1099,
+          currency: 'usdc',
+          customer: CUSTOMER_ID,
+        })
+      );
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'Invoices',
+        existing.id,
+        expect.objectContaining({
+          status: 'open',
+          confirmation_secret: {
+            type: 'payment_intent',
+            client_secret: 'pi_z_1_secret_abc',
+          },
+          payments: expect.objectContaining({
+            total_count: 1,
+          }),
+        })
+      );
+    });
+
     it('should reject finalizing a non-draft invoice', async () => {
       mockDb.Get = jest
         .fn()
-        .mockResolvedValue(DraftInvoice({ status: 'open' }));
+        .mockResolvedValue(DraftInvoice({ status: 'open', amount_due: 0 }));
 
       await expect(module.FinalizeInvoice('in_z_test001')).rejects.toThrow(
         "Cannot finalize invoice with status 'open'"
@@ -456,13 +516,13 @@ describe('InvoiceModule', () => {
   });
 
   describe('PayInvoice', () => {
-    it('should require paid_out_of_band for v1', async () => {
+    it('should require a PaymentIntent when not paid out of band', async () => {
       mockDb.Get = jest
         .fn()
-        .mockResolvedValue(DraftInvoice({ status: 'open' }));
+        .mockResolvedValue(DraftInvoice({ status: 'open', amount_due: 1099 }));
 
       await expect(module.PayInvoice('in_z_test001', {})).rejects.toThrow(
-        'Automatic invoice payment collection is not implemented yet'
+        'Invoice has no PaymentIntent'
       );
     });
 
@@ -507,6 +567,102 @@ describe('InvoiceModule', () => {
         PLATFORM,
         result
       );
+    });
+
+    it('should settle with settlement_signature and create charge', async () => {
+      const existing = DraftInvoice({
+        status: 'open',
+        amount_due: 1099,
+        amount_remaining: 1099,
+        payments: {
+          object: 'list',
+          data: [
+            {
+              id: 'inpay_z_1',
+              object: 'invoice_payment',
+              amount_paid: null,
+              amount_requested: 1099,
+              created: GetFixedTimestamp(),
+              currency: 'usdc',
+              invoice: 'in_z_test001',
+              is_default: true,
+              livemode: false,
+              payment: {
+                charge: null,
+                payment_intent: 'pi_z_1',
+                payment_record: null,
+                type: 'payment_intent',
+              },
+              status: 'open',
+              status_transitions: { canceled_at: null, paid_at: null },
+              platform_account: PLATFORM,
+            },
+          ],
+          has_more: false,
+          total_count: 1,
+          url: '/v1/invoices/in_z_test001/payments',
+        },
+      });
+
+      const paymentIntentModule = {
+        MarkSucceeded: jest.fn().mockResolvedValue({ id: 'pi_z_1' }),
+        MarkPaymentFailed: jest.fn(),
+      };
+      const chargeModule = {
+        CreateFromPaymentAttempt: jest.fn().mockResolvedValue({
+          id: 'ch_z_1',
+        }),
+        AttachBalanceTransaction: jest.fn().mockResolvedValue({
+          id: 'ch_z_1',
+          balance_transaction: 'txn_z_1',
+        }),
+      };
+
+      module = new InvoiceModule(
+        mockDb,
+        eventService,
+        customerModule,
+        invoiceItemModule,
+        paymentIntentModule as never,
+        chargeModule as never
+      );
+
+      const paidInvoice = {
+        ...existing,
+        status: 'paid' as const,
+        amount_paid: 1099,
+        amount_remaining: 0,
+        attempted: true,
+        next_payment_attempt: null,
+      };
+
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValueOnce(existing)
+        .mockImplementation(async (collection: string, id: string) => {
+          if (collection === 'Invoices' && id === existing.id) {
+            return paidInvoice;
+          }
+          return null;
+        }) as typeof mockDb.Get;
+
+      const result = await module.PayInvoice(existing.id, {
+        settlement_signature: 'sig_settled',
+      });
+
+      expect(chargeModule.CreateFromPaymentAttempt).toHaveBeenCalled();
+      expect(chargeModule.AttachBalanceTransaction).toHaveBeenCalledWith(
+        'ch_z_1',
+        expect.any(String)
+      );
+      expect(paymentIntentModule.MarkSucceeded).toHaveBeenCalledWith(
+        'pi_z_1',
+        expect.objectContaining({
+          amountReceived: 1099,
+          latestCharge: 'ch_z_1',
+        })
+      );
+      expect(result.status).toBe('paid');
     });
   });
 
