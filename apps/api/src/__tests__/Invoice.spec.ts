@@ -176,6 +176,7 @@ describe('InvoiceModule', () => {
     } as unknown as jest.Mocked<EventService>;
     customerModule = {
       GetCustomer: jest.fn().mockResolvedValue(MockCustomer()),
+      ClaimNextInvoiceNumber: jest.fn().mockResolvedValue('TESTPREF-0001'),
     } as unknown as jest.Mocked<CustomerModule>;
     invoiceItemModule = {
       ListAllPendingInvoiceItems: jest.fn().mockResolvedValue([]),
@@ -393,7 +394,7 @@ describe('InvoiceModule', () => {
         .mockResolvedValueOnce({
           ...existing,
           status: 'open',
-          number: 'TEST001-0001',
+          number: 'TESTPREF-0001',
           status_transitions: {
             ...existing.status_transitions,
             finalized_at: GetFixedTimestamp(),
@@ -402,12 +403,16 @@ describe('InvoiceModule', () => {
 
       const result = await module.FinalizeInvoice(existing.id);
 
+      expect(customerModule.ClaimNextInvoiceNumber).toHaveBeenCalledWith(
+        CUSTOMER_ID
+      );
       expect(mockDb.Update).toHaveBeenCalledWith(
         'Invoices',
         existing.id,
         expect.objectContaining({
           status: 'open',
           ending_balance: 0,
+          number: 'TESTPREF-0001',
         })
       );
       expect(eventService.Emit).toHaveBeenCalledWith(
@@ -416,6 +421,31 @@ describe('InvoiceModule', () => {
         result
       );
       expect(result.status).toBe('open');
+    });
+
+    it('should keep an existing invoice number without claiming a new sequence', async () => {
+      const existing = DraftInvoice({
+        number: 'CUSTOM-0042',
+        amount_due: 0,
+      });
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValueOnce(existing)
+        .mockResolvedValueOnce({
+          ...existing,
+          status: 'open',
+        });
+
+      await module.FinalizeInvoice(existing.id);
+
+      expect(customerModule.ClaimNextInvoiceNumber).not.toHaveBeenCalled();
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'Invoices',
+        existing.id,
+        expect.objectContaining({
+          number: 'CUSTOM-0042',
+        })
+      );
     });
 
     it('should create a PaymentIntent and confirmation_secret when amount_due > 0', async () => {
