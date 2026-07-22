@@ -6,6 +6,7 @@ import {
   inject,
   OnInit,
 } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   PaginatedListComponent,
   PaginatedListColumn,
@@ -30,6 +31,7 @@ type InvoicesStatusTab = 'all' | 'draft' | 'open' | 'paid';
 })
 export class InvoiceListComponent implements OnInit {
   private readonly metaService = inject(MetaService);
+  private readonly router = inject(Router);
 
   invoicesStatusTab: WritableSignal<InvoicesStatusTab> = signal('all');
 
@@ -127,6 +129,10 @@ export class InvoiceListComponent implements OnInit {
         break;
     }
     this.invoicesQueryParams.set(params);
+  }
+
+  OnInvoiceClick(invoice: Invoice): void {
+    void this.router.navigate(['/account/invoices', invoice.id]);
   }
 
   private CopyInvoiceId(invoice: Invoice): void {

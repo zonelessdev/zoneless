@@ -1,0 +1,375 @@
+@if (invoice(); as inv) {
+<div class="flex align-vert-start space-between">
+  <div class="flex flex-column gap-small">
+    <a class="link-highlight" routerLink="/account/invoices">Invoices</a>
+    <div class="flex align-vert gap-small">
+      <h1 class="invoice-title">{{ FormatInvoiceNumber(inv) }}</h1>
+      @if (inv.status) {
+      <app-status-chip [status]="inv.status"></app-status-chip>
+      }
+    </div>
+    <div class="billed-to dimmed">
+      Billed to @if (customerId(); as cusId) {
+      <a class="link-highlight" [routerLink]="['/account/customers', cusId]">{{
+        customerTitle()
+      }}</a>
+      } @else {
+      <span>{{ customerTitle() }}</span>
+      }
+      <span> · {{ FormatInvoiceAmount(inv.total) }}</span>
+    </div>
+  </div>
+  <div class="flex align-vert gap-small">
+    <button
+      type="button"
+      class="action-button action-button-dainty action-button-disabled"
+      disabled
+    >
+      <span>Edit invoice</span>
+    </button>
+    <app-popup-menu
+      [actions]="invoiceActions"
+      [item]="inv"
+      [highlightIcon]="true"
+    >
+    </app-popup-menu>
+  </div>
+</div>
+
+<div class="flex gap-extra-large view-panels">
+  <div class="view-left-panel">
+    <!-- Recent activity -->
+    <div class="view-section">
+      <h2 class="section-title">Recent activity</h2>
+      <div class="panel-timeline">
+        @for (event of timelineEvents(); track event.title; let last = $last) {
+        <div class="panel-timeline-item">
+          <div class="panel-timeline-dot" [class.active]="event.active"></div>
+          @if (!last) {
+          <div class="panel-timeline-line"></div>
+          }
+          <div class="panel-timeline-title">{{ event.title }}</div>
+          <div class="panel-timeline-date">
+            {{ event.timestamp | date : 'd MMM, HH:mm' }}
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="view-section">
+      <h2 class="section-title">Summary</h2>
+      <div class="summary-grid">
+        <div class="summary-field">
+          <div class="bolded mb-small">Billed to</div>
+          @if (customerId(); as cusId) {
+          <a
+            class="link-highlight"
+            [routerLink]="['/account/customers', cusId]"
+            >{{ customerTitle() }}</a
+          >
+          } @else {
+          <div class="dimmed">{{ customerTitle() }}</div>
+          } @if (customerEmail(); as email) {
+          <div class="mt-extra-small">
+            <app-copy-text [text]="email"></app-copy-text>
+          </div>
+          }
+        </div>
+        <div class="summary-field">
+          <div class="bolded mb-small">Invoice number</div>
+          <div class="dimmed">{{ FormatInvoiceNumber(inv) }}</div>
+        </div>
+        <div class="summary-field">
+          <div class="bolded mb-small">Billing details</div>
+          <div class="dimmed">{{ FormatInvoiceBillingDetails(inv) }}</div>
+        </div>
+        <div class="summary-field">
+          <div class="bolded mb-small">Currency</div>
+          <div class="dimmed">{{ FormatInvoiceCurrency(inv) }}</div>
+        </div>
+        <div class="summary-field">
+          <div class="bolded mb-small">Billing method</div>
+          <div class="dimmed">{{ FormatInvoiceBillingMethod(inv) }}</div>
+        </div>
+        <div class="summary-field">
+          <div class="bolded mb-small">Memo</div>
+          <div class="dimmed">
+            {{ inv.description ? inv.description : '—' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Line items -->
+    <div class="view-section">
+      @if (lineItems().length > 0) {
+      <table class="detail-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Qty</th>
+            <th>Unit price</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of lineItems(); track line.id) {
+          <tr>
+            <td>
+              <div class="flex flex-column gap-extra-small">
+                <span class="bolded">{{
+                  FormatInvoiceLineDescription(line, inv)
+                }}</span>
+                @if (FormatInvoiceLinePeriod(line); as period) {
+                <span class="dimmed">{{ period }}</span>
+                }
+              </div>
+            </td>
+            <td>
+              <span class="dimmed">{{ line.quantity ?? 1 }}</span>
+            </td>
+            <td>
+              <span class="dimmed"
+                >${{
+                  FormatAmount(GetInvoiceLineUnitAmount(line))
+                    | number : '1.2-2'
+                }}</span
+              >
+            </td>
+            <td>
+              <span class="dimmed"
+                >${{ FormatAmount(line.amount) | number : '1.2-2' }}</span
+              >
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+      <div class="invoice-totals">
+        <div class="breakdown-row">
+          <span class="dimmed">Subtotal</span>
+          <span class="bolded"
+            >${{ FormatAmount(inv.subtotal) | number : '1.2-2' }}</span
+          >
+        </div>
+        @for (discount of discountAmounts(); track $index) {
+        <div class="breakdown-row">
+          <span class="dimmed">{{ FormatInvoiceDiscountLabel(discount) }}</span>
+          <span class="dimmed"
+            >−${{ FormatAmount(discount.amount) | number : '1.2-2' }}</span
+          >
+        </div>
+        }
+        <div class="breakdown-row">
+          <span class="dimmed">Total excluding tax</span>
+          <span class="bolded"
+            >${{
+              FormatAmount(inv.total_excluding_tax ?? inv.total)
+                | number : '1.2-2'
+            }}</span
+          >
+        </div>
+        <div class="breakdown-row">
+          <span class="dimmed">Tax</span>
+          <span class="dimmed">—</span>
+        </div>
+        <div class="breakdown-row breakdown-row-net">
+          <span class="bolded">Total</span>
+          <span class="bolded"
+            >${{ FormatAmount(inv.total) | number : '1.2-2' }}</span
+          >
+        </div>
+        <div class="breakdown-row">
+          <span class="dimmed">Amount paid</span>
+          <span class="bolded">
+            @if (inv.amount_paid > 0) { −${{
+              FormatAmount(inv.amount_paid) | number : '1.2-2'
+            }}
+            } @else { ${{ FormatAmount(inv.amount_paid) | number : '1.2-2' }}
+            }
+          </span>
+        </div>
+        <div class="breakdown-row">
+          <span class="bolded">Amount remaining</span>
+          <span class="bolded"
+            >${{ FormatAmount(inv.amount_remaining) | number : '1.2-2' }}</span
+          >
+        </div>
+      </div>
+      } @else {
+      <div class="dashed-placeholder">
+        <span>No line items</span>
+      </div>
+      }
+    </div>
+
+    <!-- Payments -->
+    <div class="view-section">
+      <h2 class="section-title">Payments</h2>
+      @if (payments().length > 0) {
+      <table class="detail-table payments-table">
+        <thead>
+          <tr>
+            <th>Amount</th>
+            <th>Description</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (payment of payments(); track payment.id) {
+          <tr
+            [class.payments-row]="HasPaymentIntent(payment)"
+            [attr.tabindex]="HasPaymentIntent(payment) ? 0 : null"
+            (click)="OnPaymentClick(payment)"
+            (keydown.enter)="OnPaymentClick(payment)"
+          >
+            <td>
+              <div class="flex align-vert gap-small">
+                <span class="currency-value">
+                  <span class="bolded"
+                    >${{
+                      FormatAmount(
+                        payment.amount_paid ?? payment.amount_requested
+                      ) | number : '1.2-2'
+                    }}</span
+                  >
+                  <span class="currency-code dimmed">{{
+                    FormatInvoiceCurrency(inv)
+                  }}</span>
+                </span>
+                <app-status-chip
+                  [status]="FormatInvoicePaymentStatus(payment)"
+                ></app-status-chip>
+              </div>
+            </td>
+            <td>
+              <span class="dimmed">{{
+                FormatInvoicePaymentDescription(inv)
+              }}</span>
+            </td>
+            <td>
+              <span class="dimmed">{{
+                GetInvoicePaymentTimestamp(payment) * 1000
+                  | date : 'd MMM, HH:mm'
+              }}</span>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+      } @else {
+      <div class="dashed-placeholder">
+        <span>No payments</span>
+      </div>
+      }
+    </div>
+
+    <!-- Events -->
+    <div class="view-section">
+      <h2 class="section-title">Events</h2>
+      <app-events-list [itemId]="inv.id"></app-events-list>
+    </div>
+  </div>
+
+  <div class="view-right-panel">
+    <!-- Details -->
+    <div class="view-section">
+      <h2 class="section-title">Details</h2>
+      <div class="mb">
+        <div class="bolded mb-small">ID</div>
+        <div><app-copy-text [text]="inv.id"></app-copy-text></div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Created</div>
+        <div class="dimmed flex align-vert gap-extra-small">
+          <img src="assets/icons/clock.svg" class="icon" alt="Clock icon" />
+          <span>{{ inv.created * 1000 | date : 'd MMM, HH:mm' }}</span>
+        </div>
+      </div>
+      @if (inv.status_transitions.finalized_at; as finalizedAt) {
+      <div class="mb">
+        <div class="bolded mb-small">Finalised</div>
+        <div class="dimmed flex align-vert gap-extra-small">
+          <img src="assets/icons/clock.svg" class="icon" alt="Clock icon" />
+          <span>{{ finalizedAt * 1000 | date : 'd MMM, HH:mm' }}</span>
+        </div>
+      </div>
+      } @if (inv.hosted_invoice_url; as paymentPageUrl) {
+      <div class="mb">
+        <div class="bolded mb-small">Payment page</div>
+        <a
+          class="link-highlight payment-page-link"
+          [href]="paymentPageUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span class="payment-page-url">{{ paymentPageUrl }}</span>
+          <img
+            src="assets/icons/arrow_forward.svg"
+            class="icon"
+            alt="Open payment page"
+          />
+        </a>
+      </div>
+      }
+      <div class="mb">
+        <div class="bolded mb-small">Enabled payment methods</div>
+        <div class="panel-badge">
+          <img
+            src="assets/icons/token.svg"
+            alt="USDC"
+            class="panel-badge-icon"
+          />
+          <span class="panel-badge-text">{{
+            FormatInvoicePaymentMethods(inv)
+          }}</span>
+        </div>
+      </div>
+      @if (subscriptionId(); as subId) {
+      <div class="mb">
+        <div class="bolded mb-small">Connected subscription</div>
+        <div class="flex align-vert gap-small">
+          <a
+            class="link-highlight"
+            [routerLink]="['/account/subscriptions', subId]"
+            >{{ FormatInvoiceSubscriptionProduct(inv) }}</a
+          >
+          @if (GetInvoiceSubscriptionStatus(inv); as subStatus) {
+          <app-status-chip [status]="subStatus"></app-status-chip>
+          }
+        </div>
+      </div>
+      }
+    </div>
+
+    <!-- Metadata -->
+    <div class="view-section">
+      <div class="section-edit-top">
+        <h2 class="section-title">Metadata</h2>
+        <button
+          type="button"
+          class="action-button action-button-small outline"
+          (click)="OnEditMetadata()"
+        >
+          <img src="assets/icons/edit.svg" class="icon" alt="Edit icon" />
+        </button>
+      </div>
+      @if (hasMetadata()) { @for (entry of MetadataToArray(inv.metadata); track
+      entry.key) {
+      <div class="mb">
+        <div class="bolded mb-small">{{ entry.key }}</div>
+        <div class="dimmed">{{ entry.value }}</div>
+      </div>
+      } } @else {
+      <div class="dashed-placeholder">
+        <span>No metadata</span>
+      </div>
+      }
+    </div>
+  </div>
+</div>
+}
+
+<app-invoice-actions-host></app-invoice-actions-host>

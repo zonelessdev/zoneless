@@ -32,10 +32,26 @@
 <div class="flex gap-extra-large view-panels">
   <div class="view-left-panel">
     <div class="view-section">
-      <h2 class="section-title">Subscriptions</h2>
-      <div class="dashed-placeholder">
-        <span>No subscriptions</span>
+      <div class="flex align-vert space-between">
+        <h2 class="section-title">Subscriptions</h2>
+        <button
+          type="button"
+          class="action-button action-button-small outline action-button-disabled"
+          disabled
+        >
+          <img src="assets/icons/add.svg" class="icon" alt="Add icon" />
+        </button>
       </div>
+      <app-paginated-list
+        endpoint="subscriptions"
+        [columns]="subscriptionColumns"
+        [limit]="5"
+        [queryParams]="subscriptionQueryParams()"
+        [expand]="subscriptionExpand()"
+        [paginationEnabled]="false"
+        [showResultCount]="true"
+        (rowClick)="OnSubscriptionClick($event)"
+      ></app-paginated-list>
     </div>
     <div class="view-section">
       <h2 class="section-title">Payments</h2>
@@ -68,9 +84,15 @@
     </div>
     <div class="view-section">
       <h2 class="section-title">Invoices</h2>
-      <div class="dashed-placeholder">
-        <span>No invoicess</span>
-      </div>
+      <app-paginated-list
+        endpoint="invoices"
+        [columns]="invoiceColumns"
+        [limit]="5"
+        [queryParams]="invoiceQueryParams()"
+        [expand]="invoiceExpand()"
+        [paginationEnabled]="false"
+        (rowClick)="OnInvoiceClick($event)"
+      ></app-paginated-list>
     </div>
     <div class="view-section">
       <h2 class="section-title">Pending invoice items</h2>

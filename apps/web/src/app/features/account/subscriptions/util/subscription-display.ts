@@ -6,7 +6,10 @@ import type {
   Subscription,
   SubscriptionItem,
 } from '@zoneless/shared-types';
-import { FormatPriceWithInterval } from '../../products/util/price-display';
+import {
+  FormatPriceWithInterval,
+  FormatIntervalLabel,
+} from '../../products/util/price-display';
 
 /**
  * Display status for the subscriptions list.
@@ -119,6 +122,60 @@ export function FormatSubscriptionProduct(subscription: Subscription): string {
   const item = subscription.items?.data?.[0];
   if (!item) return '—';
   return FormatSubscriptionItemProduct(item);
+}
+
+/**
+ * Progress through the current billing period (0–1).
+ * Used for the Stripe-style period progress ring in subscription lists.
+ */
+export function GetSubscriptionPeriodProgress(
+  subscription: Subscription
+): number | null {
+  const { start, end } = GetSubscriptionCurrentPeriod(subscription);
+  if (!start || !end || end <= start) return null;
+
+  const now = Math.floor(Date.now() / 1000);
+  if (now <= start) return 0;
+  if (now >= end) return 1;
+  return (now - start) / (end - start);
+}
+
+/** Stripe-style frequency label, e.g. "Billing monthly". */
+export function FormatSubscriptionBillingFrequency(
+  subscription: Subscription
+): string {
+  const item = subscription.items?.data?.[0];
+  if (!item) return '—';
+  const price = GetSubscriptionItemPrice(item);
+  const interval = price?.recurring?.interval;
+  if (!interval) return '—';
+  return `Billing ${FormatIntervalLabel(interval).toLowerCase()}`;
+}
+
+/**
+ * Next invoice date for list displays.
+ * Uses current period end (when the next invoice is typically created).
+ */
+export function GetSubscriptionNextInvoiceDate(
+  subscription: Subscription
+): number | null {
+  if (
+    subscription.status === 'canceled' ||
+    subscription.status === 'incomplete_expired'
+  ) {
+    return null;
+  }
+  return GetSubscriptionCurrentPeriod(subscription).end;
+}
+
+/** Stripe-style next invoice label, e.g. "22 Aug for $19.00". */
+export function FormatSubscriptionNextInvoice(
+  subscription: Subscription
+): string {
+  const nextDate = GetSubscriptionNextInvoiceDate(subscription);
+  if (!nextDate) return '—';
+  const amount = GetSubscriptionItemsTotalCents(subscription);
+  return `${FormatShortDate(nextDate)} for ${FormatSubscriptionAmount(amount)}`;
 }
 
 export function FormatSubscriptionItemProduct(item: SubscriptionItem): string {

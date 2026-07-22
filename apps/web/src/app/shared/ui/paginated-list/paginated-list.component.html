@@ -19,7 +19,27 @@
           [class.bold-cell]="column.bolded"
           [class.dimmed-cell]="column.dimmed"
         >
-          @if (column.imageField) {
+          @if (column.progressGetter) {
+          <svg class="progress-ring" viewBox="0 0 20 20" aria-hidden="true">
+            <circle
+              class="progress-ring-track"
+              cx="10"
+              cy="10"
+              r="7"
+              fill="none"
+            />
+            @if (GetColumnProgress(item, column); as progress) {
+            <circle
+              class="progress-ring-value"
+              cx="10"
+              cy="10"
+              r="7"
+              fill="none"
+              [attr.stroke-dasharray]="GetProgressDasharray(progress)"
+            />
+            }
+          </svg>
+          } @if (column.imageField) {
           <div class="image-cell">
             @if (GetItemImage(item, column.imageField)) {
             <img
@@ -119,5 +139,10 @@
       Next
     </button>
   </div>
+</div>
+} @else if (showResultCount && !loading() && items().length > 0) {
+<div class="result-count">
+  {{ items().length }}
+  {{ items().length === 1 ? 'result' : 'results' }}
 </div>
 }

@@ -65,4 +65,5 @@
   [limit]="10"
   [queryParams]="invoicesQueryParams()"
   [expand]="invoicesExpand()"
+  (rowClick)="OnInvoiceClick($event)"
 ></app-paginated-list>
