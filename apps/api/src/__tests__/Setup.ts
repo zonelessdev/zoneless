@@ -51,6 +51,7 @@ export function CreateMockDatabase(): jest.Mocked<Database> {
   mockDb.Set = jest.fn().mockResolvedValue(undefined);
   mockDb.Get = jest.fn().mockResolvedValue(null);
   mockDb.Update = jest.fn().mockResolvedValue(undefined);
+  mockDb.FindOneAndUpdateByFilter = jest.fn().mockResolvedValue(null);
   mockDb.Delete = jest.fn().mockResolvedValue({ deletedCount: 1 });
   mockDb.Find = jest.fn().mockResolvedValue([]);
   mockDb.Find2Custom = jest.fn().mockResolvedValue([]);

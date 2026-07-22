@@ -7,7 +7,7 @@
 
 import { Database } from './Database';
 import { EventService } from './EventService';
-import { GenerateId } from '../utils/IdGenerator';
+import { GenerateId, GenerateInvoicePrefix } from '../utils/IdGenerator';
 import {
   Customer as CustomerType,
   CustomerAddress,
@@ -45,6 +45,14 @@ function ToCustomerAddress(input: AddressInput): CustomerAddress {
     postal_code: input.postal_code ?? null,
     state: input.state ?? null,
   };
+}
+
+/** Formats a customer-level invoice number like Stripe (`ABCD1234-0001`). */
+function FormatCustomerInvoiceNumber(
+  invoicePrefix: string,
+  sequence: number
+): string {
+  return `${invoicePrefix}-${String(sequence).padStart(4, '0')}`;
 }
 
 export class CustomerModule {
@@ -131,7 +139,7 @@ export class CustomerModule {
       email: input.email ?? null,
       individual_name: input.individual_name ?? null,
       invoice_credit_balance: {},
-      invoice_prefix: input.invoice_prefix ?? null,
+      invoice_prefix: input.invoice_prefix ?? GenerateInvoicePrefix(),
       invoice_settings: {
         custom_fields: input.invoice_settings?.custom_fields ?? null,
         default_payment_method:
@@ -152,7 +160,7 @@ export class CustomerModule {
       livemode: GetAppConfig().livemode,
       metadata: input.metadata ?? {},
       name: input.name ?? null,
-      next_invoice_sequence: input.next_invoice_sequence ?? null,
+      next_invoice_sequence: input.next_invoice_sequence ?? 1,
       phone: input.phone ?? null,
       preferred_locales: input.preferred_locales ?? null,
       shipping: input.shipping
@@ -219,6 +227,29 @@ export class CustomerModule {
    */
   async GetCustomer(id: string): Promise<CustomerType | null> {
     return this.db.Get<CustomerType>('Customers', id);
+  }
+
+  /**
+   * Atomically allocate the next Stripe-style invoice number for a customer
+   * (`{invoice_prefix}-{NNNN}`) and advance `next_invoice_sequence`.
+   */
+  async ClaimNextInvoiceNumber(customerId: string): Promise<string> {
+    const updated = await this.db.FindOneAndUpdateByFilter<CustomerType>(
+      'Customers',
+      { id: customerId },
+      { $inc: { next_invoice_sequence: 1 } }
+    );
+
+    if (!updated?.invoice_prefix || updated.next_invoice_sequence == null) {
+      throw new AppError(
+        ERRORS.CUSTOMER_NOT_FOUND.message,
+        ERRORS.CUSTOMER_NOT_FOUND.status,
+        ERRORS.CUSTOMER_NOT_FOUND.type
+      );
+    }
+
+    const sequence = updated.next_invoice_sequence - 1;
+    return FormatCustomerInvoiceNumber(updated.invoice_prefix, sequence);
   }
 
   /**

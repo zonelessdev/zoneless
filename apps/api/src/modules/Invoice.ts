@@ -450,6 +450,8 @@ export class InvoiceModule {
     this.AssertStatus(previous, ['draft'], 'finalize');
 
     const now = Now();
+    const invoiceNumber =
+      previous.number ?? (await this.AllocateInvoiceNumber(previous));
     const updatePayload: Partial<InvoiceType> = {
       status: 'open',
       auto_advance:
@@ -457,7 +459,7 @@ export class InvoiceModule {
           ? validatedInput.auto_advance
           : previous.auto_advance,
       ending_balance: previous.starting_balance,
-      number: previous.number ?? this.GenerateInvoiceNumber(previous),
+      number: invoiceNumber,
       status_transitions: {
         ...previous.status_transitions,
         finalized_at: now,
@@ -1245,12 +1247,29 @@ export class InvoiceModule {
     };
   }
 
-  private GenerateInvoiceNumber(invoice: InvoiceType): string {
-    const suffix = invoice.id
-      .replace(/^in_z_?/, '')
-      .slice(0, 8)
-      .toUpperCase();
-    return `${suffix}-0001`;
+  /**
+   * Allocate a Stripe-style invoice number from the customer's
+   * `invoice_prefix` + `next_invoice_sequence` (e.g. `NO8CVRTT-0001`).
+   */
+  private async AllocateInvoiceNumber(invoice: InvoiceType): Promise<string> {
+    if (!this.customerModule) {
+      throw new AppError(
+        'CustomerModule not configured',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+    const customerId = ExpandableId(invoice.customer);
+    if (!customerId) {
+      throw new AppError(
+        ERRORS.CUSTOMER_NOT_FOUND.message,
+        ERRORS.CUSTOMER_NOT_FOUND.status,
+        ERRORS.CUSTOMER_NOT_FOUND.type
+      );
+    }
+    // Ensure the customer belongs to this platform before claiming a number.
+    await this.RequireCustomer(customerId, invoice.platform_account);
+    return this.customerModule.ClaimNextInvoiceNumber(customerId);
   }
 
   private AssertDraftOnlyUpdates(

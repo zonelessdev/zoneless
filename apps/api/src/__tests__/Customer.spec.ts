@@ -12,6 +12,7 @@ import {
 jest.mock('../modules/Database');
 jest.mock('../utils/IdGenerator', () => ({
   GenerateId: jest.fn((prefix: string) => DeterministicId(prefix)),
+  GenerateInvoicePrefix: jest.fn(() => 'TESTPREF'),
 }));
 jest.mock('../utils/Timestamp', () => ({
   Now: jest.fn(() => GetFixedTimestamp()),
@@ -53,11 +54,11 @@ describe('CustomerModule', () => {
       expect(customer.email).toBeNull();
       expect(customer.individual_name).toBeNull();
       expect(customer.invoice_credit_balance).toEqual({});
-      expect(customer.invoice_prefix).toBeNull();
+      expect(customer.invoice_prefix).toBe('TESTPREF');
       expect(customer.livemode).toBe(false);
       expect(customer.metadata).toEqual({});
       expect(customer.name).toBeNull();
-      expect(customer.next_invoice_sequence).toBeNull();
+      expect(customer.next_invoice_sequence).toBe(1);
       expect(customer.phone).toBeNull();
       expect(customer.preferred_locales).toBeNull();
       expect(customer.shipping).toBeNull();
@@ -545,6 +546,43 @@ describe('CustomerModule', () => {
     it('should return null when not found', async () => {
       const result = await module.GetCustomer('nonexistent');
       expect(result).toBeNull();
+    });
+  });
+
+  describe('ClaimNextInvoiceNumber', () => {
+    it('should allocate PREFIX-0001 and advance next_invoice_sequence', async () => {
+      mockDb.FindOneAndUpdateByFilter = jest.fn().mockResolvedValue({
+        id: 'cus_z_1',
+        invoice_prefix: 'NO8CVRTT',
+        next_invoice_sequence: 2,
+      });
+
+      const number = await module.ClaimNextInvoiceNumber('cus_z_1');
+
+      expect(number).toBe('NO8CVRTT-0001');
+      expect(mockDb.FindOneAndUpdateByFilter).toHaveBeenCalledWith(
+        'Customers',
+        { id: 'cus_z_1' },
+        { $inc: { next_invoice_sequence: 1 } }
+      );
+    });
+
+    it('should format subsequent sequences as PREFIX-0002', async () => {
+      mockDb.FindOneAndUpdateByFilter = jest.fn().mockResolvedValue({
+        id: 'cus_z_1',
+        invoice_prefix: 'NO8CVRTT',
+        next_invoice_sequence: 3,
+      });
+
+      await expect(module.ClaimNextInvoiceNumber('cus_z_1')).resolves.toBe(
+        'NO8CVRTT-0002'
+      );
+    });
+
+    it('should throw when the customer cannot be updated', async () => {
+      mockDb.FindOneAndUpdateByFilter = jest.fn().mockResolvedValue(null);
+
+      await expect(module.ClaimNextInvoiceNumber('missing')).rejects.toThrow();
     });
   });
 
