@@ -28,6 +28,12 @@ export const accountRoutes: Routes = [
       ),
   },
   {
+    path: 'invoices',
+    canActivate: [platformOnlyGuard],
+    loadChildren: () =>
+      import('./invoices/invoices.routes').then((m) => m.invoiceRoutes),
+  },
+  {
     path: 'connected-accounts',
     canActivate: [platformOnlyGuard],
     loadChildren: () =>
