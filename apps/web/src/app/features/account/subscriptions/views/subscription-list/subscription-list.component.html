@@ -62,6 +62,7 @@
 </div>
 
 <app-paginated-list
+  #subscriptionsList
   endpoint="subscriptions"
   [columns]="subscriptionColumns"
   [limit]="10"
@@ -69,3 +70,5 @@
   [expand]="subscriptionsExpand()"
   (rowClick)="OnSubscriptionClick($event)"
 ></app-paginated-list>
+
+<app-subscription-actions-host></app-subscription-actions-host>

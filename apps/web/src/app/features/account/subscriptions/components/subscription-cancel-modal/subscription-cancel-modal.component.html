@@ -1,0 +1,43 @@
+<app-modal
+  [isOpen]="isOpen"
+  title="Cancel subscription"
+  closeLabel="Don't cancel"
+  submitLabel="Cancel subscription"
+  [destructive]="true"
+  [loading]="loading"
+  (submitted)="OnConfirm()"
+  (closed)="cancelled.emit()"
+>
+  <div class="cancel-row">
+    <div class="cancel-label">Cancel</div>
+    <div class="cancel-options" role="radiogroup" aria-label="Cancel timing">
+      <label class="cancel-option">
+        <input
+          type="radio"
+          name="subscription-cancel-mode"
+          [checked]="selectedMode() === 'immediately'"
+          [disabled]="loading"
+          (change)="SelectMode('immediately')"
+        />
+        <span class="cancel-option-text">
+          <span class="cancel-option-title">Immediately</span>
+          <span class="cancel-option-date">{{ GetImmediateDateLabel() }}</span>
+        </span>
+      </label>
+      <label class="cancel-option">
+        <input
+          type="radio"
+          name="subscription-cancel-mode"
+          [checked]="selectedMode() === 'period_end'"
+          [disabled]="loading"
+          (change)="SelectMode('period_end')"
+        />
+        <span class="cancel-option-text">
+          <span class="cancel-option-title">End of the current period</span>
+          <span class="cancel-option-date">{{ GetPeriodEndDateLabel() }}</span>
+        </span>
+      </label>
+    </div>
+  </div>
+  <div class="cancel-divider"></div>
+</app-modal>

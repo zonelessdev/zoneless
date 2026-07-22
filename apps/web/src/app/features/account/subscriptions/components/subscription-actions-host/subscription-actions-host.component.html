@@ -7,3 +7,11 @@
   (confirmed)="actions.ConfirmEditMetadata()"
   (cancelled)="actions.metadataDialogOpen.set(false)"
 ></app-metadata-edit-modal>
+
+<app-subscription-cancel-modal
+  [isOpen]="actions.cancelDialogOpen()"
+  [loading]="actions.cancelSaving()"
+  [subscription]="actions.cancelTarget()"
+  (confirmed)="actions.ConfirmCancel($event)"
+  (cancelled)="actions.CloseCancel()"
+></app-subscription-cancel-modal>

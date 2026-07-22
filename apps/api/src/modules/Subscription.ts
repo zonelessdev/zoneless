@@ -477,6 +477,8 @@ export class SubscriptionModule {
 
   /**
    * Cancel a subscription immediately.
+   * Off-chain stop-collect: billing will no longer pull; the Solana
+   * delegation PDA is left in place until a later customer-signed revoke.
    * Emits `customer.subscription.deleted`.
    */
   async CancelSubscription(
@@ -485,9 +487,16 @@ export class SubscriptionModule {
   ): Promise<SubscriptionType> {
     const validatedInput = ValidateUpdate(CancelSubscriptionSchema, input);
     const previous = await this.RequireSubscription(id);
-    const now = Now();
 
-    // TODO: Solana USDC — cancel on-chain delegation / subscription PDA
+    if (previous.status === 'canceled') {
+      throw new AppError(
+        'Subscription is already canceled',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    const now = Now();
 
     let latestInvoiceId =
       typeof previous.latest_invoice === 'string'
@@ -515,6 +524,7 @@ export class SubscriptionModule {
       status: 'canceled',
       canceled_at: now,
       ended_at: now,
+      cancel_at: null,
       cancel_at_period_end: false,
       latest_invoice: latestInvoiceId,
       cancellation_details: {
@@ -522,6 +532,61 @@ export class SubscriptionModule {
         feedback: validatedInput.cancellation_details?.feedback ?? null,
         reason: 'cancellation_requested',
       },
+    };
+
+    await this.db.Update<SubscriptionType>('Subscriptions', id, updatePayload);
+
+    const subscription = await this.GetSubscription(id);
+    if (!subscription) {
+      throw new AppError(
+        ERRORS.SUBSCRIPTION_NOT_FOUND.message,
+        ERRORS.SUBSCRIPTION_NOT_FOUND.status,
+        ERRORS.SUBSCRIPTION_NOT_FOUND.type
+      );
+    }
+
+    if (this.eventService) {
+      const previousAttributes = ExtractChangedFields(
+        previous as unknown as Record<string, unknown>,
+        updatePayload as Record<string, unknown>
+      );
+      await this.eventService.Emit(
+        'customer.subscription.updated',
+        subscription.platform_account,
+        subscription,
+        { previousAttributes }
+      );
+      await this.eventService.Emit(
+        'customer.subscription.deleted',
+        subscription.platform_account,
+        subscription
+      );
+    }
+
+    return subscription;
+  }
+
+  /**
+   * Finalize a subscription scheduled to cancel at period end.
+   * Called by the billing runner when the current period has elapsed.
+   */
+  async FinalizeCancelAtPeriodEnd(id: string): Promise<SubscriptionType> {
+    const previous = await this.RequireSubscription(id);
+    const now = Now();
+
+    const updatePayload: Partial<SubscriptionType> = {
+      status: 'canceled',
+      ended_at: now,
+      cancel_at: null,
+      cancel_at_period_end: false,
+      canceled_at: previous.canceled_at ?? now,
+      cancellation_details: {
+        comment: previous.cancellation_details?.comment ?? null,
+        feedback: previous.cancellation_details?.feedback ?? null,
+        reason:
+          previous.cancellation_details?.reason ?? 'cancellation_requested',
+      },
+      billing_lock_until: null,
     };
 
     await this.db.Update<SubscriptionType>('Subscriptions', id, updatePayload);
@@ -897,8 +962,43 @@ export class SubscriptionModule {
     }
     if (input.cancel_at_period_end !== undefined) {
       payload.cancel_at_period_end = input.cancel_at_period_end;
+      if (input.cancel_at_period_end) {
+        const periodEnd = this.GetCurrentPeriodEnd(existing);
+        if (input.cancel_at === undefined) {
+          payload.cancel_at = periodEnd;
+        }
+        payload.canceled_at = Now();
+        payload.cancellation_details = {
+          comment:
+            input.cancellation_details?.comment ??
+            existing.cancellation_details?.comment ??
+            null,
+          feedback:
+            input.cancellation_details?.feedback ??
+            existing.cancellation_details?.feedback ??
+            null,
+          reason:
+            existing.cancellation_details?.reason ?? 'cancellation_requested',
+        };
+      } else if (
+        existing.status === 'active' ||
+        existing.status === 'trialing'
+      ) {
+        if (input.cancel_at === undefined) {
+          payload.cancel_at = null;
+        }
+        payload.canceled_at = null;
+        payload.cancellation_details = {
+          comment: null,
+          feedback: null,
+          reason: null,
+        };
+      }
     }
-    if (input.cancellation_details !== undefined) {
+    if (
+      input.cancellation_details !== undefined &&
+      input.cancel_at_period_end === undefined
+    ) {
       payload.cancellation_details = {
         comment: input.cancellation_details.comment ?? null,
         feedback: input.cancellation_details.feedback ?? null,
@@ -1628,6 +1728,16 @@ export class SubscriptionModule {
         ERRORS.INVALID_REQUEST.type
       );
     }
+  }
+
+  private GetCurrentPeriodEnd(subscription: SubscriptionType): number {
+    const ends = subscription.items?.data?.map(
+      (item) => item.current_period_end
+    );
+    if (!ends?.length) {
+      return Now();
+    }
+    return Math.min(...ends);
   }
 
   private async RequireSubscription(id: string): Promise<SubscriptionType> {

@@ -245,6 +245,22 @@ export class SubscriptionBillingModule {
     return true;
   }
 
+  private ShouldFinalizeCancelAtPeriodEnd(
+    subscription: SubscriptionType,
+    now: number
+  ): boolean {
+    if (subscription.status === 'canceled') {
+      return false;
+    }
+    if (subscription.cancel_at_period_end) {
+      return true;
+    }
+    if (subscription.cancel_at != null && subscription.cancel_at <= now) {
+      return true;
+    }
+    return false;
+  }
+
   private async CollectOrCreateCycleInvoice(
     claimed: SubscriptionType,
     result: BillingRunResult
@@ -264,16 +280,24 @@ export class SubscriptionBillingModule {
       return;
     }
 
+    const now = Now();
     const minPeriodEnd = Math.min(
       ...claimed.items.data.map((item) => item.current_period_end)
     );
     const dueForTrialEnd =
       claimed.status === 'trialing' &&
       !!claimed.trial_end &&
-      claimed.trial_end <= Now();
-    if (minPeriodEnd > Now() && !dueForTrialEnd) {
+      claimed.trial_end <= now;
+    if (minPeriodEnd > now && !dueForTrialEnd) {
       result.skipped += 1;
       await this.subscriptionModule.ReleaseBillingLock(claimed.id);
+      return;
+    }
+
+    if (this.ShouldFinalizeCancelAtPeriodEnd(claimed, now)) {
+      await this.subscriptionModule.FinalizeCancelAtPeriodEnd(claimed.id);
+      await this.subscriptionModule.ReleaseBillingLock(claimed.id);
+      result.succeeded += 1;
       return;
     }
 

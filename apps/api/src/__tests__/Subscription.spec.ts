@@ -331,6 +331,48 @@ describe('SubscriptionModule', () => {
         expect.objectContaining({ previousAttributes: expect.any(Object) })
       );
     });
+
+    it('should schedule cancel at period end without changing status', async () => {
+      const created = await module.CreateSubscription(PLATFORM, {
+        customer: CUSTOMER_ID,
+        items: [{ price: PRICE_ID }],
+      });
+      const periodEnd = created.items.data[0].current_period_end;
+
+      const updated = await module.UpdateSubscription(created.id, {
+        cancel_at_period_end: true,
+      });
+
+      expect(updated.status).toBe('active');
+      expect(updated.cancel_at_period_end).toBe(true);
+      expect(updated.cancel_at).toBe(periodEnd);
+      expect(updated.canceled_at).toBe(GetFixedTimestamp());
+      expect(updated.cancellation_details?.reason).toBe(
+        'cancellation_requested'
+      );
+      expect(updated.ended_at).toBeNull();
+    });
+
+    it('should clear scheduled cancel when cancel_at_period_end is false', async () => {
+      const created = await module.CreateSubscription(PLATFORM, {
+        customer: CUSTOMER_ID,
+        items: [{ price: PRICE_ID }],
+      });
+
+      await module.UpdateSubscription(created.id, {
+        cancel_at_period_end: true,
+      });
+
+      const resumed = await module.UpdateSubscription(created.id, {
+        cancel_at_period_end: false,
+      });
+
+      expect(resumed.status).toBe('active');
+      expect(resumed.cancel_at_period_end).toBe(false);
+      expect(resumed.cancel_at).toBeNull();
+      expect(resumed.canceled_at).toBeNull();
+      expect(resumed.cancellation_details?.reason).toBeNull();
+    });
   });
 
   describe('CancelSubscription', () => {
@@ -347,6 +389,8 @@ describe('SubscriptionModule', () => {
       expect(canceled.status).toBe('canceled');
       expect(canceled.canceled_at).toBe(GetFixedTimestamp());
       expect(canceled.ended_at).toBe(GetFixedTimestamp());
+      expect(canceled.cancel_at).toBeNull();
+      expect(canceled.cancel_at_period_end).toBe(false);
       expect(canceled.cancellation_details?.feedback).toBe('too_expensive');
       expect(canceled.cancellation_details?.reason).toBe(
         'cancellation_requested'
@@ -355,6 +399,19 @@ describe('SubscriptionModule', () => {
         'customer.subscription.deleted',
         PLATFORM,
         expect.objectContaining({ id: created.id })
+      );
+    });
+
+    it('should reject already canceled subscriptions', async () => {
+      const created = await module.CreateSubscription(PLATFORM, {
+        customer: CUSTOMER_ID,
+        items: [{ price: PRICE_ID }],
+      });
+
+      await module.CancelSubscription(created.id, {});
+
+      await expect(module.CancelSubscription(created.id, {})).rejects.toThrow(
+        'Subscription is already canceled'
       );
     });
 
@@ -383,6 +440,30 @@ describe('SubscriptionModule', () => {
         })
       );
       expect(canceled.latest_invoice).toBe('in_z_final');
+    });
+  });
+
+  describe('FinalizeCancelAtPeriodEnd', () => {
+    it('should mark canceled and emit deleted', async () => {
+      const created = await module.CreateSubscription(PLATFORM, {
+        customer: CUSTOMER_ID,
+        items: [{ price: PRICE_ID }],
+      });
+
+      await module.UpdateSubscription(created.id, {
+        cancel_at_period_end: true,
+      });
+
+      const finalized = await module.FinalizeCancelAtPeriodEnd(created.id);
+
+      expect(finalized.status).toBe('canceled');
+      expect(finalized.ended_at).toBe(GetFixedTimestamp());
+      expect(finalized.cancel_at_period_end).toBe(false);
+      expect(eventService.Emit).toHaveBeenCalledWith(
+        'customer.subscription.deleted',
+        PLATFORM,
+        expect.objectContaining({ id: created.id })
+      );
     });
   });
 

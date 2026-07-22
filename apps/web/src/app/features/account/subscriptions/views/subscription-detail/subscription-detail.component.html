@@ -11,21 +11,10 @@
         <span>{{ productName() }}</span>
       </h1>
       <app-status-chip [status]="s.status"></app-status-chip>
-    </div>
-    <div class="flex align-vert gap-extra-large summary-row">
-      <div class="summary-item">
-        <span class="summary-label">Started</span>
-        <span class="summary-value">{{
-          FormatShortDate(s.start_date || s.created)
-        }}</span>
-      </div>
-      @if (nextInvoiceDate(); as nextDate) {
-      <div class="summary-item">
-        <span class="summary-label">Next invoice</span>
-        <span class="summary-value">
-          {{ FormatSubscriptionAmount(nextInvoiceAmount()) }} on
-          {{ FormatShortDateTime(nextDate) }}
-        </span>
+      @if (cancelChipLabel(); as cancelLabel) {
+      <div class="chip grey-chip cancels-chip">
+        <span>{{ cancelLabel }}</span>
+        <img src="assets/icons/clock.svg" alt="" />
       </div>
       }
     </div>
@@ -47,8 +36,58 @@
   </div>
 </div>
 
+<div class="summary-metrics">
+  <div class="summary-metric">
+    <span class="summary-label">Started</span>
+    <span class="summary-value">{{
+      FormatShortDate(s.start_date || s.created)
+    }}</span>
+  </div>
+  <div class="summary-metric">
+    <span class="summary-label">Next invoice</span>
+    @if (isCancelingAtPeriodEnd()) {
+    <span class="summary-value">No further invoice</span>
+    } @else if (nextInvoiceDate(); as nextDate) {
+    <span class="summary-value">
+      {{ FormatSubscriptionAmount(nextInvoiceAmount()) }} on
+      {{ FormatShortDateTime(nextDate) }}
+    </span>
+    } @else {
+    <span class="summary-value">—</span>
+    }
+  </div>
+  @if (isCancelingAtPeriodEnd()) {
+  <div class="summary-metric">
+    <span class="summary-label">Ends</span>
+    <span class="summary-value">At period end</span>
+  </div>
+  } @if (autoCancelAt(); as autoCancelDate) {
+  <div class="summary-metric">
+    <span class="summary-label summary-label-with-icon">
+      Auto-cancels
+      <app-more-info-hover
+        text="Unless marked as exempt, test subscriptions created at least 90 days ago will automatically be cancelled. 30 days after, these subscriptions will be deleted."
+      ></app-more-info-hover>
+    </span>
+    <span class="summary-value summary-value-link">{{
+      FormatShortDate(autoCancelDate)
+    }}</span>
+  </div>
+  }
+</div>
+
 <div class="flex gap-extra-large view-panels">
   <div class="view-left-panel">
+    @if (isCancelingAtPeriodEnd() && cancelAt(); as cancelDate) {
+    <div class="view-section">
+      <h2 class="section-title">Cancellation details</h2>
+      <div class="mb">
+        <div class="bolded mb-small">Scheduled to cancel on</div>
+        <div class="link-highlight">{{ FormatShortDateTime(cancelDate) }}</div>
+      </div>
+    </div>
+    }
+
     <!-- Pricing -->
     <div class="view-section">
       <h2 class="section-title">Pricing</h2>
