@@ -21,7 +21,11 @@ export interface ExpandContext {
 }
 
 export interface ExpansionField {
-  /** Field on the parent object that holds the id (and where we write the hydrated object). */
+  /**
+   * Field on the parent object that holds the id (and where we write the hydrated
+   * object). Dot-separated paths are supported for nested ids
+   * (e.g. `parent.subscription_details.subscription`).
+   */
   sourcePath: string;
   /** `object` string of the linked resource. Used to recurse via the registry. */
   targetObject: string;
@@ -226,7 +230,7 @@ async function ExpandObjects(
     if (field.embeddedList) {
       const nested: AnyObject[] = [];
       for (const item of items) {
-        const value = item[field.sourcePath];
+        const value = GetByPath(item, field.sourcePath);
         if (value && typeof value === 'object') {
           nested.push(value as AnyObject);
         }
@@ -239,7 +243,7 @@ async function ExpandObjects(
 
     const idToParents = new Map<string, AnyObject[]>();
     for (const item of items) {
-      const value = item[field.sourcePath];
+      const value = GetByPath(item, field.sourcePath);
       if (typeof value !== 'string') continue;
       const parents = idToParents.get(value) ?? [];
       parents.push(item);
@@ -263,7 +267,7 @@ async function ExpandObjects(
     for (const [id, parents] of idToParents) {
       const expanded = ctx.cache.get(CacheKey(field.targetObject, id)) ?? null;
       for (const parent of parents) {
-        parent[field.sourcePath] = expanded;
+        SetByPath(parent, field.sourcePath, expanded);
       }
       if (expanded && tails.length > 0) {
         nextItems.push(expanded as AnyObject);
@@ -274,6 +278,35 @@ async function ExpandObjects(
       await ExpandObjects(nextItems, tails, ctx);
     }
   }
+}
+
+function GetByPath(obj: AnyObject, path: string): unknown {
+  const parts = path.split('.');
+  let current: unknown = obj;
+  for (const part of parts) {
+    if (
+      current === null ||
+      current === undefined ||
+      typeof current !== 'object'
+    ) {
+      return undefined;
+    }
+    current = (current as AnyObject)[part];
+  }
+  return current;
+}
+
+function SetByPath(obj: AnyObject, path: string, value: unknown): void {
+  const parts = path.split('.');
+  let current: AnyObject = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const next = current[parts[i]];
+    if (next === null || next === undefined || typeof next !== 'object') {
+      return;
+    }
+    current = next as AnyObject;
+  }
+  current[parts[parts.length - 1]] = value;
 }
 
 function CacheKey(objectType: string, id: string): string {

@@ -6,6 +6,7 @@ export * from './charge.service';
 export * from './customer.service';
 export * from './config.service';
 export * from './external-wallet.service';
+export * from './invoice.service';
 export * from './payment-intent.service';
 export * from './payment-link.service';
 export * from './person.service';

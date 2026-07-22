@@ -1,0 +1,68 @@
+<div class="header-wrapper">
+  <h1>Invoices</h1>
+  <button
+    type="button"
+    class="action-button action-button-dainty action-button-disabled"
+    disabled
+  >
+    <img class="button-icon" src="assets/icons/add.svg" alt="" />
+    <span>Create invoice</span>
+  </button>
+</div>
+
+<div class="field">
+  <div class="field-pill">
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="invoicesStatusTab() === 'all'"
+      (click)="SetInvoicesStatusTab('all')"
+      (keydown.enter)="SetInvoicesStatusTab('all')"
+      (keydown.space)="SetInvoicesStatusTab('all')"
+    >
+      <span>All invoices</span>
+    </div>
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="invoicesStatusTab() === 'draft'"
+      (click)="SetInvoicesStatusTab('draft')"
+      (keydown.enter)="SetInvoicesStatusTab('draft')"
+      (keydown.space)="SetInvoicesStatusTab('draft')"
+    >
+      <span>Draft</span>
+    </div>
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="invoicesStatusTab() === 'open'"
+      (click)="SetInvoicesStatusTab('open')"
+      (keydown.enter)="SetInvoicesStatusTab('open')"
+      (keydown.space)="SetInvoicesStatusTab('open')"
+    >
+      <span>Open</span>
+    </div>
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="invoicesStatusTab() === 'paid'"
+      (click)="SetInvoicesStatusTab('paid')"
+      (keydown.enter)="SetInvoicesStatusTab('paid')"
+      (keydown.space)="SetInvoicesStatusTab('paid')"
+    >
+      <span>Paid</span>
+    </div>
+  </div>
+</div>
+
+<app-paginated-list
+  endpoint="invoices"
+  [columns]="invoiceColumns"
+  [limit]="10"
+  [queryParams]="invoicesQueryParams()"
+  [expand]="invoicesExpand()"
+></app-paginated-list>

@@ -33,6 +33,7 @@ const STATUS_CHIP_MAP: Record<string, ChipType> = {
   elevated: 'yellow',
   past_due: 'yellow',
   unpaid: 'yellow',
+  open: 'yellow',
 
   // Red - Failure/Restricted states
   declined: 'red',
@@ -42,6 +43,7 @@ const STATUS_CHIP_MAP: Record<string, ChipType> = {
   restricted: 'red',
   rejected: 'red',
   highest: 'red',
+  uncollectible: 'red',
 
   // Blue - Info states
   draft: 'blue',
@@ -66,6 +68,7 @@ const STATUS_CHIP_MAP: Record<string, ChipType> = {
   timeout: 'grey',
   not_assessed: 'grey',
   unknown: 'grey',
+  void: 'grey',
 };
 
 @Component({

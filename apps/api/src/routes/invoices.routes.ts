@@ -21,6 +21,7 @@ import { PriceModule } from '../modules/Price';
 import { ProductModule } from '../modules/Product';
 import { InvoiceItemModule } from '../modules/InvoiceItem';
 import { InvoiceModule } from '../modules/Invoice';
+import { SubscriptionModule } from '../modules/Subscription';
 import { PaymentIntentModule } from '../modules/PaymentIntent';
 import { ChargeModule } from '../modules/Charge';
 
@@ -63,12 +64,25 @@ const invoiceModule = new InvoiceModule(
   chargeModule,
   priceModule
 );
+const subscriptionModule = new SubscriptionModule(
+  db,
+  eventService,
+  customerModule,
+  priceModule,
+  invoiceModule
+);
 
 RegisterExpansions('invoice', {
   customer: {
     sourcePath: 'customer',
     targetObject: 'customer',
     BatchLoad: (ids, ctx) => customerModule.BatchGet(ids, ctx.platformAccount),
+  },
+  subscription: {
+    sourcePath: 'parent.subscription_details.subscription',
+    targetObject: 'subscription',
+    BatchLoad: (ids, ctx) =>
+      subscriptionModule.BatchGet(ids, ctx.platformAccount),
   },
 });
 
