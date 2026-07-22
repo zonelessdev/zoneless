@@ -46,6 +46,11 @@ export interface PaginatedListColumn {
   currencyField?: string;
   /** Optional formatter function for computed/custom values */
   formatter?: (item: unknown) => string;
+  /**
+   * Optional 0–1 progress value for a leading ring indicator
+   * (e.g. subscription billing-period progress).
+   */
+  progressGetter?: (item: unknown) => number | null;
   /** If specified, an image with this field will be displayed*/
   imageField?: string;
   /** Fallback icon to display if the image field is not found */
@@ -92,6 +97,9 @@ export class PaginatedListComponent<T extends ListItem>
 
   /** Whether pagination controls are shown */
   @Input() paginationEnabled = true;
+
+  /** Show a compact "N results" count when pagination is disabled */
+  @Input() showResultCount = false;
 
   /** Whether to hide column headings */
   @Input() hideColumnHeadings = false;
@@ -292,6 +300,19 @@ export class PaginatedListComponent<T extends ListItem>
     //A single field, e.g. "imageUrl"
     const value = this.GetItemValue(item, field);
     return String(value ?? '');
+  }
+
+  GetColumnProgress(item: T, column: PaginatedListColumn): number | null {
+    if (!column.progressGetter) return null;
+    const value = column.progressGetter(item);
+    if (value == null || Number.isNaN(value)) return null;
+    return Math.min(1, Math.max(0, value));
+  }
+
+  /** SVG stroke-dasharray for a ring with radius 7. */
+  GetProgressDasharray(progress: number): string {
+    const circumference = 2 * Math.PI * 7;
+    return `${progress * circumference} ${circumference}`;
   }
 
   GetItemCurrency(item: T, field: string): string {

@@ -8,7 +8,12 @@ import {
   OnDestroy,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import type { Customer, PaymentIntent } from '@zoneless/shared-types';
+import type {
+  Customer,
+  Invoice,
+  PaymentIntent,
+  Subscription as SubscriptionType,
+} from '@zoneless/shared-types';
 import { GetPaymentIntentListStatus } from '@zoneless/shared-types';
 import { CustomerService } from '../../../../../data';
 import { CustomerActionsService } from '../../services/customer-actions.service';
@@ -25,6 +30,18 @@ import { EventsListComponent } from '../../../components';
 import { MetadataToArray } from '../../../util/metadata';
 import { MetaService } from '../../../../../core';
 import { Subscription } from 'rxjs';
+import {
+  FormatInvoiceFrequency,
+  FormatInvoiceNumber,
+} from '../../../invoices/util/invoice-display';
+import {
+  FormatShortDate,
+  FormatSubscriptionBillingFrequency,
+  FormatSubscriptionNextInvoice,
+  FormatSubscriptionProduct,
+  GetSubscriptionListStatus,
+  GetSubscriptionPeriodProgress,
+} from '../../../subscriptions/util/subscription-display';
 
 @Component({
   selector: 'app-customer-detail',
@@ -52,8 +69,20 @@ export class CustomerDetailComponent implements OnInit, OnDestroy {
   loading: WritableSignal<boolean> = signal(false);
   detailsExpanded: WritableSignal<boolean> = signal(false);
 
+  subscriptionColumns: PaginatedListColumn[] = [];
+  subscriptionQueryParams: WritableSignal<Record<string, string>> = signal({});
+  subscriptionExpand: WritableSignal<string[]> = signal([
+    'items.data.price.product',
+  ]);
+
   paymentColumns: PaginatedListColumn[] = [];
   paymentQueryParams: WritableSignal<Record<string, string>> = signal({});
+
+  invoiceColumns: PaginatedListColumn[] = [];
+  invoiceQueryParams: WritableSignal<Record<string, string>> = signal({});
+  invoiceExpand: WritableSignal<string[]> = signal([
+    'subscription.items.data.price',
+  ]);
 
   private sub?: Subscription;
 
@@ -73,7 +102,9 @@ export class CustomerDetailComponent implements OnInit, OnDestroy {
     if (!id) return;
     await this.LoadCustomer(id);
     this.metaService.SetMetaTitle(this.customer()?.name ?? 'Customer');
+    this.InitSubscriptionList(id);
     this.InitPaymentList(id);
+    this.InitInvoiceList(id);
     this.sub = this.actions.events$.subscribe((event) => {
       if (event.type === 'deleted' && event.customerId === id) {
         this.router.navigate(['/account/customers']);
@@ -94,6 +125,58 @@ export class CustomerDetailComponent implements OnInit, OnDestroy {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private InitSubscriptionList(customerId: string): void {
+    this.subscriptionColumns = [
+      {
+        header: 'Product',
+        field: 'product',
+        type: 'text',
+        bolded: true,
+        progressGetter: (item: unknown) =>
+          GetSubscriptionPeriodProgress(item as SubscriptionType),
+        formatter: (item: unknown) =>
+          FormatSubscriptionProduct(item as SubscriptionType),
+      },
+      {
+        header: '',
+        field: 'status',
+        type: 'status',
+        formatter: (item: unknown) =>
+          GetSubscriptionListStatus(item as SubscriptionType),
+      },
+      {
+        header: 'Frequency',
+        field: 'frequency',
+        type: 'text',
+        dimmed: true,
+        formatter: (item: unknown) =>
+          FormatSubscriptionBillingFrequency(item as SubscriptionType),
+      },
+      {
+        header: 'Next invoice',
+        field: 'next_invoice',
+        type: 'text',
+        dimmed: true,
+        formatter: (item: unknown) =>
+          FormatSubscriptionNextInvoice(item as SubscriptionType),
+      },
+      {
+        header: '',
+        field: 'actions',
+        type: 'actions',
+        actions: [
+          {
+            title: 'Copy subscription ID',
+            action: (item: SubscriptionType) => {
+              void navigator.clipboard.writeText(item.id);
+            },
+          },
+        ],
+      },
+    ];
+    this.subscriptionQueryParams.set({ customer: customerId });
   }
 
   private InitPaymentList(customerId: string): void {
@@ -131,8 +214,79 @@ export class CustomerDetailComponent implements OnInit, OnDestroy {
     this.paymentQueryParams.set({ customer: customerId });
   }
 
+  private InitInvoiceList(customerId: string): void {
+    this.invoiceColumns = [
+      {
+        header: 'Total',
+        field: 'total',
+        type: 'currency-with-code',
+        currencyField: 'currency',
+        bolded: true,
+      },
+      {
+        header: '',
+        field: 'status',
+        type: 'status',
+        formatter: (item: unknown) => (item as Invoice).status ?? '',
+      },
+      {
+        header: 'Frequency',
+        field: 'parent',
+        type: 'text',
+        dimmed: true,
+        formatter: (item: unknown) => FormatInvoiceFrequency(item as Invoice),
+      },
+      {
+        header: 'Invoice number',
+        field: 'number',
+        type: 'text',
+        dimmed: true,
+        formatter: (item: unknown) => FormatInvoiceNumber(item as Invoice),
+      },
+      {
+        header: 'Due',
+        field: 'due_date',
+        type: 'text',
+        dimmed: true,
+        formatter: (item: unknown) => {
+          const dueDate = (item as Invoice).due_date;
+          return dueDate ? FormatShortDate(dueDate) : '—';
+        },
+      },
+      {
+        header: 'Created',
+        field: 'created',
+        type: 'date',
+        dimmed: true,
+        dateFormat: 'd MMM, HH:mm',
+      },
+      {
+        header: '',
+        field: '',
+        type: 'actions',
+        actions: [
+          {
+            title: 'Copy invoice ID',
+            action: (item: Invoice) => {
+              void navigator.clipboard.writeText(item.id);
+            },
+          },
+        ],
+      },
+    ];
+    this.invoiceQueryParams.set({ customer: customerId });
+  }
+
+  OnSubscriptionClick(subscription: SubscriptionType): void {
+    void this.router.navigate(['/account/subscriptions', subscription.id]);
+  }
+
   OnPaymentClick(paymentIntent: PaymentIntent): void {
-    this.router.navigate(['/account/payments', paymentIntent.id]);
+    void this.router.navigate(['/account/payments', paymentIntent.id]);
+  }
+
+  OnInvoiceClick(invoice: Invoice): void {
+    void this.router.navigate(['/account/invoices', invoice.id]);
   }
 
   OnEdit(): void {

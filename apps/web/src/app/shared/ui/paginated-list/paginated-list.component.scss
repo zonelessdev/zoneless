@@ -50,6 +50,7 @@ th {
 .data-cell {
   display: flex;
   align-items: center;
+  gap: $spacing-small;
 }
 
 .bold-cell {
@@ -58,6 +59,24 @@ th {
 
 .dimmed-cell {
   opacity: $dimmed;
+}
+
+.progress-ring {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+}
+
+.progress-ring-track {
+  stroke: $darkest-background-color;
+  stroke-width: 2.5;
+}
+
+.progress-ring-value {
+  stroke: $base-color;
+  stroke-width: 2.5;
+  stroke-linecap: round;
 }
 
 .image-cell {
@@ -69,8 +88,9 @@ th {
   background-color: $dark-background-color;
   border-radius: $border-radius-small;
   overflow: hidden;
-  margin-right: $spacing-snug;
+  margin-right: $spacing-extra-small;
   position: relative;
+  flex-shrink: 0;
 }
 
 .image-cell .image-thumbnail {
@@ -101,6 +121,13 @@ th {
   text-align: center;
   padding: $spacing-large;
   opacity: $dimmed;
+}
+
+.result-count {
+  margin-top: $spacing;
+  font-size: $font-size-small;
+  font-weight: 500;
+  color: $base-color;
 }
 
 .loading-skeleton {
