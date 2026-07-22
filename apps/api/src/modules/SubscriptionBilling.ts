@@ -122,6 +122,11 @@ export class SubscriptionBillingModule {
       errors: [],
     };
 
+    // Each subscription gets at most one attempt per run — a retry failure
+    // (e.g. on-chain allowance used) shouldn't be attempted again seconds
+    // later by the due-subscriptions pass.
+    const attempted = new Set<string>();
+
     const retryInvoices = await this.FindRetryInvoices(
       now,
       options.platformAccountId,
@@ -132,10 +137,11 @@ export class SubscriptionBillingModule {
       const subscriptionId = ExpandableId(
         invoice.parent?.subscription_details?.subscription
       );
-      if (!subscriptionId) {
+      if (!subscriptionId || attempted.has(subscriptionId)) {
         result.skipped += 1;
         continue;
       }
+      attempted.add(subscriptionId);
       await this.WithBillingClaim(subscriptionId, result, async (claimed) => {
         const paid = await this.invoiceModule.PayInvoice(invoice.id);
         await this.HandleInvoiceOutcome(claimed, paid, result);
@@ -155,6 +161,8 @@ export class SubscriptionBillingModule {
 
     for (const subscriptionId of dueSubscriptionIds) {
       if (result.processed >= batchSize) break;
+      if (attempted.has(subscriptionId)) continue;
+      attempted.add(subscriptionId);
       await this.WithBillingClaim(subscriptionId, result, async (claimed) => {
         await this.CollectOrCreateCycleInvoice(claimed, result);
       });

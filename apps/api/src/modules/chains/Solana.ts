@@ -543,7 +543,11 @@ export class Solana {
     signature: string
   ): Promise<ParsedTransactionWithMeta | null> {
     return this.WithRetry(async () => {
+      // Match WaitForSignatureConfirmation: default Connection commitment is
+      // `finalized`, which lags `confirmed` and caused subscribe confirm to
+      // time out on the first attempt ("Transaction not found on-chain").
       return this.connection.getParsedTransaction(signature, {
+        commitment: 'confirmed',
         maxSupportedTransactionVersion: 0,
       });
     });
@@ -971,7 +975,7 @@ export class Solana {
    */
   async WaitForSubscriptionAuthority(
     subscriberWallet: string,
-    maxAttempts = 20
+    maxAttempts = CONFIRM_MAX_ATTEMPTS
   ): Promise<void> {
     const tokenMint = address(this.GetUSDCMintAddress());
     const subscriberAddress = address(subscriberWallet);
@@ -1070,9 +1074,8 @@ export class Solana {
       subscriberWallet: string;
     }
   ): Promise<CheckoutSubscribeVerification> {
-    const maxAttempts = 20;
     let tx: ParsedTransactionWithMeta | null = null;
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    for (let attempt = 0; attempt < CONFIRM_MAX_ATTEMPTS; attempt++) {
       tx = await this.GetParsedTransaction(signature);
       if (tx) break;
       await Sleep(CONFIRM_POLL_MS);
@@ -1168,7 +1171,7 @@ export class Solana {
     amountCents: number;
     /** Optional; must match a plan destination if the plan has an allowlist. */
     destinationWallet?: string;
-  }): Promise<{ signature: string }> {
+  }): Promise<{ signature: string; alreadyCollected: boolean }> {
     const {
       subscriberWallet,
       planPda,
@@ -1273,14 +1276,11 @@ export class Solana {
 
     const amount = BigInt(amountCents * 10_000);
 
-    const existingSub = await fetchMaybeSubscriptionDelegation(
-      rpcClient.rpc,
-      address(subscriptionPda)
-    );
-    if (existingSub.exists && existingSub.data.amountPulledInPeriod >= amount) {
-      // Already collected this billing period (e.g. retry after a partial confirm).
-      return { signature: 'already_collected' };
-    }
+    // Do NOT short-circuit on amountPulledInPeriod alone. That counter is only
+    // reset when transferSubscription runs (after the program advances
+    // currentPeriodStartTs). Reading a stale pull count after the period has
+    // rolled would permanently block renewals with a false "already collected".
+    // Always attempt the transfer; #400 means we are still inside the period.
 
     try {
       const result = await rpcClient.subscriptions.instructions
@@ -1296,11 +1296,14 @@ export class Solana {
         })
         .sendTransaction();
 
-      return { signature: result.context.signature };
+      return {
+        signature: result.context.signature,
+        alreadyCollected: false,
+      };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       if (/#400|exceeds period limit/i.test(message)) {
-        return { signature: 'already_collected' };
+        return { signature: 'already_collected', alreadyCollected: true };
       }
       throw new Error(
         `Subscription collect failed (destination ${resolvedDestination}, ATA ${receiverAta.toBase58()}): ${message}`
@@ -1417,9 +1420,8 @@ export class Solana {
     const merchantTokenAccountStr = merchantTokenAccount.toBase58();
 
     // Poll for the transaction to reach 'confirmed' commitment
-    const maxAttempts = 20;
     let tx: ParsedTransactionWithMeta | null = null;
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    for (let attempt = 0; attempt < CONFIRM_MAX_ATTEMPTS; attempt++) {
       tx = await this.GetParsedTransaction(signature);
       if (tx) break;
       await Sleep(CONFIRM_POLL_MS);

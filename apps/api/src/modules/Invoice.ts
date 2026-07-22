@@ -82,6 +82,17 @@ const RETRY_DELAYS_SECONDS = [
   5 * SECONDS_PER_DAY,
 ];
 
+/**
+ * When Solana rejects because this period's allowance is already used, the
+ * next billing run should be allowed to retry immediately (period may have
+ * rolled). A multi-minute backoff made manual catch-up look permanently stuck
+ * on `skipped`.
+ */
+const PERIOD_ALLOWANCE_RETRY_SECONDS = 0;
+
+const PERIOD_ALLOWANCE_ALREADY_COLLECTED =
+  /period allowance already collected|exceeds period limit/i;
+
 export class InvoiceModule {
   private readonly db: Database;
   private readonly eventService: EventService | null;
@@ -1556,11 +1567,14 @@ export class InvoiceModule {
     message: string
   ): Promise<InvoiceType> {
     const now = Now();
-    const attemptCount = previous.attempt_count + 1;
-    const nextPaymentAttempt = this.ComputeNextPaymentAttempt(
-      attemptCount,
-      now
-    );
+    const isPeriodAllowance = PERIOD_ALLOWANCE_ALREADY_COLLECTED.test(message);
+    // Period-limit waits are not payment declines — don't burn retry budget.
+    const attemptCount = isPeriodAllowance
+      ? previous.attempt_count
+      : previous.attempt_count + 1;
+    const nextPaymentAttempt = isPeriodAllowance
+      ? now + PERIOD_ALLOWANCE_RETRY_SECONDS
+      : this.ComputeNextPaymentAttempt(attemptCount, now);
 
     await this.db.Update<InvoiceType>('Invoices', previous.id, {
       attempted: true,
@@ -1670,6 +1684,21 @@ export class InvoiceModule {
       subscriptionPda: subscription.subscription_delegation_pda,
       amountCents,
     });
+
+    // On-chain plans allow one pull per periodHours. Skipped Stripe cycles do
+    // not stack — if we already pulled this Solana period, no USDC moves.
+    // Treating that as success was marking invoices paid / advancing periods
+    // with no wallet debit.
+    if (collection.alreadyCollected) {
+      Logger.warn('On-chain subscription period already collected', {
+        invoiceId: invoice.id,
+        subscriptionId,
+        amountCents,
+      });
+      throw new Error(
+        'On-chain subscription period allowance already collected; wait for the next Solana billing period before collecting again'
+      );
+    }
 
     return {
       signature: collection.signature,
