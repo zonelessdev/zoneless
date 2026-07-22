@@ -1356,19 +1356,46 @@ export class SubscriptionModule {
         ? subscription.customer
         : subscription.customer.id;
 
-    const lineItems = items.map((item) => {
+    const lineItems: Array<{
+      price: string;
+      quantity: number;
+      period: { start: number; end: number };
+      subscription_item: string;
+    }> = [];
+    for (const item of items) {
       const priceId =
         typeof item.price === 'string' ? item.price : item.price.id;
-      return {
+
+      // Renewals bill the UPCOMING period in advance (Stripe semantics):
+      // [current_period_end, current_period_end + interval]. Stamping the
+      // elapsed period here would duplicate the previous invoice's period
+      // (the subscription_create invoice already billed the first period).
+      let period = {
+        start: item.current_period_start,
+        end: item.current_period_end,
+      };
+      if (billingReason === 'subscription_cycle') {
+        const price = await this.ResolvePrice(platformAccountId, {
+          price: priceId,
+        } as CreateItemInput);
+        const start = item.current_period_end;
+        period = {
+          start,
+          end: AddRecurringInterval(
+            start,
+            price.recurring?.interval ?? 'month',
+            price.recurring?.interval_count ?? 1
+          ),
+        };
+      }
+
+      lineItems.push({
         price: priceId,
         quantity: item.quantity ?? 1,
-        period: {
-          start: item.current_period_start,
-          end: item.current_period_end,
-        },
+        period,
         subscription_item: item.id,
-      };
-    });
+      });
+    }
 
     return this.invoiceModule.CreateSubscriptionInvoice(platformAccountId, {
       customer: customerId,
@@ -1410,6 +1437,8 @@ export class SubscriptionModule {
   /**
    * Advance each subscription item into the next billing period after a
    * successful cycle payment. Clears the billing lock and sets status active.
+   * Advances one interval at a time so a merchant who was offline can keep
+   * collecting once per on-chain period until the Stripe-side ledger catches up.
    */
   async AdvanceSubscriptionPeriod(
     subscriptionId: string,
@@ -1433,9 +1462,15 @@ export class SubscriptionModule {
       });
     }
 
+    // Keep the denormalized items snapshot on the subscription document in
+    // sync — mongo explorers (and any direct reads) otherwise show the
+    // create-time periods forever even though SubscriptionItems advanced.
+    const refreshedItems = await this.LoadItemsList(subscriptionId);
+
     return this.UpdateSubscriptionBillingState(subscription, {
       status: 'active',
       latestInvoiceId,
+      items: refreshedItems,
     });
   }
 
@@ -1472,6 +1507,7 @@ export class SubscriptionModule {
     options: {
       status: SubscriptionStatus;
       latestInvoiceId?: string;
+      items?: SubscriptionType['items'];
     }
   ): Promise<SubscriptionType> {
     const updatePayload: Partial<SubscriptionType> = {
@@ -1480,6 +1516,9 @@ export class SubscriptionModule {
     };
     if (options.latestInvoiceId) {
       updatePayload.latest_invoice = options.latestInvoiceId;
+    }
+    if (options.items) {
+      updatePayload.items = options.items;
     }
 
     await this.db.Update<SubscriptionType>(

@@ -252,7 +252,9 @@ export class CheckoutComponent implements OnInit {
         : typeof error === 'string'
         ? error
         : '';
-    return /blockhash not found|expired|already been processed/i.test(message);
+    return /blockhash not found|expired|already been processed|not found on-chain|may not be confirmed yet/i.test(
+      message
+    );
   }
 
   private RedirectToSuccessUrl(session: CheckoutSession): void {

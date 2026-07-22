@@ -170,6 +170,7 @@ describe('CheckoutPaymentModule', () => {
       VerifySubscribeTransaction: jest.fn(),
       CollectSubscriptionPayment: jest.fn().mockResolvedValue({
         signature: 'collect_sig',
+        alreadyCollected: false,
       }),
       CosignAndBroadcastCheckoutTransaction: jest.fn().mockResolvedValue({
         signature: 'cosign_sig',

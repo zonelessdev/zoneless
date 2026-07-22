@@ -664,6 +664,134 @@ describe('InvoiceModule', () => {
       );
       expect(result.status).toBe('paid');
     });
+
+    it('should not mark paid when on-chain period was already collected', async () => {
+      const existing = DraftInvoice({
+        status: 'open',
+        amount_due: 1099,
+        amount_remaining: 1099,
+        parent: {
+          type: 'subscription_details',
+          subscription_details: {
+            subscription: 'sub_z_1',
+            metadata: null,
+            subscription_proration_date: null,
+          },
+          quote_details: null,
+        },
+        payments: {
+          object: 'list',
+          data: [
+            {
+              id: 'inpay_z_1',
+              object: 'invoice_payment',
+              amount_paid: null,
+              amount_requested: 1099,
+              created: GetFixedTimestamp(),
+              currency: 'usdc',
+              invoice: 'in_z_test001',
+              is_default: true,
+              livemode: false,
+              payment: {
+                charge: null,
+                payment_intent: 'pi_z_1',
+                payment_record: null,
+                type: 'payment_intent',
+              },
+              status: 'open',
+              status_transitions: { canceled_at: null, paid_at: null },
+              platform_account: PLATFORM,
+            },
+          ],
+          has_more: false,
+          total_count: 1,
+          url: '/v1/invoices/in_z_test001/payments',
+        },
+      });
+
+      let invoiceState: Invoice = existing;
+
+      const paymentIntentModule = {
+        MarkSucceeded: jest.fn(),
+        MarkPaymentFailed: jest.fn().mockResolvedValue({ id: 'pi_z_1' }),
+      };
+      const chargeModule = {
+        CreateFromPaymentAttempt: jest.fn(),
+        AttachBalanceTransaction: jest.fn(),
+      };
+      const solana = {
+        CollectSubscriptionPayment: jest.fn().mockResolvedValue({
+          signature: 'already_collected',
+          alreadyCollected: true,
+        }),
+      };
+
+      module = new InvoiceModule(
+        mockDb,
+        eventService,
+        customerModule,
+        invoiceItemModule,
+        paymentIntentModule as never,
+        chargeModule as never,
+        undefined,
+        solana as never
+      );
+
+      mockDb.Get = jest.fn().mockImplementation(async (collection: string) => {
+        if (collection === 'Invoices') return invoiceState;
+        if (collection === 'Subscriptions') {
+          return {
+            id: 'sub_z_1',
+            platform_account: PLATFORM,
+            subscription_delegation_pda: 'SubPda_1',
+            default_payment_method: 'Wallet111',
+            metadata: {},
+          };
+        }
+        if (collection === 'Prices') {
+          return {
+            id: 'price_z_1',
+            platform_account: PLATFORM,
+            subscription_plan_pda: 'PlanPda_1',
+          };
+        }
+        return null;
+      }) as typeof mockDb.Get;
+
+      mockDb.Find = jest.fn().mockResolvedValue([
+        {
+          id: 'si_z_1',
+          subscription: 'sub_z_1',
+          price: 'price_z_1',
+        },
+      ]) as typeof mockDb.Find;
+
+      mockDb.Update = jest
+        .fn()
+        .mockImplementation(
+          async (
+            _collection: string,
+            _id: string,
+            updates: Partial<Invoice>
+          ) => {
+            invoiceState = { ...invoiceState, ...updates };
+            return invoiceState;
+          }
+        ) as typeof mockDb.Update;
+
+      const result = await module.PayInvoice(existing.id, {});
+
+      expect(solana.CollectSubscriptionPayment).toHaveBeenCalled();
+      expect(chargeModule.CreateFromPaymentAttempt).not.toHaveBeenCalled();
+      expect(paymentIntentModule.MarkSucceeded).not.toHaveBeenCalled();
+      expect(result.status).not.toBe('paid');
+      expect(result.attempted).toBe(true);
+      expect(eventService.Emit).toHaveBeenCalledWith(
+        'invoice.payment_failed',
+        PLATFORM,
+        expect.anything()
+      );
+    });
   });
 
   describe('VoidInvoice', () => {

@@ -57,6 +57,7 @@ export class Solana {
   });
   CollectSubscriptionPayment = jest.fn().mockResolvedValue({
     signature: 'collect_sig',
+    alreadyCollected: false,
   });
   FindExistingSubscriptionDelegation = jest.fn().mockResolvedValue(null);
   CosignAndBroadcastCheckoutTransaction = jest.fn().mockResolvedValue({
