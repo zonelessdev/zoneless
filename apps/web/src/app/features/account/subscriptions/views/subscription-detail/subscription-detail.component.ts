@@ -16,6 +16,7 @@ import { SubscriptionService } from '../../../../../data';
 import { MetaService } from '../../../../../core';
 import {
   CopyTextComponent,
+  MoreInfoHoverComponent,
   PaginatedListComponent,
   PaginatedListColumn,
   PopupMenuAction,
@@ -37,6 +38,7 @@ import {
   FormatSubscriptionAmount,
   FormatSubscriptionBillingMethod,
   FormatSubscriptionBillingMode,
+  FormatSubscriptionCancelChipLabel,
   FormatSubscriptionCustomerTitle,
   FormatSubscriptionDateRange,
   FormatSubscriptionDiscounts,
@@ -45,11 +47,13 @@ import {
   FormatSubscriptionItemTotal,
   FormatSubscriptionPeriodRange,
   FormatSubscriptionProduct,
+  GetSubscriptionCancelAt,
   GetSubscriptionCurrentPeriod,
   GetSubscriptionCustomerId,
   GetSubscriptionItemProductId,
   GetSubscriptionItemsTotalCents,
   GetUpcomingInvoicePreview,
+  IsSubscriptionCancelingAtPeriodEnd,
 } from '../../util/subscription-display';
 
 @Component({
@@ -64,6 +68,7 @@ import {
     EventsListComponent,
     CopyTextComponent,
     StatusChipComponent,
+    MoreInfoHoverComponent,
   ],
   templateUrl: './subscription-detail.component.html',
   styleUrl: './subscription-detail.component.scss',
@@ -125,6 +130,28 @@ export class SubscriptionDetailComponent implements OnInit, OnDestroy {
     return sub ? GetUpcomingInvoicePreview(sub) : null;
   });
 
+  readonly isCancelingAtPeriodEnd = computed(() => {
+    const sub = this.subscription();
+    return sub ? IsSubscriptionCancelingAtPeriodEnd(sub) : false;
+  });
+
+  readonly cancelAt = computed(() => {
+    const sub = this.subscription();
+    return sub ? GetSubscriptionCancelAt(sub) : null;
+  });
+
+  /** Test-mode cleanup date: created + 90 days (Stripe auto-cancels). */
+  readonly autoCancelAt = computed(() => {
+    const sub = this.subscription();
+    if (!sub || sub.livemode || sub.status === 'canceled') return null;
+    return sub.created + 90 * 24 * 60 * 60;
+  });
+
+  readonly cancelChipLabel = computed(() => {
+    const sub = this.subscription();
+    return sub ? FormatSubscriptionCancelChipLabel(sub) : null;
+  });
+
   readonly nextInvoiceAmount = computed(() => {
     const upcoming = this.upcomingInvoice();
     if (upcoming) return upcoming.total;
@@ -147,15 +174,7 @@ export class SubscriptionDetailComponent implements OnInit, OnDestroy {
 
   private sub?: RxSubscription;
 
-  subscriptionActions: PopupMenuAction[] = [
-    {
-      title: 'Copy subscription ID',
-      action: () => {
-        const subscription = this.subscription();
-        if (subscription) this.actions.CopySubscriptionId(subscription);
-      },
-    },
-  ];
+  subscriptionActions: PopupMenuAction[] = this.actions.GetMenuActions();
 
   async ngOnInit(): Promise<void> {
     const id = this.route.snapshot.paramMap.get('subscriptionId');
@@ -164,7 +183,10 @@ export class SubscriptionDetailComponent implements OnInit, OnDestroy {
     this.metaService.SetMetaTitle(this.GetMetaTitle());
     this.InitInvoiceList(id);
     this.sub = this.actions.events$.subscribe((event) => {
-      if (event.type === 'updated' && event.subscription.id === id) {
+      if (
+        (event.type === 'updated' || event.type === 'canceled') &&
+        event.subscription.id === id
+      ) {
         void this.LoadSubscription(id);
       }
     });

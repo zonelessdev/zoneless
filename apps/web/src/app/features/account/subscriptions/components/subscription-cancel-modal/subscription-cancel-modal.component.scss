@@ -1,0 +1,77 @@
+@use '../../../../../styles/base.scss' as *;
+
+:host {
+  display: contents;
+}
+
+:host ::ng-deep .modal-surface {
+  max-width: 560px;
+}
+
+.cancel-row {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: $spacing-medium;
+  align-items: start;
+}
+
+.cancel-label {
+  font-size: $font-size;
+  font-weight: $medium-weight;
+  color: $text-color;
+  padding-top: 2px;
+}
+
+.cancel-options {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing;
+}
+
+.cancel-option {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-small;
+  margin: 0;
+  cursor: pointer;
+
+  input[type='radio'] {
+    width: 18px;
+    height: 18px;
+    margin: 2px $spacing-small 0 0;
+    flex-shrink: 0;
+    accent-color: $button-color;
+  }
+}
+
+.cancel-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-extra-small;
+}
+
+.cancel-option-title {
+  font-size: $font-size;
+  font-weight: $medium-weight;
+  color: $text-color;
+  line-height: 1.4;
+}
+
+.cancel-option-date {
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed-extra;
+  line-height: 1.4;
+}
+
+.cancel-divider {
+  margin-top: $spacing-medium;
+  border-top: 1px solid $darkest-background-color;
+}
+
+@media only screen and (max-width: 600px) {
+  .cancel-row {
+    grid-template-columns: 1fr;
+    gap: $spacing-small;
+  }
+}

@@ -19,6 +19,8 @@ export interface PopupMenuAction {
   disabled?: (item: any) => boolean;
   /** Optional predicate to hide the action for a given item */
   hidden?: (item: any) => boolean;
+  /** Style the action as destructive (red) */
+  destructive?: boolean;
 }
 
 @Component({

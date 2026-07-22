@@ -1,5 +1,4 @@
 import type {
-  Customer,
   Price,
   Product,
   RecurringInterval,
@@ -16,19 +15,44 @@ import {
  * Mirrors Stripe: active subscriptions set to cancel show "Cancels {date}".
  */
 export function GetSubscriptionListStatus(subscription: Subscription): string {
-  if (
-    subscription.cancel_at_period_end &&
-    (subscription.status === 'active' || subscription.status === 'trialing')
-  ) {
-    const cancelAt =
-      subscription.cancel_at ??
-      subscription.items?.data?.[0]?.current_period_end ??
-      null;
+  if (IsSubscriptionCancelingAtPeriodEnd(subscription)) {
+    const cancelAt = GetSubscriptionCancelAt(subscription);
     if (cancelAt) {
       return `Cancels ${FormatShortDate(cancelAt)}`;
     }
   }
   return subscription.status;
+}
+
+/** True when an active/trialing subscription is scheduled to end at period end. */
+export function IsSubscriptionCancelingAtPeriodEnd(
+  subscription: Subscription
+): boolean {
+  return (
+    !!subscription.cancel_at_period_end &&
+    (subscription.status === 'active' || subscription.status === 'trialing')
+  );
+}
+
+/** Effective cancel timestamp for a scheduled period-end cancel. */
+export function GetSubscriptionCancelAt(
+  subscription: Subscription
+): number | null {
+  return (
+    subscription.cancel_at ??
+    subscription.items?.data?.[0]?.current_period_end ??
+    null
+  );
+}
+
+/** Chip label, e.g. "Cancels 10 Aug". */
+export function FormatSubscriptionCancelChipLabel(
+  subscription: Subscription
+): string | null {
+  if (!IsSubscriptionCancelingAtPeriodEnd(subscription)) return null;
+  const cancelAt = GetSubscriptionCancelAt(subscription);
+  if (!cancelAt) return null;
+  return `Cancels ${FormatShortDate(cancelAt)}`;
 }
 
 /** Customer email or ID for list/detail displays. */
@@ -61,14 +85,6 @@ export function FormatSubscriptionCustomerTitle(
   if (!customer) return '—';
   if (typeof customer === 'string') return customer;
   return customer.name ?? customer.id;
-}
-
-export function FormatSubscriptionCustomerDescription(
-  subscription: Subscription
-): string {
-  const customer = subscription.customer;
-  if (!customer || typeof customer === 'string') return '—';
-  return (customer as Customer).description ?? '—';
 }
 
 export function GetSubscriptionCustomerId(
@@ -288,7 +304,8 @@ export function GetUpcomingInvoicePreview(subscription: Subscription): {
   if (
     subscription.status === 'canceled' ||
     subscription.status === 'incomplete_expired' ||
-    subscription.status === 'incomplete'
+    subscription.status === 'incomplete' ||
+    IsSubscriptionCancelingAtPeriodEnd(subscription)
   ) {
     return null;
   }

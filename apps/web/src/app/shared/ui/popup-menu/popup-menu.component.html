@@ -27,6 +27,7 @@
       tabindex="0"
       [class.popup-menu-item-disabled]="isDisabled"
       [class.popup-menu-item-hidden]="isHidden"
+      [class.popup-menu-item-destructive]="action.destructive"
       (click)="OnActionClick($event, action, item, isDisabled)"
       (keydown.enter)="OnActionClick($event, action, item, isDisabled)"
       (keydown.space)="OnActionClick($event, action, item, isDisabled)"

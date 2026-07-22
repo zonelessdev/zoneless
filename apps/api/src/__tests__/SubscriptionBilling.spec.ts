@@ -38,6 +38,7 @@ describe('SubscriptionBillingModule', () => {
       AdvanceSubscriptionPeriod: jest.fn(),
       MarkSubscriptionPastDue: jest.fn(),
       MarkSubscriptionUnpaid: jest.fn(),
+      FinalizeCancelAtPeriodEnd: jest.fn(),
     } as unknown as jest.Mocked<SubscriptionModule>;
 
     invoiceModule = {
@@ -230,5 +231,59 @@ describe('SubscriptionBillingModule', () => {
     expect(subscriptionModule.CreateCycleInvoice).not.toHaveBeenCalled();
     expect(result.skipped).toBe(1);
     expect(result.processed).toBe(0);
+  });
+
+  it('should finalize cancel_at_period_end instead of renewing', async () => {
+    const now = GetFixedTimestamp();
+    mockDb.Query = jest
+      .fn()
+      .mockResolvedValueOnce([]) // retry invoices
+      .mockResolvedValueOnce([
+        {
+          id: 'si_z_1',
+          subscription: SUB_ID,
+          current_period_end: now - 10,
+          platform_account: PLATFORM,
+        },
+      ])
+      .mockResolvedValueOnce([]); // open cycle invoices
+
+    const claimed = {
+      id: SUB_ID,
+      platform_account: PLATFORM,
+      status: 'active',
+      collection_method: 'charge_automatically',
+      subscription_delegation_pda: 'SubPda111',
+      pause_collection: null,
+      cancel_at_period_end: true,
+      cancel_at: now - 10,
+      items: {
+        object: 'list',
+        data: [
+          {
+            id: 'si_z_1',
+            current_period_start: now - 1000,
+            current_period_end: now - 10,
+          },
+        ],
+      },
+    };
+
+    subscriptionModule.ClaimForBilling.mockResolvedValue(claimed as never);
+    subscriptionModule.FinalizeCancelAtPeriodEnd.mockResolvedValue({
+      ...claimed,
+      status: 'canceled',
+      ended_at: now,
+      cancel_at_period_end: false,
+    } as never);
+
+    const result = await module.Run({ batchSize: 10 });
+
+    expect(subscriptionModule.FinalizeCancelAtPeriodEnd).toHaveBeenCalledWith(
+      SUB_ID
+    );
+    expect(subscriptionModule.CreateCycleInvoice).not.toHaveBeenCalled();
+    expect(result.succeeded).toBe(1);
+    expect(result.failed).toBe(0);
   });
 });

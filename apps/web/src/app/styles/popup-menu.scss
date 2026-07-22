@@ -59,6 +59,18 @@
   display: none;
 }
 
+.popup-menu-item-destructive {
+  color: #dc2626;
+
+  .popup-menu-item-title {
+    color: #dc2626;
+  }
+
+  &:hover {
+    background-color: rgba(220, 38, 38, 0.06);
+  }
+}
+
 @keyframes popupMenuFadeIn {
   from {
     opacity: 0;

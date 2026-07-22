@@ -5,6 +5,8 @@ import {
   signal,
   inject,
   OnInit,
+  OnDestroy,
+  ViewChild,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import {
@@ -12,30 +14,35 @@ import {
   PaginatedListColumn,
 } from '../../../../../shared';
 import type { Subscription } from '@zoneless/shared-types';
+import { Subscription as RxSubscription } from 'rxjs';
 import { MetaService } from '../../../../../core';
 import {
   FormatSubscriptionCollectionMethod,
-  FormatSubscriptionCustomerDescription,
   FormatSubscriptionCustomerEmail,
   FormatSubscriptionCustomerName,
   FormatSubscriptionProduct,
   GetSubscriptionListStatus,
 } from '../../util/subscription-display';
 import { SubscriptionActionsService } from '../../services/subscription-actions.service';
+import { SubscriptionActionsHostComponent } from '../../components/subscription-actions-host/subscription-actions-host.component';
 
 type SubscriptionsStatusTab = 'active' | 'paused' | 'canceled' | 'all';
 
 @Component({
   selector: 'app-subscription-list',
-  imports: [PaginatedListComponent],
+  imports: [PaginatedListComponent, SubscriptionActionsHostComponent],
   templateUrl: './subscription-list.component.html',
   styleUrl: './subscription-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SubscriptionListComponent implements OnInit {
+export class SubscriptionListComponent implements OnInit, OnDestroy {
   private readonly metaService = inject(MetaService);
   private readonly router = inject(Router);
   private readonly actions = inject(SubscriptionActionsService);
+  @ViewChild('subscriptionsList')
+  subscriptionsList?: PaginatedListComponent<any>;
+
+  private sub?: RxSubscription;
 
   subscriptionsStatusTab: WritableSignal<SubscriptionsStatusTab> =
     signal('active');
@@ -65,14 +72,6 @@ export class SubscriptionListComponent implements OnInit {
         FormatSubscriptionCustomerName(item as Subscription),
     },
     {
-      header: 'Customer description',
-      field: 'customer.description',
-      type: 'text',
-      dimmed: true,
-      formatter: (item: unknown) =>
-        FormatSubscriptionCustomerDescription(item as Subscription),
-    },
-    {
       header: 'Collection method',
       field: 'collection_method',
       type: 'text',
@@ -99,12 +98,7 @@ export class SubscriptionListComponent implements OnInit {
       header: '',
       field: '',
       type: 'actions',
-      actions: [
-        {
-          title: 'Copy subscription ID',
-          action: (item: Subscription) => this.actions.CopySubscriptionId(item),
-        },
-      ],
+      actions: this.actions.GetMenuActions(),
     },
   ];
 
@@ -118,6 +112,13 @@ export class SubscriptionListComponent implements OnInit {
 
   ngOnInit(): void {
     this.metaService.SetMetaTitle('Subscriptions');
+    this.sub = this.actions.events$.subscribe(() => {
+      void this.subscriptionsList?.Reload();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.sub?.unsubscribe();
   }
 
   SetSubscriptionsStatusTab(tab: SubscriptionsStatusTab): void {
