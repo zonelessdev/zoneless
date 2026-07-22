@@ -22,6 +22,7 @@ const STATUS_CHIP_MAP: Record<string, ChipType> = {
   scheduled: 'green',
   enabled: 'green',
   normal: 'green',
+  trialing: 'green',
 
   // Yellow - Pending states
   pending: 'yellow',
@@ -30,6 +31,8 @@ const STATUS_CHIP_MAP: Record<string, ChipType> = {
   requires_confirmation: 'yellow',
   requires_payment_method: 'yellow',
   elevated: 'yellow',
+  past_due: 'yellow',
+  unpaid: 'yellow',
 
   // Red - Failure/Restricted states
   declined: 'red',
@@ -46,6 +49,7 @@ const STATUS_CHIP_MAP: Record<string, ChipType> = {
   in_transit: 'blue',
   in_review: 'blue',
   default: 'blue',
+  paused: 'blue',
 
   // Orange - Warning states
   disputed: 'orange',
@@ -57,6 +61,7 @@ const STATUS_CHIP_MAP: Record<string, ChipType> = {
   cancelled: 'grey',
   canceled: 'grey',
   incomplete: 'grey',
+  incomplete_expired: 'grey',
   inactive: 'grey',
   timeout: 'grey',
   not_assessed: 'grey',

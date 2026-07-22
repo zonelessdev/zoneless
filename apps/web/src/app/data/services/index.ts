@@ -13,6 +13,7 @@ export * from './price.service';
 export * from './product.service';
 export * from './reporting.service';
 export * from './setup.service';
+export * from './subscription.service';
 export * from './topup.service';
 export * from './transaction.service';
 export * from './webhook-endpoint.service';

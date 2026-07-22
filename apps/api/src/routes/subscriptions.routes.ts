@@ -83,6 +83,20 @@ RegisterExpansions('subscription', {
     targetObject: 'invoice',
     BatchLoad: (ids, ctx) => invoiceModule.BatchGet(ids, ctx.platformAccount),
   },
+  items: {
+    sourcePath: 'items',
+    targetObject: 'subscription_item',
+    embeddedList: true,
+    BatchLoad: async () => new Map(),
+  },
+});
+
+RegisterExpansions('subscription_item', {
+  price: {
+    sourcePath: 'price',
+    targetObject: 'price',
+    BatchLoad: (ids, ctx) => priceModule.BatchGet(ids, ctx.platformAccount),
+  },
 });
 
 /**

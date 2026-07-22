@@ -1,0 +1,70 @@
+<div class="header-wrapper">
+  <h1>Subscriptions</h1>
+  <button
+    type="button"
+    class="action-button action-button-dainty action-button-disabled"
+    disabled
+  >
+    <img class="button-icon" src="assets/icons/add.svg" alt="" />
+    <span>Create subscription</span>
+  </button>
+</div>
+
+<div class="field">
+  <div class="field-pill">
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="subscriptionsStatusTab() === 'active'"
+      (click)="SetSubscriptionsStatusTab('active')"
+      (keydown.enter)="SetSubscriptionsStatusTab('active')"
+      (keydown.space)="SetSubscriptionsStatusTab('active')"
+    >
+      <span>Active</span>
+    </div>
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="subscriptionsStatusTab() === 'paused'"
+      (click)="SetSubscriptionsStatusTab('paused')"
+      (keydown.enter)="SetSubscriptionsStatusTab('paused')"
+      (keydown.space)="SetSubscriptionsStatusTab('paused')"
+    >
+      <span>Paused</span>
+    </div>
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="
+        subscriptionsStatusTab() === 'canceled'
+      "
+      (click)="SetSubscriptionsStatusTab('canceled')"
+      (keydown.enter)="SetSubscriptionsStatusTab('canceled')"
+      (keydown.space)="SetSubscriptionsStatusTab('canceled')"
+    >
+      <span>Canceled</span>
+    </div>
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="subscriptionsStatusTab() === 'all'"
+      (click)="SetSubscriptionsStatusTab('all')"
+      (keydown.enter)="SetSubscriptionsStatusTab('all')"
+      (keydown.space)="SetSubscriptionsStatusTab('all')"
+    >
+      <span>All</span>
+    </div>
+  </div>
+</div>
+
+<app-paginated-list
+  endpoint="subscriptions"
+  [columns]="subscriptionColumns"
+  [limit]="10"
+  [queryParams]="subscriptionsQueryParams()"
+  [expand]="subscriptionsExpand()"
+></app-paginated-list>
