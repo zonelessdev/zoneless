@@ -1,0 +1,118 @@
+@use '../../../../../styles/base.scss' as *;
+@use '../../../../../styles/chips.scss' as *;
+@use '../../../../../styles/buttons.scss' as *;
+@use '../../../../../styles/account.scss' as *;
+@use '../../../../../styles/align.scss' as *;
+@use '../../../../../styles/spacing.scss' as *;
+
+.link-highlight {
+  font-weight: 500;
+}
+
+.subscription-title {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: $spacing-extra-small;
+}
+
+.title-separator {
+  font-weight: 400;
+  opacity: $dimmed;
+}
+
+.summary-row {
+  margin-top: $spacing-extra-small;
+}
+
+.summary-item {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-extra-small;
+  font-size: $font-size;
+}
+
+.summary-label {
+  opacity: $dimmed;
+}
+
+.summary-value {
+  font-weight: 500;
+}
+
+.section-edit-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing;
+}
+
+.section-edit-top h2 {
+  margin: 0;
+}
+
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: $font-size;
+
+  th,
+  td {
+    text-align: left;
+    padding: $spacing-snug $spacing;
+    vertical-align: top;
+  }
+
+  th:first-child,
+  td:first-child {
+    padding-left: 0;
+  }
+
+  th:last-child,
+  td:last-child {
+    padding-right: 0;
+  }
+
+  th {
+    border-bottom: 1px solid $darkest-background-color;
+    font-weight: 600;
+    color: $text-color;
+    opacity: $dimmed;
+    font-size: $font-size-small;
+    padding-bottom: $spacing-small;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid $darker-background-color;
+  }
+
+  td {
+    padding-top: $spacing-snug;
+    padding-bottom: $spacing-snug;
+  }
+}
+
+.invoice-totals {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-extra-small;
+  max-width: 320px;
+  margin-left: auto;
+  margin-top: $spacing;
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: $spacing;
+  padding: $spacing-extra-small 0;
+}
+
+.breakdown-row-net {
+  border-top: 1px solid $darkest-background-color;
+  padding-top: $spacing-small;
+  margin-top: $spacing-extra-small;
+}

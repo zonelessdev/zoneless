@@ -6,6 +6,7 @@ import {
   inject,
   OnInit,
 } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   PaginatedListComponent,
   PaginatedListColumn,
@@ -20,6 +21,7 @@ import {
   FormatSubscriptionProduct,
   GetSubscriptionListStatus,
 } from '../../util/subscription-display';
+import { SubscriptionActionsService } from '../../services/subscription-actions.service';
 
 type SubscriptionsStatusTab = 'active' | 'paused' | 'canceled' | 'all';
 
@@ -32,6 +34,8 @@ type SubscriptionsStatusTab = 'active' | 'paused' | 'canceled' | 'all';
 })
 export class SubscriptionListComponent implements OnInit {
   private readonly metaService = inject(MetaService);
+  private readonly router = inject(Router);
+  private readonly actions = inject(SubscriptionActionsService);
 
   subscriptionsStatusTab: WritableSignal<SubscriptionsStatusTab> =
     signal('active');
@@ -98,7 +102,7 @@ export class SubscriptionListComponent implements OnInit {
       actions: [
         {
           title: 'Copy subscription ID',
-          action: (item: Subscription) => this.CopySubscriptionId(item),
+          action: (item: Subscription) => this.actions.CopySubscriptionId(item),
         },
       ],
     },
@@ -121,6 +125,10 @@ export class SubscriptionListComponent implements OnInit {
     this.SyncSubscriptionsQueryParams();
   }
 
+  OnSubscriptionClick(subscription: Subscription): void {
+    this.router.navigate(['/account/subscriptions', subscription.id]);
+  }
+
   private SyncSubscriptionsQueryParams(): void {
     const params: Record<string, string> = {};
     switch (this.subscriptionsStatusTab()) {
@@ -138,9 +146,5 @@ export class SubscriptionListComponent implements OnInit {
         break;
     }
     this.subscriptionsQueryParams.set(params);
-  }
-
-  private CopySubscriptionId(subscription: Subscription): void {
-    void navigator.clipboard.writeText(subscription.id);
   }
 }

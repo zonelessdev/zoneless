@@ -67,4 +67,5 @@
   [limit]="10"
   [queryParams]="subscriptionsQueryParams()"
   [expand]="subscriptionsExpand()"
+  (rowClick)="OnSubscriptionClick($event)"
 ></app-paginated-list>
