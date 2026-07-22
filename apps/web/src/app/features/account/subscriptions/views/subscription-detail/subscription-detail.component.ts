@@ -33,6 +33,7 @@ import { SubscriptionActionsService } from '../../services/subscription-actions.
 import { SubscriptionActionsHostComponent } from '../../components/subscription-actions-host/subscription-actions-host.component';
 import {
   FormatShortDate,
+  FormatShortDateTime,
   FormatSubscriptionAmount,
   FormatSubscriptionBillingMethod,
   FormatSubscriptionBillingMode,
@@ -86,6 +87,7 @@ export class SubscriptionDetailComponent implements OnInit, OnDestroy {
   readonly FormatSubscriptionDiscounts = FormatSubscriptionDiscounts;
   readonly FormatSubscriptionAmount = FormatSubscriptionAmount;
   readonly FormatShortDate = FormatShortDate;
+  readonly FormatShortDateTime = FormatShortDateTime;
   readonly GetSubscriptionItemProductId = GetSubscriptionItemProductId;
 
   subscription: WritableSignal<Subscription | null> = signal(null);
