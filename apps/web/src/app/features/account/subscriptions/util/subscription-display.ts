@@ -281,6 +281,17 @@ export function FormatShortDate(unixSeconds: number): string {
   });
 }
 
+/** Short date with 24-hour time, e.g. "21 Aug, 16:08". */
+export function FormatShortDateTime(unixSeconds: number): string {
+  return new Date(unixSeconds * 1000).toLocaleString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
 export function FormatMediumDate(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleDateString('en-GB', {
     day: 'numeric',
