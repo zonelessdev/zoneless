@@ -151,4 +151,6 @@
 
 .action-button-disabled:hover {
   opacity: $dimmed-extra;
+  transform: none;
+  box-shadow: none;
 }

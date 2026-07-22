@@ -20,6 +20,14 @@ export const accountRoutes: Routes = [
       import('./customers/customers.routes').then((m) => m.customerRoutes),
   },
   {
+    path: 'subscriptions',
+    canActivate: [platformOnlyGuard],
+    loadChildren: () =>
+      import('./subscriptions/subscriptions.routes').then(
+        (m) => m.subscriptionRoutes
+      ),
+  },
+  {
     path: 'connected-accounts',
     canActivate: [platformOnlyGuard],
     loadChildren: () =>

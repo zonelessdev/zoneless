@@ -12,7 +12,8 @@ import * as express from 'express';
 import { AppError } from './AppError';
 import { ERRORS } from '../utils/Errors';
 
-const MAX_EXPAND_DEPTH = 4;
+/** Allows list paths such as `data.items.data.price.product`. */
+const MAX_EXPAND_DEPTH = 5;
 
 export interface ExpandContext {
   platformAccount: string;
@@ -24,6 +25,11 @@ export interface ExpansionField {
   sourcePath: string;
   /** `object` string of the linked resource. Used to recurse via the registry. */
   targetObject: string;
+  /**
+   * When true, the field is already an embedded list object (`{ object: 'list', data }`)
+   * on the parent. Expand walks into it instead of batch-loading by id.
+   */
+  embeddedList?: boolean;
   /** Batch-load ids → records, scoped to the requesting platform. */
   BatchLoad: (
     ids: string[],
@@ -113,6 +119,9 @@ function ValidateExpandPaths(
         );
       }
       cursor = field.targetObject;
+      if (field.embeddedList) {
+        cursorIsList = true;
+      }
     }
   }
 }
@@ -213,6 +222,20 @@ async function ExpandObjects(
 
     const field = GetExpansion(sampleObject, head);
     if (!field) continue;
+
+    if (field.embeddedList) {
+      const nested: AnyObject[] = [];
+      for (const item of items) {
+        const value = item[field.sourcePath];
+        if (value && typeof value === 'object') {
+          nested.push(value as AnyObject);
+        }
+      }
+      if (tails.length > 0 && nested.length > 0) {
+        await ExpandObjects(nested, tails, ctx);
+      }
+      continue;
+    }
 
     const idToParents = new Map<string, AnyObject[]>();
     for (const item of items) {

@@ -7,6 +7,7 @@ export const FULL_NAV: SideMenuGroup[] = [
       { title: 'Balances', icon: 'account_balance.svg', id: 'balance' },
       { title: 'Transactions', icon: 'autorenew.svg', id: 'payments' },
       { title: 'Customers', icon: 'person.svg', id: 'customers' },
+      { title: 'Subscriptions', icon: 'refresh.svg', id: 'subscriptions' },
       { title: 'Product Catalog', icon: 'package.svg', id: 'products' },
       { title: 'Payment Links', icon: 'link.svg', id: 'payment-links' },
     ],
