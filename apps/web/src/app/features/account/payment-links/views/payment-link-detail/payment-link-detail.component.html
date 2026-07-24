@@ -1,5 +1,5 @@
 @if (paymentLink(); as pl) {
-<div class="detail-header">
+<div class="detail-header" [class.detail-header-inactive]="!isActive()">
   <div class="object-label">Payment link</div>
   <div class="flex align-vert-start space-between gap-medium">
     <div class="flex flex-column gap-small header-main">
@@ -7,16 +7,27 @@
         <span>{{ title() }}</span>
         @if (unitAmountLabel()) {
         <span class="detail-title-price">for {{ unitAmountLabel() }}</span>
+        } @if (!isActive()) {
+        <span class="chip grey-chip header-status-chip">Deactivated</span>
         }
       </h1>
+      @if (isActive()) {
       <p class="detail-subtitle">
         Copy and share to start accepting payments with this link.
       </p>
+      } @else {
+      <p class="detail-subtitle">
+        This payment link is deactivated and cannot accept new payments.
+      </p>
+      }
       <div class="flex align-vert gap-small url-row">
         <app-copy-text
           class="url-copy"
           [text]="pl.url"
-          tooltipText="Copy payment link URL"
+          [disabled]="!isActive()"
+          [tooltipText]="
+            isActive() ? 'Copy payment link URL' : 'Payment link deactivated'
+          "
         ></app-copy-text>
         <app-popup-menu
           [actions]="paymentLinkActions"
@@ -118,10 +129,10 @@
         <div class="detail-row">
           <div class="detail-label">Status</div>
           <div class="detail-value">
-            @if (pl.active) {
+            @if (isActive()) {
             <span class="chip green-chip">Active</span>
             } @else {
-            <span class="chip grey-chip">Inactive</span>
+            <span class="chip grey-chip">Deactivated</span>
             }
           </div>
         </div>

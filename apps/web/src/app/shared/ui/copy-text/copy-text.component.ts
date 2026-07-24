@@ -24,12 +24,14 @@ export class CopyTextComponent implements OnDestroy {
   @Input() copiedText = 'Copied';
 
   @Input() opacity = 1;
+  /** When true, copy is disabled and the control is non-interactive. */
+  @Input() disabled = false;
 
   readonly copied = signal(false);
   private resetTimer?: ReturnType<typeof setTimeout>;
 
   async Copy(): Promise<void> {
-    if (!this.text) return;
+    if (this.disabled || !this.text) return;
     try {
       await navigator.clipboard.writeText(this.text);
     } catch {

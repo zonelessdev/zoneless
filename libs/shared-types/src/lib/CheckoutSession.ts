@@ -396,6 +396,11 @@ export interface CheckoutSession {
   subscription: string | null;
   /** The URL the customer will be directed to after the payment or subscription creation is successful. */
   success_url: string | null;
+  /**
+   * Behavior after payment completes (hosted confirmation vs redirect).
+   * @zoneless_extension
+   */
+  after_completion: CheckoutAfterCompletion | null;
   /** Details on the state of tax ID collection for the session. */
   tax_id_collection: {
     /** Indicates whether tax ID collection is enabled for the session. */
@@ -498,6 +503,26 @@ export interface CheckoutSession {
     privacy_url: string | null;
     icon_url: string | null;
   } | null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// After Completion
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Behavior after a purchase is complete (hosted confirmation page vs redirect). */
+export interface CheckoutAfterCompletion {
+  /** Configuration when type=hosted_confirmation. */
+  hosted_confirmation: {
+    /** Custom message shown on the confirmation page. */
+    custom_message: string | null;
+  } | null;
+  /** Configuration when type=redirect. */
+  redirect: {
+    /** URL to send the customer to after the purchase completes. */
+    url: string;
+  } | null;
+  /** The specified behavior after the purchase is complete. */
+  type: 'hosted_confirmation' | 'redirect';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

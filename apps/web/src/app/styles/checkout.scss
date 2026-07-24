@@ -1,15 +1,21 @@
 @use './base.scss' as *;
 
 // Shared checkout visual language — used by hosted checkout and dashboard previews.
-// Change these tokens to update both the live checkout page and payment-link preview.
 
 $checkout-summary-bg: $text-color;
 $checkout-summary-fg: $background-color;
 $checkout-panel-bg: $background-color;
-$checkout-muted-border: $darkest-background-color;
+$checkout-muted-border: #e6e6e6;
+$checkout-field-border: #e6e6e6;
+$checkout-field-border-focus: #30313d;
+$checkout-label: #6d6e78;
+$checkout-heading: #30313d;
 $checkout-pay-button-bg: $button-color;
 $checkout-pay-button-fg: $background-color;
 $checkout-success: #54b484;
+$checkout-field-radius: 6px;
+$checkout-field-shadow: 0 1px 1px rgba(0, 0, 0, 0.03),
+  0 3px 6px rgba(0, 0, 0, 0.02);
 
 .checkout-order-summary {
   background-color: $checkout-summary-bg;
@@ -43,42 +49,166 @@ $checkout-success: #54b484;
 
 .checkout-section-label {
   font-size: $font-size;
-  margin-bottom: $spacing-small;
+  font-weight: $medium-weight;
+  color: $checkout-heading;
+  margin: $spacing 0 $spacing-snug;
+
+  &:first-child {
+    margin-top: 0;
+  }
 }
 
-.checkout-contact-box {
+.checkout-field {
   display: flex;
-  align-items: center;
-  gap: $spacing-small;
-  background-color: $darker-background-color;
-  border-radius: $border-radius-small;
-  padding: $spacing-small $spacing-snug;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: $spacing-plus;
+  cursor: text;
 
-  .contact-label {
-    font-size: $font-size;
-    opacity: $dimmed-extra;
-    flex-shrink: 0;
-    width: 48px;
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.checkout-field-label {
+  font-size: $font-size-small;
+  font-weight: $text-weight;
+  color: $checkout-label;
+  line-height: 1.2;
+}
+
+input.checkout-field-control,
+select.checkout-field-control {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid $checkout-field-border;
+  border-radius: $checkout-field-radius;
+  background-color: $background-color;
+  padding: 10px 12px;
+  font: inherit;
+  font-family: $text-font;
+  font-size: $font-size;
+  font-weight: $text-weight;
+  color: $checkout-heading;
+  box-sizing: border-box;
+  outline: none;
+  box-shadow: $checkout-field-shadow;
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+
+  &::placeholder {
+    color: #a3a4ad;
+    opacity: 1;
   }
 
-  input[type='email'],
-  input[type='text'] {
-    flex: 1;
+  &:focus,
+  &:focus-within {
+    border-color: $checkout-field-border-focus;
+    box-shadow: 0 0 0 1px $checkout-field-border-focus, $checkout-field-shadow;
+  }
+
+  &:disabled {
+    opacity: 1;
+    background-color: #f6f6f8;
+    color: $checkout-heading;
+    cursor: default;
+  }
+}
+
+select.checkout-field-control {
+  appearance: none;
+  -webkit-appearance: none;
+  height: auto;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236D6E78' d='M1.4.6 6 5.2 10.6.6 12 2 6 8 0 2z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-color: $background-color;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+// Compact stacked fields: one border, internal dividers, placeholders.
+.checkout-field-group {
+  border: 1px solid $checkout-field-border;
+  border-radius: $checkout-field-radius;
+  background-color: $background-color;
+  box-shadow: $checkout-field-shadow;
+  overflow: hidden;
+  margin-bottom: 0;
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+
+  &:focus-within {
+    border-color: $checkout-field-border-focus;
+    box-shadow: 0 0 0 1px $checkout-field-border-focus, $checkout-field-shadow;
+  }
+
+  > .checkout-field,
+  > .checkout-field-row {
+    border-bottom: 1px solid $checkout-field-border;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .checkout-field {
+    margin-bottom: 0;
+    gap: 0;
+  }
+
+  input.checkout-field-control,
+  select.checkout-field-control {
+    min-height: 44px;
+    height: auto;
     border: none;
-    background: transparent;
-    padding: 0;
-    min-width: 0;
+    border-radius: 0;
+    padding: 12px;
+    margin: 0;
+    box-shadow: none;
+    background-color: transparent;
+    background-image: none;
 
     &:focus,
     &:focus-within {
+      border: none;
       box-shadow: none;
+    }
+
+    &:disabled {
+      background-color: transparent;
+    }
+  }
+
+  select.checkout-field-control {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236D6E78' d='M1.4.6 6 5.2 10.6.6 12 2 6 8 0 2z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-color: transparent;
+    padding-right: 32px;
+    box-shadow: none;
+  }
+}
+
+.checkout-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  > .checkout-field {
+    border-right: 1px solid $checkout-field-border;
+
+    &:last-child {
+      border-right: none;
     }
   }
 }
 
 .checkout-method-box {
   border: 1px solid $checkout-muted-border;
-  border-radius: $border-radius;
+  border-radius: $checkout-field-radius;
+  background-color: $background-color;
+  box-shadow: $checkout-field-shadow;
+  overflow: hidden;
 }
 
 .checkout-method-option {
@@ -88,6 +218,15 @@ $checkout-success: #54b484;
   padding: $spacing-snug $spacing;
   font-size: $font-size;
   font-weight: $medium-weight;
+  color: $checkout-heading;
+  cursor: pointer;
+
+  input[type='radio'] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: $text-color;
+  }
 
   img {
     width: 20px;
@@ -96,18 +235,19 @@ $checkout-success: #54b484;
 }
 
 .checkout-method-detail {
-  padding: 0 $spacing $spacing;
+  padding: $spacing-snug $spacing $spacing;
+  border-top: 1px solid $checkout-muted-border;
 }
 
 .checkout-method-detail-label {
   font-size: $font-size-small;
-  opacity: $dimmed;
+  color: $checkout-label;
   margin-bottom: $spacing-small;
 }
 
 .checkout-method-detail-help {
   font-size: $font-size-small;
-  opacity: $dimmed-extra;
+  color: $checkout-label;
   margin-top: $spacing-small;
 }
 
@@ -118,13 +258,13 @@ $checkout-success: #54b484;
   align-items: center;
   border: none;
   outline: none;
-  border-radius: $border-radius-small;
+  border-radius: $checkout-field-radius;
   font-family: $title-font;
   font-weight: $medium-weight;
   font-size: $font-size-med;
   padding: 0 $spacing;
-  height: 48px;
-  min-height: 48px;
+  height: 44px;
+  min-height: 44px;
   flex-shrink: 0;
   line-height: 1;
   background-color: $checkout-pay-button-bg;
@@ -137,6 +277,25 @@ $checkout-success: #54b484;
     pointer-events: none;
     opacity: $dimmed;
   }
+
+  &.checkout-pay-button-processing {
+    opacity: 1;
+  }
+}
+
+.checkout-pay-button-processing-label {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-small;
+}
+
+.checkout-pay-button-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 .checkout-payment-footer {
@@ -145,7 +304,7 @@ $checkout-success: #54b484;
   justify-content: center;
   gap: $spacing-snug;
   font-size: $font-size-small;
-  opacity: $dimmed-extra;
+  color: $checkout-label;
 
   a,
   a:visited {
@@ -163,7 +322,7 @@ $checkout-success: #54b484;
 .checkout-fine-print {
   text-align: center;
   font-size: $font-size-small;
-  opacity: $dimmed-extra;
+  color: $checkout-label;
 
   a,
   a:visited {
@@ -171,4 +330,118 @@ $checkout-success: #54b484;
     font-size: $font-size-small;
     text-decoration: underline;
   }
+}
+
+.checkout-terms-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+  font-size: $font-size-small;
+  color: $checkout-label;
+  margin: $spacing 0 $spacing-snug;
+
+  a,
+  a:visited {
+    color: inherit !important;
+    text-decoration: underline;
+  }
+}
+
+.checkout-confirmation {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $spacing;
+  width: 100%;
+}
+
+.checkout-confirmation-check {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  filter: brightness(0) saturate(100%) invert(42%) sepia(93%) saturate(450%)
+    hue-rotate(118deg) brightness(95%) contrast(92%);
+}
+
+.checkout-confirmation-title {
+  font-family: $title-font;
+  font-size: $font-size-large;
+  font-weight: $title-weight;
+  color: $checkout-heading;
+}
+
+.checkout-confirmation-subtitle {
+  margin: calc($spacing-extra-small * -1) 0 0;
+  font-size: $font-size;
+  color: $checkout-label;
+  line-height: 1.4;
+}
+
+.checkout-confirmation-card {
+  width: 100%;
+  border: 1px solid $checkout-muted-border;
+  border-radius: $checkout-field-radius;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.checkout-confirmation-body {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing;
+  padding: $spacing;
+}
+
+.checkout-confirmation-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: $font-size-small;
+  color: $checkout-heading;
+  line-height: 1.4;
+}
+
+.checkout-confirmation-label {
+  color: $checkout-label;
+  font-weight: $medium-weight;
+}
+
+.checkout-confirmation-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0;
+  padding: $spacing-snug $spacing;
+  border: none;
+  border-top: 1px solid $checkout-muted-border;
+  background: none;
+  color: $checkout-label;
+  font-family: $text-font;
+  font-size: $font-size-small;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    color: $checkout-heading;
+  }
+}
+
+.checkout-confirmation-chevron {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+  transition: transform $transition-fast;
+
+  &.expanded {
+    transform: rotate(180deg);
+  }
+}
+
+.checkout-redirect-copy {
+  margin: 0;
+  font-size: $font-size;
+  color: $checkout-label;
+  line-height: 1.5;
 }

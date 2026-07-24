@@ -5,10 +5,17 @@ import type {
   Product,
 } from '@zoneless/shared-types';
 import {
+  CustomFieldLabel,
+  GetCheckoutCollectionOptions,
+} from '../../../checkout/util/checkout-collection';
+import { FormatUsdcAmount } from '../../../checkout/util/checkout-format';
+import {
   PaymentLinkFormPreviewState,
   PreviewDevice,
   SelectedLineItem,
 } from '../components/payment-link-form/payment-link-form.component';
+
+export { FormatUsdcAmount };
 
 export function GetPaymentLinkName(paymentLink: PaymentLink): string {
   const firstItem = paymentLink.line_items?.data?.[0];
@@ -30,18 +37,13 @@ export function FormatPaymentLinkPrice(paymentLink: PaymentLink): string {
   if (!firstItem) return '—';
 
   const price = GetLineItemPrice(firstItem);
-  const unitAmount = price?.unit_amount ?? firstItem.amount_total ?? 0;
-  const formatted = FormatUsdcAmount(unitAmount);
+  const formatted = FormatUsdcAmount(GetPaymentLinkUnitAmount(paymentLink));
 
   if (price?.recurring) {
     return `${formatted} / ${price.recurring.interval}`;
   }
 
   return formatted;
-}
-
-export function FormatUsdcAmount(unitAmount: number): string {
-  return `US$${(unitAmount / 100).toFixed(2)}`;
 }
 
 export function GetLineItemPrice(item: CheckoutSessionLineItem): Price | null {
@@ -83,21 +85,26 @@ export function BuildPaymentLinkPreviewState(
     };
   });
 
+  const collection = GetCheckoutCollectionOptions(paymentLink);
+
   return {
     tab: 'payment',
     linkType: 'products',
     lineItems,
     customTitle: '',
     customPreset: 0,
-    collectCustomerNames: !!paymentLink.name_collection?.individual?.enabled,
-    collectBusinessNames: !!paymentLink.name_collection?.business?.enabled,
-    collectAddresses:
-      paymentLink.billing_address_collection === 'required' ||
-      !!paymentLink.shipping_address_collection,
-    collectPhone: paymentLink.phone_number_collection.enabled,
-    allowPromotionCodes: paymentLink.allow_promotion_codes,
-    requireTerms:
-      paymentLink.consent_collection?.terms_of_service === 'required',
+    collectCustomerNames: collection.collectCustomerNames,
+    collectBusinessNames: collection.collectBusinessNames,
+    collectBillingAddresses: collection.collectBillingAddresses,
+    collectShippingAddresses: collection.collectShippingAddresses,
+    collectPhone: collection.collectPhone,
+    collectTaxIds: collection.collectTaxIds,
+    customFields: (paymentLink.custom_fields ?? []).map((field) => ({
+      key: field.key,
+      label: CustomFieldLabel(field),
+    })),
+    allowPromotionCodes: collection.allowPromotionCodes,
+    requireTerms: collection.requireTerms,
     savePaymentDetails: !!paymentLink.payment_intent_data?.setup_future_usage,
     afterCompletionMode: paymentLink.after_completion.type,
     customConfirmationMessage:
@@ -132,12 +139,11 @@ export function FormatSubmitTypeLabel(
 }
 
 export function FormatCollectAddresses(paymentLink: PaymentLink): string {
-  if (paymentLink.shipping_address_collection) {
-    return 'Shipping address';
-  }
-  if (paymentLink.billing_address_collection === 'required') {
-    return 'Billing address';
-  }
+  const billing = paymentLink.billing_address_collection === 'required';
+  const shipping = !!paymentLink.shipping_address_collection;
+  if (billing && shipping) return 'Billing and shipping';
+  if (shipping) return 'Shipping address';
+  if (billing) return 'Billing address';
   return 'None required';
 }
 
@@ -159,4 +165,12 @@ export function FormatLimitedUse(paymentLink: PaymentLink): string {
   const restriction = paymentLink.restrictions?.completed_sessions;
   if (!restriction) return 'No';
   return `Yes · ${restriction.count} of ${restriction.limit} used`;
+}
+
+/** True when the link can still accept new checkout sessions. */
+export function IsPaymentLinkActive(paymentLink: PaymentLink): boolean {
+  if (!paymentLink.active) return false;
+  const restriction = paymentLink.restrictions?.completed_sessions;
+  if (restriction && restriction.count >= restriction.limit) return false;
+  return true;
 }

@@ -1,7 +1,7 @@
 @use '../../styles/base.scss' as *;
 @use '../../styles/buttons.scss' as *;
 @use '../../styles/forms.scss' as *;
-@use '../../styles/checkout.scss' as checkout;
+@use '../../styles/checkout.scss' as *;
 
 .checkout-page {
   display: flex;
@@ -13,8 +13,8 @@
 // -----------------------------------------------------------------------------
 .order-summary {
   flex: 1;
-  background-color: checkout.$checkout-summary-bg;
-  color: checkout.$checkout-summary-fg;
+  background-color: $checkout-summary-bg;
+  color: $checkout-summary-fg;
 }
 
 .order-summary-content {
@@ -47,26 +47,6 @@
     height: 16px;
     transform: rotate(180deg);
     filter: $background-color-filter;
-  }
-}
-
-.merchant-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: $title-font;
-  font-weight: $title-weight;
-  font-size: $font-size-small;
-  overflow: hidden;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
   }
 }
 
@@ -186,7 +166,7 @@
 // -----------------------------------------------------------------------------
 .payment-panel {
   flex: 1;
-  background-color: checkout.$checkout-panel-bg;
+  background-color: $checkout-panel-bg;
 }
 
 .payment-content {
@@ -198,232 +178,20 @@
   flex-direction: column;
 }
 
-.express-checkout {
-  display: flex;
-  gap: $spacing-snug;
-}
-
-.wallet-button {
-  flex: 1;
-  height: 44px;
-  border: none;
-  outline: none;
-  border-radius: $border-radius-small;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: $spacing-small;
-  font-family: $title-font;
-  font-weight: $medium-weight;
-  font-size: $font-size;
-  transition: opacity $transition;
-
-  &:hover {
-    opacity: $dimmed;
-  }
-
-  img {
-    width: 18px;
-    height: 18px;
-  }
-}
-
-.wallet-button-phantom {
-  background-color: #ab9ff2;
-  color: #1c1c1c;
-}
-
-.divider {
-  display: flex;
-  align-items: center;
-  gap: $spacing-snug;
-  margin: $spacing-plus 0;
-  font-size: $font-size-small;
-  color: $text-color;
-  opacity: $dimmed-extra;
-
-  &::before,
-  &::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background-color: $darkest-background-color;
-  }
-}
-
 .form-section {
-  margin-bottom: $spacing-plus;
+  margin-bottom: $spacing-medium;
 }
 
-.section-label {
-  font-size: $font-size;
-  margin-bottom: $spacing-small;
+.checkout-pay-button {
+  margin-top: $spacing-snug;
 }
 
-.contact-box {
-  display: flex;
-  align-items: center;
-  gap: $spacing-small;
-  background-color: $darker-background-color;
-  border-radius: $border-radius-small;
-  padding: $spacing-small $spacing-snug;
-  cursor: text;
-
-  .contact-label {
-    font-size: $font-size;
-    opacity: $dimmed-extra;
-    flex-shrink: 0;
-    width: 48px;
-  }
-
-  input[type='email'] {
-    flex: 1;
-    border: none;
-    background: transparent;
-    padding: 0;
-
-    &:focus-within {
-      box-shadow: none;
-    }
-  }
+.checkout-fine-print {
+  margin-top: $spacing;
 }
 
-.method-box {
-  border: 1px solid checkout.$checkout-muted-border;
-  border-radius: $border-radius;
-}
-
-.method-option {
-  display: flex;
-  align-items: center;
-  gap: $spacing-small;
-  padding: $spacing-snug $spacing;
-  font-size: $font-size;
-  font-weight: $medium-weight;
-  cursor: pointer;
-
-  &:not(:first-child) {
-    border-top: 1px solid $darkest-background-color;
-  }
-
-  input[type='radio'] {
-    width: 16px;
-    height: 16px;
-    margin: 0;
-    accent-color: $text-color;
-
-    &:hover {
-      accent-color: $text-color;
-    }
-  }
-
-  img {
-    width: 20px;
-    height: 20px;
-  }
-}
-
-.method-detail {
-  padding: 0 $spacing $spacing;
-}
-
-.method-detail-label {
-  font-size: $font-size-small;
-  opacity: $dimmed;
-  margin-bottom: $spacing-small;
-}
-
-.wallet-address {
-  font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New',
-    monospace;
-  font-size: $font-size-small;
-  background-color: $darker-background-color;
-  border-radius: $border-radius-small;
-  padding: $spacing-small $spacing-snug;
-  word-break: break-all;
-}
-
-.method-detail-help {
-  font-size: $font-size-small;
-  opacity: $dimmed-extra;
-  margin-top: $spacing-small;
-}
-
-.pay-button {
-  margin-top: $spacing-plus;
-  justify-content: center;
-  align-items: center;
-  font-size: $font-size-med;
-  padding: 0 $spacing;
-  height: 48px;
-  line-height: 1;
-  background-color: checkout.$checkout-pay-button-bg;
-  background-image: none;
-  color: checkout.$checkout-pay-button-fg;
-  transition: background-color 0.25s ease, transform $transition,
-    box-shadow $transition;
-
-  &:disabled {
-    cursor: default;
-    pointer-events: none;
-  }
-
-  &:disabled:not(.pay-button-success):not(.pay-button-processing) {
-    opacity: $dimmed;
-  }
-
-  &.pay-button-processing,
-  &.pay-button-success {
-    opacity: 1;
-    transform: none;
-    box-shadow: none;
-  }
-
-  &.pay-button-success {
-    background-color: checkout.$checkout-success;
-    background-image: none;
-  }
-}
-
-.pay-button-processing-label {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-small;
-}
-
-.pay-button-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  animation: payIconSlideIn 0.35s ease;
-}
-
-.pay-button-check {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 1.5px solid $background-color;
-
-  img {
-    width: 14px;
-    height: 14px;
-    filter: brightness(0) invert(1);
-  }
-}
-
-@keyframes payIconSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.checkout-payment-footer {
+  margin-top: $spacing-extra-large;
 }
 
 .payment-error {
@@ -433,42 +201,6 @@
   background-color: rgba(223, 27, 65, 0.08);
   color: #df1b41;
   font-size: $font-size-small;
-}
-
-.fine-print {
-  margin-top: $spacing;
-  text-align: center;
-  font-size: $font-size-small;
-  opacity: $dimmed-extra;
-
-  a,
-  a:visited {
-    color: inherit !important;
-    font-size: $font-size-small;
-    text-decoration: underline;
-  }
-}
-
-.payment-footer {
-  margin-top: $spacing-extra-large;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: $spacing-snug;
-  font-size: $font-size-small;
-  opacity: $dimmed-extra;
-
-  a,
-  a:visited {
-    color: inherit !important;
-    font-size: $font-size-small;
-  }
-}
-
-.payment-footer-divider {
-  width: 1px;
-  height: 14px;
-  background-color: checkout.$checkout-muted-border;
 }
 
 // -----------------------------------------------------------------------------

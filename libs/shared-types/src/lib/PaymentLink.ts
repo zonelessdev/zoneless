@@ -1,4 +1,5 @@
 import {
+  CheckoutAfterCompletion,
   CheckoutCustomField,
   CheckoutSessionLineItemList,
 } from './CheckoutSession';
@@ -22,7 +23,7 @@ export interface PaymentLink {
    */
   created: number;
   /** Behavior after the purchase is complete. */
-  after_completion: PaymentLinkAfterCompletion;
+  after_completion: CheckoutAfterCompletion;
   /** Whether user redeemable promotion codes are enabled. */
   allow_promotion_codes: boolean;
   /** The ID of the Connect application that created the Payment Link. */
@@ -239,26 +240,6 @@ export interface PaymentLink {
    * @zoneless_extension
    */
   url_slug: string;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// After Completion
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Behavior after the purchase is complete. */
-export interface PaymentLinkAfterCompletion {
-  /** Configuration when type=hosted_confirmation. */
-  hosted_confirmation: {
-    /** The custom message that is displayed to the customer after the purchase is complete. */
-    custom_message: string | null;
-  } | null;
-  /** Configuration when type=redirect. */
-  redirect: {
-    /** The URL the customer will be redirected to after the purchase is complete. */
-    url: string;
-  } | null;
-  /** The specified behavior after the purchase is complete. */
-  type: 'hosted_confirmation' | 'redirect';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

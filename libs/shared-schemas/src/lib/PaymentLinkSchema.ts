@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { ExpandableSchema } from './ExpandableSchema';
 import {
   CheckoutSessionAdjustableQuantitySchema,
+  CheckoutSessionAfterCompletionSchema,
   CheckoutSessionAutomaticTaxSchema,
   CheckoutSessionConsentCollectionSchema,
   CheckoutSessionCustomFieldSchema,
@@ -19,29 +20,6 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 // Reusable nested object schemas
 // ─────────────────────────────────────────────────────────────────────────────
-
-const PaymentLinkAfterCompletionSchema = z
-  .object({
-    type: z.enum(['hosted_confirmation', 'redirect']),
-    hosted_confirmation: z
-      .object({
-        custom_message: z.string().max(500).optional(),
-      })
-      .optional(),
-    redirect: z
-      .object({
-        url: z.string().url(),
-      })
-      .optional(),
-  })
-  .refine(
-    (afterCompletion) =>
-      afterCompletion.type !== 'redirect' || !!afterCompletion.redirect,
-    {
-      message: '`redirect` is required when `type` is `redirect`',
-      path: ['redirect'],
-    }
-  );
 
 const PaymentLinkLineItemSchema = z
   .object({
@@ -158,7 +136,7 @@ export const CreatePaymentLinkSchema = z
   .object({
     line_items: z.array(PaymentLinkLineItemSchema).min(1).max(20),
 
-    after_completion: PaymentLinkAfterCompletionSchema.optional(),
+    after_completion: CheckoutSessionAfterCompletionSchema.optional(),
     allow_promotion_codes: z.boolean().optional(),
     application_fee_amount: z.number().int().nonnegative().optional(),
     application_fee_percent: z.number().min(0).max(100).optional(),
@@ -274,7 +252,7 @@ const UpdatePaymentLinkSubscriptionDataSchema = z.object({
 export const UpdatePaymentLinkSchema = z
   .object({
     active: z.boolean().optional(),
-    after_completion: PaymentLinkAfterCompletionSchema.optional(),
+    after_completion: CheckoutSessionAfterCompletionSchema.optional(),
     allow_promotion_codes: z.boolean().optional(),
     automatic_tax: CheckoutSessionAutomaticTaxSchema.optional(),
     billing_address_collection: z.enum(['auto', 'required']).optional(),

@@ -252,7 +252,7 @@ describe('CheckoutPaymentModule', () => {
       const result = await module.PreparePayment(
         session.url_slug,
         'PayerWallet111',
-        'buyer@example.com'
+        { email: 'buyer@example.com' }
       );
 
       expect(mockSolana.BuildCheckoutPaymentTransaction).toHaveBeenCalledWith(
@@ -316,7 +316,7 @@ describe('CheckoutPaymentModule', () => {
       const result = await module.PreparePayment(
         session.url_slug,
         'PayerWallet111',
-        'buyer@example.com'
+        { email: 'buyer@example.com' }
       );
 
       expect(
@@ -373,7 +373,8 @@ describe('CheckoutPaymentModule', () => {
 
       const result = await module.PreparePayment(
         session.url_slug,
-        'PayerWallet111'
+        'PayerWallet111',
+        { email: 'buyer@example.com' }
       );
 
       expect(mockSolana.BuildSubscribeTransaction).not.toHaveBeenCalled();

@@ -18,9 +18,14 @@ import type { Price, Product } from '@zoneless/shared-types';
 import { CreatePaymentLinkInput } from '@zoneless/shared-schemas';
 import { ProductService } from '../../../../../data';
 import { MoreInfoHoverComponent } from '../../../../../shared';
+import { ISO_CODES } from '../../../../../utils';
 import { Subscription } from 'rxjs';
 import { PaymentLinkCreateFormPayload } from '../../services/payment-link-actions.service';
 import { ProductActionsService } from '../../../products/services/product-actions.service';
+import { FormatUsdcAmount } from '../../../../checkout/util/checkout-format';
+import { DEFAULT_CHECKOUT_CONFIRMATION_MESSAGE } from '../../../../checkout/util/checkout-completion';
+
+const MAX_CUSTOM_FIELDS = 3;
 
 export type PaymentLinkFormTab = 'payment' | 'after';
 export type PaymentLinkLinkType = 'products' | 'custom';
@@ -36,6 +41,11 @@ export type SelectedLineItem = {
   recurringInterval?: string | null;
 };
 
+export type PreviewCustomField = {
+  key: string;
+  label: string;
+};
+
 export type PaymentLinkFormPreviewState = {
   tab: PaymentLinkFormTab;
   linkType: PaymentLinkLinkType;
@@ -44,8 +54,11 @@ export type PaymentLinkFormPreviewState = {
   customPreset: number;
   collectCustomerNames: boolean;
   collectBusinessNames: boolean;
-  collectAddresses: boolean;
+  collectBillingAddresses: boolean;
+  collectShippingAddresses: boolean;
   collectPhone: boolean;
+  collectTaxIds: boolean;
+  customFields: PreviewCustomField[];
   allowPromotionCodes: boolean;
   requireTerms: boolean;
   savePaymentDetails: boolean;
@@ -95,14 +108,15 @@ export class PaymentLinkFormComponent implements OnInit, OnChanges, OnDestroy {
   managedPayments: WritableSignal<boolean> = signal(false);
   collectCustomerNames: WritableSignal<boolean> = signal(false);
   collectBusinessNames: WritableSignal<boolean> = signal(false);
-  collectAddresses: WritableSignal<boolean> = signal(false);
+  collectBillingAddresses: WritableSignal<boolean> = signal(false);
+  collectShippingAddresses: WritableSignal<boolean> = signal(false);
   collectPhone: WritableSignal<boolean> = signal(false);
   limitPayments: WritableSignal<boolean> = signal(false);
   paymentLimit: WritableSignal<number> = signal(1);
 
   advancedExpanded: WritableSignal<boolean> = signal(false);
   addCustomFields: WritableSignal<boolean> = signal(false);
-  customFieldLabel: WritableSignal<string> = signal('');
+  customFieldLabels: WritableSignal<string[]> = signal(['']);
   allowPromotionCodes: WritableSignal<boolean> = signal(false);
   collectTaxIds: WritableSignal<boolean> = signal(false);
   savePaymentDetails: WritableSignal<boolean> = signal(false);
@@ -190,13 +204,14 @@ export class PaymentLinkFormComponent implements OnInit, OnChanges, OnDestroy {
     this.managedPayments.set(false);
     this.collectCustomerNames.set(false);
     this.collectBusinessNames.set(false);
-    this.collectAddresses.set(false);
+    this.collectBillingAddresses.set(false);
+    this.collectShippingAddresses.set(false);
     this.collectPhone.set(false);
     this.limitPayments.set(false);
     this.paymentLimit.set(1);
     this.advancedExpanded.set(false);
     this.addCustomFields.set(false);
-    this.customFieldLabel.set('');
+    this.customFieldLabels.set(['']);
     this.allowPromotionCodes.set(false);
     this.collectTaxIds.set(false);
     this.savePaymentDetails.set(false);
@@ -305,8 +320,10 @@ export class PaymentLinkFormComponent implements OnInit, OnChanges, OnDestroy {
     await this.LoadRecentProducts();
   }
 
+  readonly defaultConfirmationMessage = DEFAULT_CHECKOUT_CONFIRMATION_MESSAGE;
+
   FormatPrice(unitAmount: number, interval?: string | null): string {
-    const formatted = `US$${(unitAmount / 100).toFixed(2)}`;
+    const formatted = FormatUsdcAmount(unitAmount);
     return interval ? `${formatted} / ${interval}` : formatted;
   }
 
@@ -332,8 +349,36 @@ export class PaymentLinkFormComponent implements OnInit, OnChanges, OnDestroy {
     if (signalRef === this.limitPayments && !checked) {
       this.paymentLimit.set(1);
     }
+    if (signalRef === this.addCustomFields) {
+      this.customFieldLabels.set(['']);
+    }
     this.ValidateAll();
     this.EmitFormChange();
+  }
+
+  OnCustomFieldLabelChange(index: number, value: string): void {
+    this.customFieldLabels.update((labels) =>
+      labels.map((label, i) => (i === index ? value : label))
+    );
+    this.EmitFormChange();
+  }
+
+  AddCustomField(): void {
+    if (this.customFieldLabels().length >= MAX_CUSTOM_FIELDS) return;
+    this.customFieldLabels.update((labels) => [...labels, '']);
+    this.EmitFormChange();
+  }
+
+  RemoveCustomField(index: number): void {
+    this.customFieldLabels.update((labels) => {
+      const next = labels.filter((_, i) => i !== index);
+      return next.length > 0 ? next : [''];
+    });
+    this.EmitFormChange();
+  }
+
+  CanAddCustomField(): boolean {
+    return this.customFieldLabels().length < MAX_CUSTOM_FIELDS;
   }
 
   SetAfterCompletionMode(mode: AfterCompletionMode): void {
@@ -522,8 +567,11 @@ export class PaymentLinkFormComponent implements OnInit, OnChanges, OnDestroy {
       allow_promotion_codes: this.allowPromotionCodes() || undefined,
       automatic_tax: this.automaticTax() ? { enabled: true } : undefined,
       managed_payments: this.managedPayments() ? { enabled: true } : undefined,
-      billing_address_collection: this.collectAddresses()
+      billing_address_collection: this.collectBillingAddresses()
         ? 'required'
+        : undefined,
+      shipping_address_collection: this.collectShippingAddresses()
+        ? { allowed_countries: ISO_CODES.map((country) => country.code) }
         : undefined,
       phone_number_collection: this.collectPhone()
         ? { enabled: true }
@@ -560,22 +608,40 @@ export class PaymentLinkFormComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private BuildCustomFields(): CreatePaymentLinkInput['custom_fields'] {
-    if (!this.addCustomFields()) return undefined;
-    const label = this.customFieldLabel().trim();
-    if (!label) return undefined;
-    const key = label
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '_')
-      .replace(/^_|_$/g, '')
-      .slice(0, 200);
-    if (!key) return undefined;
-    return [
-      {
-        key,
-        type: 'text',
-        label: { type: 'custom', custom: label.slice(0, 50) },
-      },
-    ];
+    const fields = this.PreviewCustomFields();
+    if (fields.length === 0) return undefined;
+    return fields.map((field) => ({
+      key: field.key,
+      type: 'text' as const,
+      label: { type: 'custom' as const, custom: field.label.slice(0, 50) },
+      // Schema requires the config object matching `type`.
+      text: {},
+    }));
+  }
+
+  private PreviewCustomFields(): PreviewCustomField[] {
+    if (!this.addCustomFields()) return [];
+    const seen = new Set<string>();
+    const fields: PreviewCustomField[] = [];
+    for (const raw of this.customFieldLabels()) {
+      const label = raw.trim().slice(0, 50);
+      if (!label) continue;
+      const baseKey = label
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_|_$/g, '')
+        .slice(0, 200);
+      if (!baseKey) continue;
+      let key = baseKey;
+      let suffix = 2;
+      while (seen.has(key)) {
+        key = `${baseKey}_${suffix++}`.slice(0, 200);
+      }
+      seen.add(key);
+      fields.push({ key, label });
+      if (fields.length >= MAX_CUSTOM_FIELDS) break;
+    }
+    return fields;
   }
 
   private BuildAfterCompletion(): CreatePaymentLinkInput['after_completion'] {
@@ -611,8 +677,11 @@ export class PaymentLinkFormComponent implements OnInit, OnChanges, OnDestroy {
       customPreset: this.ToCents(this.customPreset()),
       collectCustomerNames: this.collectCustomerNames(),
       collectBusinessNames: this.collectBusinessNames(),
-      collectAddresses: this.collectAddresses(),
+      collectBillingAddresses: this.collectBillingAddresses(),
+      collectShippingAddresses: this.collectShippingAddresses(),
       collectPhone: this.collectPhone(),
+      collectTaxIds: this.collectTaxIds(),
+      customFields: this.PreviewCustomFields(),
       allowPromotionCodes: this.allowPromotionCodes(),
       requireTerms: this.requireTerms(),
       savePaymentDetails: this.savePaymentDetails(),

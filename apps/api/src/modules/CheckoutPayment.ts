@@ -25,6 +25,7 @@ import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
 import { Logger } from '../utils/Logger';
 import { Now } from '../utils/Timestamp';
+import { PrepareCheckoutPaymentInput } from '@zoneless/shared-schemas';
 import {
   Account,
   BalanceTransaction,
@@ -62,6 +63,41 @@ export interface PreparedCheckoutPayment {
    * Omitted for one-time payments.
    */
   subscription_step?: 'init_authority' | 'subscribe';
+}
+
+/** Convert a stored nullable address into CreateCustomer address input. */
+function ToCreateCustomerAddress(
+  address:
+    | {
+        city: string | null;
+        country: string | null;
+        line1: string | null;
+        line2: string | null;
+        postal_code: string | null;
+        state: string | null;
+      }
+    | null
+    | undefined
+):
+  | {
+      city?: string;
+      country?: string;
+      line1?: string;
+      line2?: string;
+      postal_code?: string;
+      state?: string;
+    }
+  | undefined {
+  if (!address) return undefined;
+  const result = {
+    ...(address.city ? { city: address.city } : {}),
+    ...(address.country ? { country: address.country } : {}),
+    ...(address.line1 ? { line1: address.line1 } : {}),
+    ...(address.line2 ? { line2: address.line2 } : {}),
+    ...(address.postal_code ? { postal_code: address.postal_code } : {}),
+    ...(address.state ? { state: address.state } : {}),
+  };
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 export class CheckoutPaymentModule {
@@ -210,7 +246,7 @@ export class CheckoutPaymentModule {
   async PreparePayment(
     urlSlug: string,
     payerWallet: string | undefined,
-    email?: string
+    customerDetails?: Omit<PrepareCheckoutPaymentInput, 'payer_wallet'>
   ): Promise<PreparedCheckoutPayment> {
     if (!payerWallet || typeof payerWallet !== 'string') {
       throw new AppError(
@@ -223,12 +259,27 @@ export class CheckoutPaymentModule {
     const session = await this.GetSessionOrThrow(urlSlug);
     this.AssertSessionPayable(session);
 
+    // Existing customers with an email cannot change it at checkout.
+    const lockedEmail = session.customer
+      ? session.customer_email?.trim() ||
+        session.customer_details?.email?.trim() ||
+        null
+      : null;
+    const resolvedDetails = lockedEmail
+      ? { ...customerDetails, email: lockedEmail }
+      : customerDetails;
+
+    this.AssertCollectedCustomerDetails(session, resolvedDetails);
+
     const merchantWallet = await this.ResolveMerchantWallet(
       session.platform_account
     );
 
-    if (email && typeof email === 'string') {
-      await this.checkoutSessionModule.SetCustomerEmail(session.id, email);
+    if (resolvedDetails) {
+      await this.checkoutSessionModule.SetCollectedCustomerDetails(
+        session.id,
+        resolvedDetails
+      );
     }
 
     Logger.info('Preparing checkout transaction', {
@@ -525,6 +576,10 @@ export class CheckoutPaymentModule {
       latestCharge: charge?.id ?? null,
     });
 
+    if (this.ShouldCreateCheckoutCustomer(session) && this.customerModule) {
+      await this.EnsureCheckoutCustomer(session, verification.payer_address);
+    }
+
     const completedSession =
       await this.checkoutSessionModule.CompleteCheckoutSession(session.id, {
         transaction_signature: signature,
@@ -793,9 +848,18 @@ export class CheckoutPaymentModule {
     );
   }
 
+  private ShouldCreateCheckoutCustomer(session: CheckoutSession): boolean {
+    if (session.customer) return false;
+    if (session.mode === 'subscription') return true;
+    return (
+      session.customer_creation === 'always' ||
+      session.customer_creation === 'if_required'
+    );
+  }
+
   private async EnsureCheckoutCustomer(
     session: CheckoutSession,
-    subscriberWallet: string
+    payerWallet: string
   ): Promise<string> {
     if (session.customer) return session.customer;
     if (!this.customerModule) {
@@ -806,17 +870,56 @@ export class CheckoutPaymentModule {
       );
     }
 
-    const email =
-      session.customer_email ?? session.customer_details?.email ?? undefined;
+    const details = session.customer_details;
+    const email = session.customer_email ?? details?.email ?? undefined;
+    const individualName = details?.individual_name ?? undefined;
+    const businessName = details?.business_name ?? undefined;
+    const name = details?.name ?? individualName ?? businessName ?? undefined;
+    const phone = details?.phone ?? undefined;
+    const address = ToCreateCustomerAddress(details?.address);
+    const shippingDetails = session.collected_information?.shipping_details;
+    const shippingAddress = ToCreateCustomerAddress(shippingDetails?.address);
+    const shipping =
+      shippingDetails?.name && shippingAddress
+        ? {
+            name: shippingDetails.name,
+            address: shippingAddress,
+            ...(phone ? { phone } : {}),
+          }
+        : undefined;
+    const taxIdData = (details?.tax_ids ?? [])
+      .filter((taxId) => !!taxId.value?.trim())
+      .map((taxId) => ({
+        type: taxId.type?.trim() || 'unknown',
+        value: taxId.value.trim(),
+      }));
+    const customFieldMetadata: Record<string, string> = {};
+    for (const field of session.custom_fields ?? []) {
+      const value =
+        field.text?.value ??
+        field.numeric?.value ??
+        field.dropdown?.value ??
+        null;
+      if (!value?.trim()) continue;
+      customFieldMetadata[`custom_field_${field.key}`] = value.trim();
+    }
 
     const customer = await this.customerModule.CreateCustomer(
       session.platform_account,
       {
         email,
-        description: `Checkout subscriber ${subscriberWallet}`,
+        name,
+        individual_name: individualName ?? undefined,
+        business_name: businessName ?? undefined,
+        phone,
+        address,
+        shipping,
+        ...(taxIdData.length > 0 ? { tax_id_data: taxIdData } : {}),
+        description: `Checkout customer ${payerWallet}`,
         metadata: {
-          wallet_address: subscriberWallet,
+          wallet_address: payerWallet,
           checkout_session: session.id,
+          ...customFieldMetadata,
         },
       }
     );
@@ -1032,6 +1135,110 @@ export class CheckoutPaymentModule {
         ERRORS.INVALID_REQUEST.status,
         ERRORS.INVALID_REQUEST.type
       );
+    }
+  }
+
+  /**
+   * Enforce required collection fields configured on the session (name,
+   * phone, address, tax ID, custom fields, terms) before building a payment.
+   */
+  private AssertCollectedCustomerDetails(
+    session: CheckoutSession,
+    details?: Omit<PrepareCheckoutPaymentInput, 'payer_wallet'>
+  ): void {
+    const Require = (condition: boolean, message: string): void => {
+      if (condition) {
+        throw new AppError(
+          message,
+          ERRORS.VALIDATION_ERROR.status,
+          ERRORS.VALIDATION_ERROR.type
+        );
+      }
+    };
+
+    Require(!details?.email?.trim(), 'Email is required');
+
+    const individual = session.name_collection?.individual;
+    Require(
+      !!individual?.enabled && !individual.optional && !details?.name?.trim(),
+      'Name is required'
+    );
+
+    const business = session.name_collection?.business;
+    Require(
+      !!business?.enabled &&
+        !business.optional &&
+        !details?.business_name?.trim(),
+      'Business name is required'
+    );
+
+    Require(
+      !!session.phone_number_collection?.enabled && !details?.phone?.trim(),
+      'Phone number is required'
+    );
+
+    const AssertAddress = (
+      required: boolean,
+      address:
+        | {
+            line1?: string;
+            city?: string;
+            postal_code?: string;
+            country?: string;
+          }
+        | undefined,
+      label: string
+    ): void => {
+      Require(
+        required && !address?.line1?.trim(),
+        `${label} line 1 is required`
+      );
+      Require(required && !address?.city?.trim(), `${label} city is required`);
+      Require(
+        required && !address?.postal_code?.trim(),
+        `${label} postal code is required`
+      );
+      Require(
+        required && !address?.country?.trim(),
+        `${label} country is required`
+      );
+    };
+
+    AssertAddress(
+      session.billing_address_collection === 'required',
+      details?.address,
+      'Billing address'
+    );
+    AssertAddress(
+      !!session.shipping_address_collection,
+      details?.shipping_address,
+      'Shipping address'
+    );
+    Require(
+      !!session.shipping_address_collection &&
+        !details?.shipping_address?.name?.trim(),
+      'Shipping name is required'
+    );
+
+    Require(
+      !!session.tax_id_collection?.enabled &&
+        session.tax_id_collection.required === 'if_supported' &&
+        !details?.tax_id?.trim(),
+      'Tax ID is required'
+    );
+
+    Require(
+      session.consent_collection?.terms_of_service === 'required' &&
+        !details?.terms_of_service_accepted,
+      'Terms of service must be accepted'
+    );
+
+    for (const field of session.custom_fields ?? []) {
+      if (field.optional) continue;
+      const value = details?.custom_fields?.find(
+        (entry) => entry.key === field.key
+      )?.value;
+      Require(!value?.trim(), `${field.label.custom ?? field.key} is required`);
     }
   }
 

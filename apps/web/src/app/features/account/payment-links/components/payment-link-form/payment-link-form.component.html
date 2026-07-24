@@ -218,7 +218,7 @@
     </div>
   </label> -->
 
-  <label class="custom-checkbox field-check option-row">
+  <!-- <label class="custom-checkbox field-check option-row">
     <input
       type="checkbox"
       [checked]="automaticTax()"
@@ -226,7 +226,7 @@
     />
     <span class="checkmark"></span>
     <div>Collect tax automatically</div>
-  </label>
+  </label> -->
 
   <label class="custom-checkbox field-check option-row">
     <input
@@ -255,11 +255,25 @@
   <label class="custom-checkbox field-check option-row">
     <input
       type="checkbox"
-      [checked]="collectAddresses()"
-      (change)="OnCheckboxChange(collectAddresses, $any($event.target).checked)"
+      [checked]="collectBillingAddresses()"
+      (change)="
+        OnCheckboxChange(collectBillingAddresses, $any($event.target).checked)
+      "
     />
     <span class="checkmark"></span>
-    <div>Collect customer addresses</div>
+    <div>Collect billing addresses</div>
+  </label>
+
+  <label class="custom-checkbox field-check option-row">
+    <input
+      type="checkbox"
+      [checked]="collectShippingAddresses()"
+      (change)="
+        OnCheckboxChange(collectShippingAddresses, $any($event.target).checked)
+      "
+    />
+    <span class="checkmark"></span>
+    <div>Collect shipping addresses</div>
   </label>
 
   <label class="custom-checkbox field-check option-row">
@@ -339,13 +353,34 @@
   </label>
 
   @if (addCustomFields()) {
-  <div class="field nested-field">
-    <input
-      type="text"
-      placeholder="Field label"
-      [ngModel]="customFieldLabel()"
-      (ngModelChange)="customFieldLabel.set($event); EmitFormChange()"
-    />
+  <div class="nested-field custom-fields-list">
+    @for (label of customFieldLabels(); track $index; let i = $index) {
+    <div class="custom-field-row">
+      <div class="field field-nested">
+        <input
+          type="text"
+          placeholder="Field label"
+          maxlength="50"
+          [ngModel]="label"
+          (ngModelChange)="OnCustomFieldLabelChange(i, $event)"
+        />
+      </div>
+      @if (customFieldLabels().length > 1) {
+      <button
+        type="button"
+        class="remove-product"
+        (click)="RemoveCustomField(i)"
+        aria-label="Remove custom field"
+      >
+        <img src="assets/icons/close.svg" alt="" />
+      </button>
+      }
+    </div>
+    } @if (CanAddCustomField()) {
+    <button type="button" class="add-custom-field" (click)="AddCustomField()">
+      Add another field
+    </button>
+    }
   </div>
   }
 
@@ -463,7 +498,7 @@
       class="medium-textarea"
       [ngModel]="customConfirmationMessage()"
       (ngModelChange)="OnCustomConfirmationMessageChange($event)"
-      placeholder="Thanks for your order"
+      [placeholder]="defaultConfirmationMessage"
       maxlength="500"
     ></textarea>
     }
@@ -501,7 +536,7 @@
   }
 </div>
 
-<div class="form-section">
+<!-- <div class="form-section">
   <div class="field-title">Connect</div>
   <label class="custom-checkbox field-check option-row">
     <input
@@ -522,9 +557,9 @@
     />
   </div>
   }
-</div>
+</div> -->
 
-<div class="form-section">
+<!-- <div class="form-section">
   <div class="field-title">Post-payment invoice</div>
   <label class="custom-checkbox field-check option-row">
     <input
@@ -538,5 +573,5 @@
   <p class="field-help">
     Post-payment invoices provide more information than a regular receipt.
   </p>
-</div>
+</div> -->
 }

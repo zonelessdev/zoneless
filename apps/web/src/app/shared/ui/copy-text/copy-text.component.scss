@@ -31,6 +31,18 @@
     outline: 2px solid $base-color;
     outline-offset: 2px;
   }
+
+  &.copy-text-disabled,
+  &:disabled {
+    cursor: default;
+    opacity: $dimmed-extra;
+    pointer-events: none;
+
+    &:hover,
+    &:focus-visible {
+      background-color: transparent;
+    }
+  }
 }
 
 .copy-text-label {

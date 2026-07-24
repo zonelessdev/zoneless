@@ -31,6 +31,7 @@ import {
 } from '@zoneless/shared-schemas';
 import { ListHelper, ListOptions, ListResult } from '../utils/ListHelper';
 import { Now } from '../utils/Timestamp';
+import { NormalizeStoredAfterCompletion } from '../utils/AfterCompletion';
 import { GetAppConfig } from './AppConfig';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
@@ -50,6 +51,39 @@ type ShippingOptionInput = NonNullable<
 type PaymentIntentDataInput = NonNullable<
   CreateCheckoutSessionInput['payment_intent_data']
 >;
+
+type CollectedAddressInput = {
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+};
+
+/** Normalize a submitted address; returns null when no meaningful fields were sent. */
+function NormalizeCollectedAddress(
+  address?: CollectedAddressInput
+): NonNullable<CheckoutSessionType['customer_details']>['address'] | null {
+  if (!address) return null;
+  const city = address.city?.trim() || null;
+  const country = address.country?.trim()?.toUpperCase() || null;
+  const line1 = address.line1?.trim() || null;
+  const line2 = address.line2?.trim() || null;
+  const postalCode = address.postal_code?.trim() || null;
+  const state = address.state?.trim() || null;
+  if (!city && !country && !line1 && !line2 && !postalCode && !state) {
+    return null;
+  }
+  return {
+    city,
+    country,
+    line1,
+    line2,
+    postal_code: postalCode,
+    state,
+  };
+}
 
 export class CheckoutSessionModule {
   private readonly db: Database;
@@ -108,6 +142,7 @@ export class CheckoutSessionModule {
       input
     );
 
+    let customerEmail = validatedInput.customer_email;
     if (validatedInput.customer && this.customerModule) {
       const customer = await this.customerModule.GetCustomer(
         validatedInput.customer
@@ -119,6 +154,7 @@ export class CheckoutSessionModule {
           ERRORS.CUSTOMER_NOT_FOUND.type
         );
       }
+      customerEmail = customerEmail ?? customer.email ?? undefined;
     }
 
     const lineItems = await Promise.all(
@@ -129,7 +165,10 @@ export class CheckoutSessionModule {
 
     const session = this.CheckoutSessionObject(
       platformAccountId,
-      validatedInput as CreateCheckoutSessionInput,
+      {
+        ...(validatedInput as CreateCheckoutSessionInput),
+        ...(customerEmail ? { customer_email: customerEmail } : {}),
+      },
       lineItems,
       options?.payment_link ?? null
     );
@@ -166,6 +205,9 @@ export class CheckoutSessionModule {
       object: 'checkout.session',
       adaptive_pricing: input.adaptive_pricing
         ? { enabled: input.adaptive_pricing.enabled ?? false }
+        : null,
+      after_completion: input.after_completion
+        ? NormalizeStoredAfterCompletion(input.after_completion)
         : null,
       after_expiration: input.after_expiration
         ? {
@@ -673,29 +715,161 @@ export class CheckoutSessionModule {
   }
 
   /**
-   * Record the customer's email on an open checkout session. Collected on
-   * the hosted checkout page before payment.
+   * Record customer details collected on the hosted checkout page before
+   * payment. Persists email, name, phone, address, tax IDs, custom field
+   * values, and terms consent onto the open session.
    *
    * @param id - The checkout session ID
-   * @param email - The customer's email address
+   * @param details - Customer details submitted from the payment page
    */
-  async SetCustomerEmail(id: string, email: string): Promise<void> {
+  async SetCollectedCustomerDetails(
+    id: string,
+    details: {
+      email?: string;
+      name?: string;
+      business_name?: string;
+      phone?: string;
+      address?: {
+        line1?: string;
+        line2?: string;
+        city?: string;
+        state?: string;
+        postal_code?: string;
+        country?: string;
+      };
+      shipping_address?: {
+        name?: string;
+        line1?: string;
+        line2?: string;
+        city?: string;
+        state?: string;
+        postal_code?: string;
+        country?: string;
+      };
+      tax_id?: string;
+      custom_fields?: { key: string; value: string }[];
+      terms_of_service_accepted?: boolean;
+    }
+  ): Promise<void> {
     const session = await this.GetCheckoutSession(id);
     if (!session || session.status !== 'open') return;
 
-    await this.db.Update<CheckoutSessionType>('CheckoutSessions', id, {
-      customer_email: email,
+    const email = details.email?.trim() || undefined;
+    const individualName = details.name?.trim() || undefined;
+    const businessName = details.business_name?.trim() || undefined;
+    const phone = details.phone?.trim() || undefined;
+    const taxId = details.tax_id?.trim() || undefined;
+    const billingAddress =
+      NormalizeCollectedAddress(details.address) ??
+      session.customer_details?.address ??
+      null;
+    const shippingAddress = NormalizeCollectedAddress(details.shipping_address);
+    const shippingName =
+      details.shipping_address?.name?.trim() ||
+      individualName ||
+      businessName ||
+      '';
+
+    const taxIds = taxId
+      ? [{ type: 'unknown', value: taxId }]
+      : session.customer_details?.tax_ids ?? null;
+
+    const customFields =
+      details.custom_fields && details.custom_fields.length > 0
+        ? session.custom_fields.map((field) => {
+            const submitted = details.custom_fields?.find(
+              (entry) => entry.key === field.key
+            );
+            if (!submitted) return field;
+            const value = submitted.value;
+            if (field.type === 'dropdown' && field.dropdown) {
+              return {
+                ...field,
+                dropdown: { ...field.dropdown, value },
+              };
+            }
+            if (field.type === 'numeric' && field.numeric) {
+              return {
+                ...field,
+                numeric: { ...field.numeric, value },
+              };
+            }
+            if (field.type === 'text' && field.text) {
+              return {
+                ...field,
+                text: { ...field.text, value },
+              };
+            }
+            // Newly created text fields may only have type/label until first save.
+            if (field.type === 'text') {
+              return {
+                ...field,
+                text: {
+                  default_value: null,
+                  maximum_length: null,
+                  minimum_length: null,
+                  value,
+                },
+              };
+            }
+            return field;
+          })
+        : undefined;
+
+    const updatePayload: Partial<CheckoutSessionType> = {
       customer_details: {
-        address: session.customer_details?.address ?? null,
-        business_name: session.customer_details?.business_name ?? null,
-        email,
-        individual_name: session.customer_details?.individual_name ?? null,
-        name: session.customer_details?.name ?? null,
-        phone: session.customer_details?.phone ?? null,
+        address: billingAddress,
+        business_name:
+          businessName ?? session.customer_details?.business_name ?? null,
+        email: email ?? session.customer_details?.email ?? null,
+        individual_name:
+          individualName ?? session.customer_details?.individual_name ?? null,
+        name:
+          individualName ??
+          businessName ??
+          session.customer_details?.name ??
+          null,
+        phone: phone ?? session.customer_details?.phone ?? null,
         tax_exempt: session.customer_details?.tax_exempt ?? 'none',
-        tax_ids: session.customer_details?.tax_ids ?? null,
+        tax_ids: taxIds,
       },
-    });
+      collected_information: {
+        business_name:
+          businessName ?? session.collected_information?.business_name ?? null,
+        individual_name:
+          individualName ??
+          session.collected_information?.individual_name ??
+          null,
+        shipping_details:
+          session.shipping_address_collection && shippingAddress
+            ? {
+                address: shippingAddress,
+                name: shippingName,
+              }
+            : session.collected_information?.shipping_details ?? null,
+      },
+    };
+
+    if (email) {
+      updatePayload.customer_email = email;
+    }
+
+    if (customFields) {
+      updatePayload.custom_fields = customFields;
+    }
+
+    if (details.terms_of_service_accepted) {
+      updatePayload.consent = {
+        promotions: session.consent?.promotions ?? null,
+        terms_of_service: 'accepted',
+      };
+    }
+
+    await this.db.Update<CheckoutSessionType>(
+      'CheckoutSessions',
+      id,
+      updatePayload
+    );
   }
 
   /**
