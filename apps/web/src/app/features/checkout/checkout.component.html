@@ -10,7 +10,7 @@
           <img src="/assets/icons/arrow_forward.svg" alt="Back" />
         </a>
         }
-        <div class="merchant-icon">
+        <div class="checkout-merchant-icon">
           @if (MerchantIconUrl(); as iconUrl) {
           <img [src]="iconUrl" [alt]="MerchantName()" />
           } @else {
@@ -88,56 +88,325 @@
 
   <main class="payment-panel">
     <div class="payment-content">
+      @if (IsComplete()) {
+      <div class="checkout-confirmation">
+        <img
+          class="checkout-confirmation-check"
+          src="/assets/icons/check_circle.svg"
+          alt=""
+        />
+        @if (IsRedirecting()) {
+        <div class="checkout-confirmation-title">Payment successful</div>
+        <p class="checkout-redirect-copy">Redirecting you back…</p>
+        } @else {
+        <div class="checkout-confirmation-title">
+          {{ ConfirmationMessage() }}
+        </div>
+        <p class="checkout-confirmation-subtitle">
+          {{ ConfirmationSubtitle() }}
+        </p>
+        <div class="checkout-confirmation-card">
+          <div class="checkout-confirmation-body">
+            @for (section of VisibleConfirmationSections(); track section.key) {
+            <div class="checkout-confirmation-row">
+              <span class="checkout-confirmation-label">{{
+                section.label
+              }}</span>
+              @for (line of section.lines; track $index) {
+              <span>{{ line }}</span>
+              }
+            </div>
+            }
+          </div>
+          @if (CanExpandConfirmation()) {
+          <button
+            type="button"
+            class="checkout-confirmation-toggle"
+            (click)="ToggleConfirmationDetails()"
+            [attr.aria-expanded]="confirmationExpanded()"
+          >
+            <span>{{ confirmationExpanded() ? 'View less' : 'View all' }}</span>
+            <img
+              class="checkout-confirmation-chevron"
+              [class.expanded]="confirmationExpanded()"
+              src="/assets/icons/chevron_down.svg"
+              alt=""
+            />
+          </button>
+          }
+        </div>
+        }
+      </div>
+      } @else {
       <div class="form-section">
-        <div class="section-label">Contact information</div>
-        <label class="contact-box">
-          <span class="contact-label">Email</span>
-          <input
-            type="email"
-            name="email"
-            [(ngModel)]="email"
-            placeholder="you@example.com"
-          />
-        </label>
+        <div class="checkout-section-label">Contact details</div>
+        <div class="checkout-field-group">
+          <label class="checkout-field">
+            <input
+              class="checkout-field-control"
+              type="email"
+              name="email"
+              [(ngModel)]="email"
+              placeholder="email@example.com"
+              [disabled]="IsEmailLocked()"
+            />
+          </label>
+          @if (CollectionOptions().collectCustomerNames) {
+          <label class="checkout-field">
+            <input
+              class="checkout-field-control"
+              type="text"
+              name="name"
+              [(ngModel)]="name"
+              placeholder="Full name"
+            />
+          </label>
+          } @if (CollectionOptions().collectBusinessNames) {
+          <label class="checkout-field">
+            <input
+              class="checkout-field-control"
+              type="text"
+              name="businessName"
+              [(ngModel)]="businessName"
+              placeholder="Business name"
+            />
+          </label>
+          } @if (CollectionOptions().collectTaxIds) {
+          <label class="checkout-field">
+            <input
+              class="checkout-field-control"
+              type="text"
+              name="taxId"
+              [(ngModel)]="taxId"
+              placeholder="Tax ID"
+            />
+          </label>
+          } @if (CollectionOptions().collectPhone) {
+          <label class="checkout-field">
+            <input
+              class="checkout-field-control"
+              type="text"
+              name="phone"
+              [(ngModel)]="phone"
+              placeholder="Phone"
+            />
+          </label>
+          } @for (field of CustomFields(); track field.key) {
+          <label class="checkout-field">
+            <input
+              class="checkout-field-control"
+              type="text"
+              [name]="'custom_' + field.key"
+              [(ngModel)]="customFieldValues[field.key]"
+              [placeholder]="FieldLabel(field)"
+            />
+          </label>
+          }
+        </div>
+
+        @if (CollectionOptions().collectBillingAddresses) {
+        <div class="checkout-section-label">Billing address</div>
+        <div class="checkout-field-group">
+          <label class="checkout-field">
+            <select
+              class="checkout-field-control"
+              name="billingCountry"
+              [(ngModel)]="billingAddress.country"
+            >
+              <option value="" disabled>Country or region</option>
+              @for (country of countryOptions; track country.code) {
+              <option [value]="country.code">{{ country.country }}</option>
+              }
+            </select>
+          </label>
+          <label class="checkout-field">
+            <input
+              class="checkout-field-control"
+              type="text"
+              name="billingLine1"
+              [(ngModel)]="billingAddress.line1"
+              placeholder="Address"
+              (focus)="ExpandBillingAddress()"
+            />
+          </label>
+          @if (billingAddressExpanded()) {
+          <label class="checkout-field">
+            <input
+              class="checkout-field-control"
+              type="text"
+              name="billingLine2"
+              [(ngModel)]="billingAddress.line2"
+              placeholder="Address line 2"
+            />
+          </label>
+          <div class="checkout-field-row">
+            <label class="checkout-field">
+              <input
+                class="checkout-field-control"
+                type="text"
+                name="billingCity"
+                [(ngModel)]="billingAddress.city"
+                placeholder="City"
+              />
+            </label>
+            <label class="checkout-field">
+              <input
+                class="checkout-field-control"
+                type="text"
+                name="billingPostalCode"
+                [(ngModel)]="billingAddress.postalCode"
+                placeholder="ZIP"
+              />
+            </label>
+          </div>
+          <label class="checkout-field">
+            <input
+              class="checkout-field-control"
+              type="text"
+              name="billingState"
+              [(ngModel)]="billingAddress.state"
+              placeholder="State"
+            />
+          </label>
+          }
+        </div>
+        } @if (CollectionOptions().collectShippingAddresses) {
+        <div class="checkout-section-label">Shipping address</div>
+        <div class="checkout-field-group">
+          <label class="checkout-field">
+            <input
+              class="checkout-field-control"
+              type="text"
+              name="shippingName"
+              [(ngModel)]="shippingAddress.name"
+              placeholder="Full name"
+            />
+          </label>
+          <label class="checkout-field">
+            <select
+              class="checkout-field-control"
+              name="shippingCountry"
+              [(ngModel)]="shippingAddress.country"
+            >
+              <option value="" disabled>Country or region</option>
+              @for (country of countryOptions; track country.code) {
+              <option [value]="country.code">{{ country.country }}</option>
+              }
+            </select>
+          </label>
+          <label class="checkout-field">
+            <input
+              class="checkout-field-control"
+              type="text"
+              name="shippingLine1"
+              [(ngModel)]="shippingAddress.line1"
+              placeholder="Address"
+              (focus)="ExpandShippingAddress()"
+            />
+          </label>
+          @if (shippingAddressExpanded()) {
+          <label class="checkout-field">
+            <input
+              class="checkout-field-control"
+              type="text"
+              name="shippingLine2"
+              [(ngModel)]="shippingAddress.line2"
+              placeholder="Address line 2"
+            />
+          </label>
+          <div class="checkout-field-row">
+            <label class="checkout-field">
+              <input
+                class="checkout-field-control"
+                type="text"
+                name="shippingCity"
+                [(ngModel)]="shippingAddress.city"
+                placeholder="City"
+              />
+            </label>
+            <label class="checkout-field">
+              <input
+                class="checkout-field-control"
+                type="text"
+                name="shippingPostalCode"
+                [(ngModel)]="shippingAddress.postalCode"
+                placeholder="ZIP"
+              />
+            </label>
+          </div>
+          <label class="checkout-field">
+            <input
+              class="checkout-field-control"
+              type="text"
+              name="shippingState"
+              [(ngModel)]="shippingAddress.state"
+              placeholder="State"
+            />
+          </label>
+          }
+        </div>
+        }
       </div>
 
       <div class="form-section">
-        <div class="section-label">Payment method</div>
-        <div class="method-box">
-          <label class="method-option">
+        <div class="checkout-section-label">Payment method</div>
+        <div class="checkout-method-box">
+          <label class="checkout-method-option">
             <input type="radio" name="payment-method" checked />
             <img src="/assets/images/logos/usdc.svg" alt="" />
             USDC
           </label>
 
-          <div class="method-detail">
-            <div class="method-detail-label">{{ MethodDetailLabel() }}</div>
-            @if (!IsSubscription()) {
-            <div class="wallet-address">{{ MerchantWalletAddress() }}</div>
-            }
-            <div class="method-detail-help">
+          <div class="checkout-method-detail">
+            <div class="checkout-method-detail-label">
+              {{ MethodDetailLabel() }}
+            </div>
+            <div class="checkout-method-detail-help">
               {{ MethodHelpText() }}
             </div>
           </div>
         </div>
       </div>
 
+      @if (CollectionOptions().allowPromotionCodes) {
+      <label class="checkout-field">
+        <span class="checkout-field-label">Promotion code</span>
+        <input
+          class="checkout-field-control"
+          type="text"
+          name="promotionCode"
+          [(ngModel)]="promotionCode"
+          placeholder="Enter promotion code"
+        />
+      </label>
+      } @if (CollectionOptions().requireTerms) {
+      <label class="checkout-terms-row">
+        <input
+          type="checkbox"
+          name="termsAccepted"
+          [(ngModel)]="termsAccepted"
+        />
+        <span>
+          I agree to the @if (MerchantTermsUrl(); as termsUrl) {
+          <a [href]="termsUrl" target="_blank" rel="noopener"
+            >Terms of Service</a
+          >
+          } @else { Terms of Service }
+        </span>
+      </label>
+      }
+
       <button
         type="button"
-        class="action-button action-button-wide pay-button"
-        [class.pay-button-processing]="IsBusy()"
-        [class.pay-button-success]="IsComplete()"
-        [disabled]="IsBusy() || IsComplete()"
+        class="checkout-pay-button"
+        [class.checkout-pay-button-processing]="IsBusy()"
+        [disabled]="IsBusy()"
         (click)="Pay()"
       >
-        @if (IsComplete()) {
-        <span class="pay-button-icon pay-button-check">
-          <img src="/assets/icons/check.svg" alt="" />
-        </span>
-        } @else if (IsBusy()) {
-        <span class="pay-button-processing-label">
+        @if (IsBusy()) {
+        <span class="checkout-pay-button-processing-label">
           {{ BusyLabel() }}
-          <span class="pay-button-icon pay-button-spinner">
+          <span class="checkout-pay-button-icon">
             <app-loader size="small" color="light"></app-loader>
           </span>
         </span>
@@ -150,7 +419,7 @@
       <div class="payment-error">{{ errorMessage }}</div>
       }
 
-      <div class="fine-print">
+      <div class="checkout-fine-print">
         By {{ FinePrintVerb() }}, you agree to {{ MerchantName() }}'s @if
         (MerchantTermsUrl(); as termsUrl) {
         <a [href]="termsUrl" target="_blank" rel="noopener">Terms</a>
@@ -162,10 +431,11 @@
         <a>Privacy</a>
         }.
       </div>
+      }
 
-      <div class="payment-footer">
+      <div class="checkout-payment-footer">
         <span>Powered by <b>Zoneless</b></span>
-        <span class="payment-footer-divider"></span>
+        <span class="checkout-payment-footer-divider"></span>
         <a>Legal</a>
         <a>Returns</a>
         <a>Contact</a>

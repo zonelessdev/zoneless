@@ -293,6 +293,29 @@ describe('PaymentLinkModule', () => {
       );
     });
 
+    it('should raise completed_sessions limit when reactivating an exhausted link', async () => {
+      const existing = BuildPaymentLink({
+        active: false,
+        restrictions: {
+          completed_sessions: { count: 1, limit: 1 },
+        },
+      });
+      mockDb.Get = jest.fn().mockResolvedValue(existing);
+
+      await module.UpdatePaymentLink(existing.id, { active: true });
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'PaymentLinks',
+        existing.id,
+        expect.objectContaining({
+          active: true,
+          restrictions: {
+            completed_sessions: { count: 1, limit: 2 },
+          },
+        })
+      );
+    });
+
     it('should update existing line items by id', async () => {
       const existing = BuildPaymentLink();
       mockDb.Get = jest.fn().mockResolvedValue(existing);
@@ -451,6 +474,40 @@ describe('PaymentLinkModule', () => {
         expect.objectContaining({
           restrictions: {
             completed_sessions: { count: 2, limit: 5 },
+          },
+        })
+      );
+    });
+
+    it('should deactivate the payment link when the limit is reached', async () => {
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValueOnce(
+          BuildPaymentLink({
+            active: true,
+            restrictions: {
+              completed_sessions: { count: 0, limit: 1 },
+            },
+          })
+        )
+        .mockResolvedValueOnce(
+          BuildPaymentLink({
+            active: false,
+            restrictions: {
+              completed_sessions: { count: 1, limit: 1 },
+            },
+          })
+        );
+
+      await module.RecordCompletedSession('plink_z_1');
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'PaymentLinks',
+        'plink_z_1',
+        expect.objectContaining({
+          active: false,
+          restrictions: {
+            completed_sessions: { count: 1, limit: 1 },
           },
         })
       );

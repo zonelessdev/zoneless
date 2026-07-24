@@ -1,11 +1,16 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  Input,
   computed,
   inject,
+  input,
 } from '@angular/core';
 import { ConfigService } from '../../../../../data';
+import { DEFAULT_CHECKOUT_CONFIRMATION_MESSAGE } from '../../../../checkout/util/checkout-completion';
+import {
+  FormatUsdcAmount,
+  GetCheckoutSubmitLabel,
+} from '../../../../checkout/util/checkout-format';
 import {
   PaymentLinkFormPreviewState,
   SelectedLineItem,
@@ -22,72 +27,63 @@ import {
 export class PaymentLinkPreviewComponent {
   private readonly configService = inject(ConfigService);
 
-  @Input({ required: true }) state!: PaymentLinkFormPreviewState;
+  readonly state = input.required<PaymentLinkFormPreviewState>();
+  readonly FormatAmount = FormatUsdcAmount;
 
   platformName = computed(() => this.configService.GetPlatformName());
   platformLogo = computed(() => this.configService.GetPlatformLogoUrl());
   platformInitials = computed(() => this.configService.GetPlatformInitials());
 
   ProductName(): string {
-    if (this.state.linkType === 'custom') {
-      return this.state.customTitle.trim() || 'Product name';
+    const state = this.state();
+    if (state.linkType === 'custom') {
+      return state.customTitle.trim() || 'Product name';
     }
-    const first = this.state.lineItems[0];
+    const first = state.lineItems[0];
     if (!first) return 'Product name';
-    if (this.state.lineItems.length === 1) return first.name;
-    return `${first.name} +${this.state.lineItems.length - 1} more`;
+    if (state.lineItems.length === 1) return first.name;
+    return `${first.name} +${state.lineItems.length - 1} more`;
   }
 
   TotalAmount(): number {
-    if (this.state.linkType === 'custom') {
-      return this.state.customPreset;
+    const state = this.state();
+    if (state.linkType === 'custom') {
+      return state.customPreset;
     }
-    return this.state.lineItems.reduce(
+    return state.lineItems.reduce(
       (sum, item) => sum + item.unitAmount * item.quantity,
       0
     );
   }
 
-  FormatAmount(unitAmount: number): string {
-    return `US$${(unitAmount / 100).toFixed(2)}`;
-  }
-
   SubmitLabel(): string {
-    switch (this.state.submitType) {
-      case 'donate':
-        return 'Donate';
-      case 'book':
-        return 'Book';
-      case 'subscribe':
-        return 'Subscribe';
-      case 'auto':
-      case 'pay':
-      default:
-        return 'Pay';
-    }
+    return GetCheckoutSubmitLabel(this.state().submitType);
   }
 
   ConfirmationMessage(): string {
-    if (this.state.useCustomConfirmationMessage) {
+    const state = this.state();
+    if (state.useCustomConfirmationMessage) {
       return (
-        this.state.customConfirmationMessage.trim() || 'Thanks for your order'
+        state.customConfirmationMessage.trim() ||
+        DEFAULT_CHECKOUT_CONFIRMATION_MESSAGE
       );
     }
-    return 'Thanks for your order';
+    return DEFAULT_CHECKOUT_CONFIRMATION_MESSAGE;
   }
 
   LineItems(): SelectedLineItem[] {
-    if (this.state.linkType === 'custom') {
+    const state = this.state();
+    if (state.linkType === 'custom') {
       return [
         {
           key: 'custom',
           name: this.ProductName(),
-          unitAmount: this.state.customPreset,
+          unitAmount: state.customPreset,
           quantity: 1,
           priceId: 'custom',
         },
       ];
     }
-    return this.state.lineItems;
+    return state.lineItems;
   }
 }

@@ -78,36 +78,6 @@ export interface TopUpSource {
 }
 
 /**
- * Input for creating a top-up via the API
- */
-export interface CreateTopUpInput {
-  /** A positive integer representing how much to transfer (required) */
-  amount: number;
-  /** Three-letter ISO currency code, in lowercase (required) */
-  currency: string;
-  /** An arbitrary string attached to the object */
-  description?: string;
-  /** Set of key-value pairs for storing additional information */
-  metadata?: Record<string, string>;
-  /** The ID of a source to transfer funds from */
-  source?: string;
-  /** Extra information about a top-up for the source's bank statement. Limited to 15 ASCII characters */
-  statement_descriptor?: string;
-  /** A string that identifies this top-up as part of a group */
-  transfer_group?: string;
-}
-
-/**
- * Input for updating a top-up via the API
- */
-export interface UpdateTopUpInput {
-  /** An arbitrary string attached to the object */
-  description?: string;
-  /** Set of key-value pairs for storing additional information */
-  metadata?: Record<string, string>;
-}
-
-/**
  * Response from POST /v1/topups/check-deposits
  * Returns the result of checking the blockchain for new deposits.
  */

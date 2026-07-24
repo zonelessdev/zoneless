@@ -1,5 +1,4 @@
 @use '../../../../../styles/base.scss' as *;
-@use '../../../../../styles/forms.scss' as *;
 @use '../../../../../styles/checkout.scss' as *;
 
 .preview-shell {
@@ -70,10 +69,9 @@
   min-width: 0;
 }
 
-.preview-contact {
-  margin-bottom: $spacing-snug;
-  cursor: default;
-  flex-shrink: 0;
+.preview-checkout .checkout-confirmation {
+  flex: 1;
+  min-height: 0;
 }
 
 .method-label {
@@ -83,13 +81,18 @@
 
 .checkout-method-box {
   flex-shrink: 0;
+  margin-bottom: $spacing-plus;
 }
 
-.terms-row {
-  display: flex;
-  align-items: center;
-  gap: $spacing-small;
-  font-size: $font-size-small;
+.checkout-field-group {
+  flex-shrink: 0;
+}
+
+.preview-promo {
+  margin-top: $spacing;
+}
+
+.checkout-terms-row {
   margin: $spacing 0;
   flex-shrink: 0;
 }
@@ -105,57 +108,6 @@
   flex-shrink: 0;
 }
 
-.confirmation {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: $spacing;
-  width: 100%;
-  min-height: 100%;
-}
-
-.confirmation-check {
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  filter: brightness(0) saturate(100%) invert(42%) sepia(93%) saturate(450%)
-    hue-rotate(118deg) brightness(95%) contrast(92%);
-}
-
-.confirmation-title {
-  font-family: $title-font;
-  font-size: $font-size-large;
-  font-weight: $title-weight;
-}
-
-.confirmation-card {
-  width: 100%;
-  border: 1px solid $darkest-background-color;
-  border-radius: $border-radius-small;
-  padding: $spacing;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-snug;
-}
-
-.confirmation-row {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: $font-size-small;
-}
-
-.confirmation-label {
-  opacity: $dimmed;
-}
-
-.redirect-copy {
-  margin: 0;
-  font-size: $font-size;
-  opacity: $dimmed;
-  line-height: 1.5;
-}
-
 .preview-mobile .preview-summary {
   min-height: 140px;
 }
@@ -169,14 +121,16 @@
   flex-shrink: 0;
 }
 
+.checkout-field {
+  flex-shrink: 0;
+}
+
 .checkout-pay-button {
   margin-top: $spacing;
   flex-shrink: 0;
-  min-height: 48px;
-  height: 48px;
 }
 
 .preview-mobile .checkout-pay-button {
-  min-height: 48px;
-  height: 48px;
+  min-height: 44px;
+  height: 44px;
 }

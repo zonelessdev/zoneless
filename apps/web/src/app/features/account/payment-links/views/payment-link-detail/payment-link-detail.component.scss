@@ -42,6 +42,14 @@
   font-size: 22px;
 }
 
+.header-status-chip {
+  align-self: center;
+  margin-left: $spacing-extra-small;
+  font-size: $font-size-tiny;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 .detail-subtitle {
   margin: 0;
   color: $text-color;
@@ -75,6 +83,16 @@
     &:focus-visible {
       background: $darker-background-color;
     }
+
+    &.copy-text-disabled,
+    &:disabled {
+      background: $dark-background-color;
+
+      &:hover,
+      &:focus-visible {
+        background: $dark-background-color;
+      }
+    }
   }
 
   .copy-text-label {
@@ -84,6 +102,13 @@
   .copy-icon {
     filter: $base-filter;
     opacity: 1;
+  }
+}
+
+.detail-header-inactive {
+  .detail-title > span:first-child,
+  .detail-title-price {
+    opacity: $dimmed-extra;
   }
 }
 

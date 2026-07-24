@@ -109,6 +109,30 @@ export const CheckoutSessionCustomTextSchema = z.object({
   terms_of_service_acceptance: CheckoutSessionCustomTextEntrySchema.optional(),
 });
 
+/** Post-purchase behavior (hosted confirmation page vs redirect). Shared with Payment Links. */
+export const CheckoutSessionAfterCompletionSchema = z
+  .object({
+    type: z.enum(['hosted_confirmation', 'redirect']),
+    hosted_confirmation: z
+      .object({
+        custom_message: z.string().max(500).optional(),
+      })
+      .optional(),
+    redirect: z
+      .object({
+        url: z.string().url(),
+      })
+      .optional(),
+  })
+  .refine(
+    (afterCompletion) =>
+      afterCompletion.type !== 'redirect' || !!afterCompletion.redirect,
+    {
+      message: '`redirect` is required when `type` is `redirect`',
+      path: ['redirect'],
+    }
+  );
+
 const CheckoutSessionCustomerUpdateSchema = z.object({
   address: z.enum(['auto', 'never']).optional(),
   name: z.enum(['auto', 'never']).optional(),
@@ -450,6 +474,7 @@ const CreateCheckoutSessionBaseSchema = z
         enabled: z.boolean().optional(),
       })
       .optional(),
+    after_completion: CheckoutSessionAfterCompletionSchema.optional(),
     after_expiration: CheckoutSessionAfterExpirationSchema.optional(),
     allow_promotion_codes: z.boolean().optional(),
     automatic_tax: CheckoutSessionAutomaticTaxSchema.optional(),
@@ -706,4 +731,54 @@ export const ListCheckoutSessionLineItemsSchema = z
 
 export type ListCheckoutSessionLineItemsInput = z.infer<
   typeof ListCheckoutSessionLineItemsSchema
+>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Prepare Checkout Payment Schema (public payment_pages)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Body for POST /v1/payment_pages/:urlSlug/prepare.
+ * Collects customer details configured on the Checkout Session before building
+ * the unsigned payment transaction.
+ */
+export const PrepareCheckoutPaymentAddressSchema = z.object({
+  line1: z.string().max(500).optional(),
+  line2: z.string().max(500).optional(),
+  city: z.string().max(100).optional(),
+  state: z.string().max(100).optional(),
+  postal_code: z.string().max(20).optional(),
+  country: z.string().length(2).optional(),
+});
+
+export const PrepareCheckoutPaymentShippingAddressSchema =
+  PrepareCheckoutPaymentAddressSchema.extend({
+    /** Recipient name required by Stripe when collecting a shipping address. */
+    name: z.string().max(150).optional(),
+  });
+
+export const PrepareCheckoutPaymentSchema = z.object({
+  payer_wallet: z.string().min(1),
+  email: z.string().email().max(512).optional(),
+  name: z.string().max(150).optional(),
+  business_name: z.string().max(150).optional(),
+  phone: z.string().max(20).optional(),
+  /** Structured billing address matching Stripe Checkout. */
+  address: PrepareCheckoutPaymentAddressSchema.optional(),
+  /** Structured shipping address matching Stripe Checkout. */
+  shipping_address: PrepareCheckoutPaymentShippingAddressSchema.optional(),
+  tax_id: z.string().max(50).optional(),
+  custom_fields: z
+    .array(
+      z.object({
+        key: z.string().min(1).max(200),
+        value: z.string().max(255),
+      })
+    )
+    .max(3)
+    .optional(),
+  terms_of_service_accepted: z.boolean().optional(),
+});
+export type PrepareCheckoutPaymentInput = z.infer<
+  typeof PrepareCheckoutPaymentSchema
 >;

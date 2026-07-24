@@ -21,6 +21,7 @@ import { PaymentLinkActionsHostComponent } from '../../components/payment-link-a
 import {
   FormatPaymentLinkPrice,
   GetPaymentLinkName,
+  IsPaymentLinkActive,
 } from '../../util/payment-link-display';
 
 @Component({
@@ -51,8 +52,7 @@ export class PaymentLinkListComponent implements OnInit, OnDestroy {
       field: 'active',
       type: 'status',
       formatter: (item: unknown) => {
-        const paymentLink = item as PaymentLink;
-        return paymentLink.active ? 'active' : 'inactive';
+        return IsPaymentLinkActive(item as PaymentLink) ? 'active' : 'inactive';
       },
     },
     {

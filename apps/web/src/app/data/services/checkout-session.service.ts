@@ -131,12 +131,40 @@ export class CheckoutSessionService {
   async PreparePayment(
     urlSlug: string,
     payerWallet: string,
-    email?: string
+    customerDetails?: {
+      email?: string;
+      name?: string;
+      business_name?: string;
+      phone?: string;
+      address?: {
+        line1?: string;
+        line2?: string;
+        city?: string;
+        state?: string;
+        postal_code?: string;
+        country?: string;
+      };
+      shipping_address?: {
+        name?: string;
+        line1?: string;
+        line2?: string;
+        city?: string;
+        state?: string;
+        postal_code?: string;
+        country?: string;
+      };
+      tax_id?: string;
+      custom_fields?: { key: string; value: string }[];
+      terms_of_service_accepted?: boolean;
+    }
   ): Promise<CheckoutPaymentTransaction> {
     return this.api.Call<CheckoutPaymentTransaction>(
       'POST',
       `payment_pages/${urlSlug}/prepare`,
-      { payer_wallet: payerWallet, ...(email ? { email } : {}) }
+      {
+        payer_wallet: payerWallet,
+        ...customerDetails,
+      }
     );
   }
 

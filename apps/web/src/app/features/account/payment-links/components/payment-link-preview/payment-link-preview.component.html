@@ -1,6 +1,6 @@
 <div
   class="preview-shell"
-  [class.preview-mobile]="state.previewDevice === 'mobile'"
+  [class.preview-mobile]="state().previewDevice === 'mobile'"
 >
   <div class="preview-window">
     <div class="preview-summary checkout-order-summary">
@@ -28,62 +28,148 @@
     </div>
 
     <div class="preview-checkout checkout-payment-panel">
-      @if (state.tab === 'after' && state.afterCompletionMode ===
+      @if (state().tab === 'after' && state().afterCompletionMode ===
       'hosted_confirmation') {
-      <div class="confirmation">
+      <div class="checkout-confirmation">
         <img
-          class="confirmation-check"
+          class="checkout-confirmation-check"
           src="assets/icons/check_circle.svg"
           alt=""
         />
-        <div class="confirmation-title">{{ ConfirmationMessage() }}</div>
-        <div class="confirmation-card">
-          <div class="confirmation-row">
-            <span class="confirmation-label">Contact information</span>
-            <span>customer@example.com</span>
-          </div>
-          <div class="confirmation-row">
-            <span class="confirmation-label">Payment method</span>
-            <span>USDC — {{ FormatAmount(TotalAmount()) }}</span>
+        <div class="checkout-confirmation-title">
+          {{ ConfirmationMessage() }}
+        </div>
+        <div class="checkout-confirmation-card">
+          <div class="checkout-confirmation-body">
+            <div class="checkout-confirmation-row">
+              <span class="checkout-confirmation-label"
+                >Contact information</span
+              >
+              <span>customer@example.com</span>
+            </div>
+            <div class="checkout-confirmation-row">
+              <span class="checkout-confirmation-label">Payment method</span>
+              <span>USDC — {{ FormatAmount(TotalAmount()) }}</span>
+            </div>
           </div>
         </div>
       </div>
-      } @else if (state.tab === 'after' && state.afterCompletionMode ===
+      } @else if (state().tab === 'after' && state().afterCompletionMode ===
       'redirect') {
-      <div class="confirmation">
-        <div class="confirmation-title">Redirecting customers</div>
-        <p class="redirect-copy">
+      <div class="checkout-confirmation">
+        <div class="checkout-confirmation-title">Redirecting customers</div>
+        <p class="checkout-redirect-copy">
           After payment, customers will be sent to your website instead of a
           confirmation page.
         </p>
       </div>
       } @else {
-      <div class="checkout-section-label">Contact information</div>
-      <label class="checkout-contact-box preview-contact">
-        <span class="contact-label">Email</span>
-        <input type="email" placeholder="email@example.com" disabled />
-      </label>
+      <div class="checkout-section-label">Contact details</div>
+      <div class="checkout-field-group">
+        <label class="checkout-field">
+          <input
+            class="checkout-field-control"
+            type="email"
+            placeholder="email@example.com"
+            disabled
+          />
+        </label>
+        @if (state().collectCustomerNames) {
+        <label class="checkout-field">
+          <input
+            class="checkout-field-control"
+            type="text"
+            placeholder="Full name"
+            disabled
+          />
+        </label>
+        } @if (state().collectBusinessNames) {
+        <label class="checkout-field">
+          <input
+            class="checkout-field-control"
+            type="text"
+            placeholder="Business name"
+            disabled
+          />
+        </label>
+        } @if (state().collectTaxIds) {
+        <label class="checkout-field">
+          <input
+            class="checkout-field-control"
+            type="text"
+            placeholder="Tax ID"
+            disabled
+          />
+        </label>
+        } @if (state().collectPhone) {
+        <label class="checkout-field">
+          <input
+            class="checkout-field-control"
+            type="text"
+            placeholder="Phone"
+            disabled
+          />
+        </label>
+        } @for (field of state().customFields; track field.key) {
+        <label class="checkout-field">
+          <input
+            class="checkout-field-control"
+            type="text"
+            [placeholder]="field.label"
+            disabled
+          />
+        </label>
+        }
+      </div>
 
-      @if (state.collectCustomerNames) {
-      <label class="checkout-contact-box preview-contact">
-        <span class="contact-label">Name</span>
-        <input type="text" placeholder="Jane Diaz" disabled />
-      </label>
-      } @if (state.collectBusinessNames) {
-      <label class="checkout-contact-box preview-contact">
-        <span class="contact-label">Business</span>
-        <input type="text" placeholder="Acme Inc." disabled />
-      </label>
-      } @if (state.collectPhone) {
-      <label class="checkout-contact-box preview-contact">
-        <span class="contact-label">Phone</span>
-        <input type="text" placeholder="+1 555 000 0000" disabled />
-      </label>
-      } @if (state.collectAddresses) {
-      <label class="checkout-contact-box preview-contact">
-        <span class="contact-label">Address</span>
-        <input type="text" placeholder="Address" disabled />
-      </label>
+      @if (state().collectBillingAddresses) {
+      <div class="checkout-section-label">Billing address</div>
+      <div class="checkout-field-group">
+        <label class="checkout-field">
+          <input
+            class="checkout-field-control"
+            type="text"
+            placeholder="United States"
+            disabled
+          />
+        </label>
+        <label class="checkout-field">
+          <input
+            class="checkout-field-control"
+            type="text"
+            placeholder="Address"
+            disabled
+          />
+        </label>
+      </div>
+      } @if (state().collectShippingAddresses) {
+      <div class="checkout-section-label">Shipping address</div>
+      <div class="checkout-field-group">
+        <label class="checkout-field">
+          <input
+            class="checkout-field-control"
+            type="text"
+            placeholder="Full name"
+            disabled
+          />
+        </label>
+        <label class="checkout-field">
+          <input
+            class="checkout-field-control"
+            type="text"
+            placeholder="United States"
+            disabled
+          />
+        </label>
+        <label class="checkout-field">
+          <input
+            class="checkout-field-control"
+            type="text"
+            placeholder="Address"
+            disabled
+          />
+        </label>
+      </div>
       }
 
       <div class="checkout-section-label method-label">Payment method</div>
@@ -103,13 +189,18 @@
         </div>
       </div>
 
-      @if (state.allowPromotionCodes) {
-      <label class="checkout-contact-box preview-contact">
-        <span class="contact-label">Promo</span>
-        <input type="text" placeholder="Enter code" disabled />
+      @if (state().allowPromotionCodes) {
+      <label class="checkout-field preview-promo">
+        <span class="checkout-field-label">Promotion code</span>
+        <input
+          class="checkout-field-control"
+          type="text"
+          placeholder="Enter promotion code"
+          disabled
+        />
       </label>
-      } @if (state.requireTerms) {
-      <label class="terms-row">
+      } @if (state().requireTerms) {
+      <label class="checkout-terms-row">
         <input type="checkbox" disabled />
         <span>I agree to the Terms of Service</span>
       </label>

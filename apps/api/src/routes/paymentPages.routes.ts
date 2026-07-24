@@ -16,6 +16,9 @@ import { InvoiceItemModule } from '../modules/InvoiceItem';
 import { InvoiceModule } from '../modules/Invoice';
 import { SubscriptionModule } from '../modules/Subscription';
 
+import { ValidateRequest } from '../middleware/ValidateRequest';
+import { PrepareCheckoutPaymentSchema } from '@zoneless/shared-schemas';
+
 const router = express.Router();
 
 const eventService = new EventService(db);
@@ -120,16 +123,35 @@ router.get(
  */
 router.post(
   '/:urlSlug/prepare',
+  ValidateRequest(PrepareCheckoutPaymentSchema),
   AsyncHandler(async (req: express.Request, res: express.Response) => {
-    const { payer_wallet: payerWallet, email } = req.body as {
-      payer_wallet?: string;
-      email?: string;
-    };
+    const {
+      payer_wallet: payerWallet,
+      email,
+      name,
+      business_name: businessName,
+      phone,
+      address,
+      shipping_address: shippingAddress,
+      tax_id: taxId,
+      custom_fields: customFields,
+      terms_of_service_accepted: termsOfServiceAccepted,
+    } = req.body;
 
     const prepared = await checkoutPaymentModule.PreparePayment(
       req.params.urlSlug,
       payerWallet,
-      email
+      {
+        email,
+        name,
+        business_name: businessName,
+        phone,
+        address,
+        shipping_address: shippingAddress,
+        tax_id: taxId,
+        custom_fields: customFields,
+        terms_of_service_accepted: termsOfServiceAccepted,
+      }
     );
     res.json(prepared);
   })

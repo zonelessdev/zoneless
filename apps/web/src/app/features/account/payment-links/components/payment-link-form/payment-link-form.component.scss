@@ -270,6 +270,33 @@
   margin: 0 0 $spacing $spacing-large;
 }
 
+.custom-fields-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-small;
+}
+
+.custom-field-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+}
+
+.add-custom-field {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  color: $base-color;
+  font-family: $text-font;
+  font-size: $font-size-small;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .radio-help {
   margin: $spacing-extra-small 0 0 0;
 }

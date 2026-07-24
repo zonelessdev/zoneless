@@ -28,6 +28,7 @@ import {
 } from '@zoneless/shared-schemas';
 import { ListHelper, ListOptions, ListResult } from '../utils/ListHelper';
 import { Now } from '../utils/Timestamp';
+import { NormalizeStoredAfterCompletion } from '../utils/AfterCompletion';
 import { GetAppConfig } from './AppConfig';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
@@ -116,27 +117,13 @@ export class PaymentLinkModule {
       object: 'payment_link',
       active: true,
       created: Now(),
-      after_completion: input.after_completion
-        ? {
-            type: input.after_completion.type,
-            hosted_confirmation: input.after_completion.hosted_confirmation
-              ? {
-                  custom_message:
-                    input.after_completion.hosted_confirmation.custom_message ??
-                    null,
-                }
-              : input.after_completion.type === 'hosted_confirmation'
-              ? { custom_message: null }
-              : null,
-            redirect: input.after_completion.redirect
-              ? { url: input.after_completion.redirect.url }
-              : null,
-          }
-        : {
-            type: 'hosted_confirmation',
-            hosted_confirmation: { custom_message: null },
-            redirect: null,
-          },
+      after_completion: NormalizeStoredAfterCompletion(
+        input.after_completion ?? {
+          type: 'hosted_confirmation',
+          hosted_confirmation: { custom_message: null },
+          redirect: null,
+        }
+      ),
       allow_promotion_codes: input.allow_promotion_codes ?? false,
       application: null,
       application_fee_amount: input.application_fee_amount ?? null,
@@ -421,24 +408,24 @@ export class PaymentLinkModule {
 
     if (validatedUpdate.active !== undefined) {
       updatePayload.active = validatedUpdate.active;
+      // Reactivating an exhausted limited-use link raises the limit so opens
+      // work again (count >= limit is still enforced while active).
+      if (validatedUpdate.active === true) {
+        const completed = existing.restrictions?.completed_sessions;
+        if (completed && completed.count >= completed.limit) {
+          updatePayload.restrictions = {
+            completed_sessions: {
+              count: completed.count,
+              limit: completed.count + Math.max(completed.limit, 1),
+            },
+          };
+        }
+      }
     }
     if (validatedUpdate.after_completion !== undefined) {
-      updatePayload.after_completion = {
-        type: validatedUpdate.after_completion.type,
-        hosted_confirmation: validatedUpdate.after_completion
-          .hosted_confirmation
-          ? {
-              custom_message:
-                validatedUpdate.after_completion.hosted_confirmation
-                  .custom_message ?? null,
-            }
-          : validatedUpdate.after_completion.type === 'hosted_confirmation'
-          ? { custom_message: null }
-          : null,
-        redirect: validatedUpdate.after_completion.redirect
-          ? { url: validatedUpdate.after_completion.redirect.url }
-          : null,
-      };
+      updatePayload.after_completion = NormalizeStoredAfterCompletion(
+        validatedUpdate.after_completion
+      );
     }
     if (validatedUpdate.allow_promotion_codes !== undefined) {
       updatePayload.allow_promotion_codes =
@@ -820,19 +807,40 @@ export class PaymentLinkModule {
 
   /**
    * Increment completed_sessions.count after a linked Checkout Session completes.
+   * Deactivates the payment link once the limit is reached.
    */
   async RecordCompletedSession(paymentLinkId: string): Promise<void> {
     const paymentLink = await this.GetPaymentLink(paymentLinkId);
     if (!paymentLink?.restrictions?.completed_sessions) return;
 
-    await this.db.Update<PaymentLinkType>('PaymentLinks', paymentLinkId, {
+    const count = paymentLink.restrictions.completed_sessions.count + 1;
+    const limit = paymentLink.restrictions.completed_sessions.limit;
+    const updatePayload: Partial<PaymentLinkType> = {
       restrictions: {
-        completed_sessions: {
-          count: paymentLink.restrictions.completed_sessions.count + 1,
-          limit: paymentLink.restrictions.completed_sessions.limit,
-        },
+        completed_sessions: { count, limit },
       },
-    });
+    };
+    if (count >= limit) {
+      updatePayload.active = false;
+    }
+
+    await this.db.Update<PaymentLinkType>(
+      'PaymentLinks',
+      paymentLinkId,
+      updatePayload
+    );
+
+    if (this.eventService && count >= limit) {
+      const updated = await this.GetPaymentLink(paymentLinkId);
+      if (updated) {
+        await this.eventService.Emit(
+          'payment_link.updated',
+          updated.platform_account,
+          updated,
+          { previousAttributes: { active: true } }
+        );
+      }
+    }
   }
 
   private ToCheckoutSessionInput(
@@ -866,6 +874,19 @@ export class PaymentLinkModule {
 
     return {
       mode: hasRecurring ? 'subscription' : 'payment',
+      after_completion: {
+        type: paymentLink.after_completion.type,
+        hosted_confirmation: paymentLink.after_completion.hosted_confirmation
+          ? {
+              custom_message:
+                paymentLink.after_completion.hosted_confirmation
+                  .custom_message ?? undefined,
+            }
+          : undefined,
+        redirect: paymentLink.after_completion.redirect
+          ? { url: paymentLink.after_completion.redirect.url }
+          : undefined,
+      },
       line_items: lineItems,
       allow_promotion_codes: paymentLink.allow_promotion_codes,
       automatic_tax: {

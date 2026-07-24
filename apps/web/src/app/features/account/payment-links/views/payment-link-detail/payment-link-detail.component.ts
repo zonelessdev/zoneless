@@ -41,6 +41,7 @@ import {
   GetLineItemProductImage,
   GetPaymentLinkName,
   GetPaymentLinkUnitAmount,
+  IsPaymentLinkActive,
 } from '../../util/payment-link-display';
 
 type DetailTab = 'overview' | 'payments';
@@ -105,10 +106,16 @@ export class PaymentLinkDetailComponent implements OnInit, OnDestroy {
     return !!metadata && Object.keys(metadata).length > 0;
   });
 
+  readonly isActive = computed(() => {
+    const link = this.paymentLink();
+    return link ? IsPaymentLinkActive(link) : false;
+  });
+
   paymentLinkActions: PopupMenuAction[] = [
     {
       title: 'Copy payment link URL',
       action: (item: PaymentLink) => this.CopyUrl(item),
+      hidden: (item: PaymentLink) => !IsPaymentLinkActive(item),
     },
     {
       title: 'Edit metadata',
@@ -117,12 +124,12 @@ export class PaymentLinkDetailComponent implements OnInit, OnDestroy {
     {
       title: 'Deactivate payment link',
       action: (item: PaymentLink) => this.actions.OpenDeactivate(item),
-      hidden: (item: PaymentLink) => !item.active,
+      hidden: (item: PaymentLink) => !IsPaymentLinkActive(item),
     },
     {
       title: 'Activate payment link',
       action: (item: PaymentLink) => this.actions.OpenActivate(item),
-      hidden: (item: PaymentLink) => item.active,
+      hidden: (item: PaymentLink) => IsPaymentLinkActive(item),
     },
   ];
 
