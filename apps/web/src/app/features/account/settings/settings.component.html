@@ -2,7 +2,21 @@
   <h1>Settings</h1>
 </div>
 
-<!-- Personal Details Card -->
+<!-- Business Details Card (platform only) -->
+@if (authService.isPlatform()) {
+<div class="view-section">
+  <div class="settings-section-title">Business details</div>
+  <app-settings-card
+    [title]="accountService.GetBusinessDetailsTitle(accountService.account())"
+    [rows]="accountService.GetBusinessDetailsCardRows(accountService.account())"
+    [showEditButton]="true"
+    (editClicked)="OnEditBusinessClick()"
+  ></app-settings-card>
+</div>
+}
+
+<!-- Personal Details Card (connected accounts only) -->
+@if (!authService.isPlatform()) {
 <div class="view-section">
   <div class="settings-section-title">Personal details</div>
   <app-settings-card
@@ -12,6 +26,7 @@
     (editClicked)="OnEditPersonClick()"
   ></app-settings-card>
 </div>
+}
 
 <!-- External Wallet Card -->
 @if (externalWalletService.wallet()) {
@@ -37,7 +52,29 @@
   </button>
 </div>
 
+<!-- Edit Business Details Slide Panel -->
+@if (authService.isPlatform()) {
+<app-slide-panel
+  [isOpen]="editBusinessPanelOpen()"
+  title="Edit business details"
+  [loading]="editBusinessLoading()"
+  submitLabel="Save"
+  [submitDisabled]="false"
+  (closed)="OnEditBusinessPanelClosed()"
+  (submitted)="OnEditBusinessSubmit()"
+>
+  <app-business-profile-form
+    #editBusinessForm
+    mode="edit"
+    [account]="accountService.account()"
+    [isOpen]="editBusinessPanelOpen()"
+    [showErrors]="editBusinessShowErrors()"
+  ></app-business-profile-form>
+</app-slide-panel>
+}
+
 <!-- Edit Person Slide Panel -->
+@if (!authService.isPlatform()) {
 <app-slide-panel
   [isOpen]="editPersonPanelOpen()"
   title="Edit personal details"
@@ -55,6 +92,7 @@
     [showErrors]="editPersonShowErrors()"
   ></app-person-form>
 </app-slide-panel>
+}
 
 <!-- Edit Wallet Slide Panel -->
 <app-slide-panel

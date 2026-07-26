@@ -1,26 +1,11 @@
 import { Injectable, signal, WritableSignal, inject } from '@angular/core';
 import { ApiService } from '../../core/services/api.service';
 import { Account, LoginLink } from '@zoneless/shared-types';
-import { CreateAccountInput } from '@zoneless/shared-schemas';
-
-/**
- * Input type for updating an account.
- * All fields are optional - only provided fields will be updated.
- * Protected fields (id, object, created, payouts_enabled, details_submitted, tos_acceptance)
- * cannot be updated directly.
- */
-export type AccountUpdateInput = Partial<
-  Omit<
-    Account,
-    | 'id'
-    | 'object'
-    | 'created'
-    | 'payouts_enabled'
-    | 'details_submitted'
-    | 'tos_acceptance'
-    | 'individual'
-  >
->;
+import {
+  CreateAccountInput,
+  UpdateAccountInput,
+} from '@zoneless/shared-schemas';
+import { SettingsCardRow } from '../../shared';
 
 @Injectable({
   providedIn: 'root',
@@ -59,7 +44,7 @@ export class AccountService {
 
   async UpdateAccount(
     accountId: string,
-    data: AccountUpdateInput
+    data: UpdateAccountInput
   ): Promise<Account> {
     this.loading.set(true);
     try {
@@ -161,5 +146,39 @@ export class AccountService {
     }
 
     return account.email ?? individual?.email ?? account.id;
+  }
+
+  /**
+   * Display title for the Business details settings card.
+   */
+  GetBusinessDetailsTitle(account: Account | null): string {
+    if (!account) return 'Business details';
+    return (
+      account.business_profile?.name?.trim() ||
+      account.settings?.dashboard?.display_name?.trim() ||
+      'Business details'
+    );
+  }
+
+  GetBusinessDetailsCardRows(account: Account | null): SettingsCardRow[] {
+    if (!account) return [];
+
+    return [
+      {
+        label: 'Logo',
+        value: account.settings?.branding?.logo || '—',
+        type: 'text',
+      },
+      {
+        label: 'Terms of Service',
+        value: account.settings?.terms_url || '—',
+        type: 'text',
+      },
+      {
+        label: 'Privacy Policy',
+        value: account.settings?.privacy_url || '—',
+        type: 'text',
+      },
+    ];
   }
 }
