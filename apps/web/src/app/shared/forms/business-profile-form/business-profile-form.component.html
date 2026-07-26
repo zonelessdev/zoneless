@@ -1,0 +1,92 @@
+<div class="business-profile-form">
+  <div class="field">
+    <div class="field-title">Business name</div>
+    @if (mode === 'setup') {
+    <p class="field-help">
+      This will be shown on Checkout, Payment Links, and your dashboard.
+    </p>
+    }
+    <input
+      [ngModel]="businessName()"
+      (ngModelChange)="OnBusinessNameChange($event)"
+      class="field-value"
+      type="text"
+      placeholder="Acme Inc"
+      name="organization"
+      autocomplete="organization"
+      [class.field-error]="showErrors && businessNameError()"
+    />
+    @if (showErrors && businessNameError()) {
+    <div class="error">{{ businessNameError() }}</div>
+    }
+  </div>
+
+  <div class="field">
+    <div class="field-title">
+      Logo URL <span class="field-optional">Optional</span>
+    </div>
+    @if (mode === 'setup') {
+    <p class="field-help">
+      A square image works best. If not provided, initials will be shown.
+    </p>
+    }
+    <input
+      [ngModel]="logoUrl()"
+      (ngModelChange)="OnLogoUrlChange($event)"
+      class="field-value"
+      type="url"
+      placeholder="https://example.com/logo.png"
+      name="logo-url"
+      [class.field-error]="showErrors && logoUrlError()"
+    />
+    @if (showErrors && logoUrlError()) {
+    <div class="error">{{ logoUrlError() }}</div>
+    }
+  </div>
+
+  <div class="field">
+    <div class="field-title">
+      Terms of Service URL <span class="field-optional">Optional</span>
+    </div>
+    @if (mode === 'setup') {
+    <p class="field-help">
+      Your Terms of Service page. Linked from Checkout and onboarding.
+    </p>
+    }
+    <input
+      [ngModel]="termsUrl()"
+      (ngModelChange)="OnTermsUrlChange($event)"
+      class="field-value"
+      type="url"
+      placeholder="https://example.com/terms"
+      name="terms-url"
+      [class.field-error]="showErrors && termsUrlError()"
+    />
+    @if (showErrors && termsUrlError()) {
+    <div class="error">{{ termsUrlError() }}</div>
+    }
+  </div>
+
+  <div class="field">
+    <div class="field-title">
+      Privacy Policy URL <span class="field-optional">Optional</span>
+    </div>
+    @if (mode === 'setup') {
+    <p class="field-help">
+      Your Privacy Policy page. Linked from Checkout and onboarding.
+    </p>
+    }
+    <input
+      [ngModel]="privacyUrl()"
+      (ngModelChange)="OnPrivacyUrlChange($event)"
+      class="field-value"
+      type="url"
+      placeholder="https://example.com/privacy"
+      name="privacy-url"
+      [class.field-error]="showErrors && privacyUrlError()"
+    />
+    @if (showErrors && privacyUrlError()) {
+    <div class="error">{{ privacyUrlError() }}</div>
+    }
+  </div>
+</div>

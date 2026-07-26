@@ -47,29 +47,29 @@
       />
       <h1>Welcome to Zoneless</h1>
       <p class="welcome-subtitle">
-        The open-source Stripe Connect alternative for USDC payouts.
+        The open-source Stripe, built on stablecoins.
       </p>
 
       <div class="feature-list">
         <div class="feature-item">
           <img class="feature-icon" src="assets/icons/bolt.svg" alt="" />
           <div class="feature-text">
-            <strong>Instant payouts</strong>
-            <span>Instant USDC payouts to your sellers</span>
+            <strong>Instant settlement</strong>
+            <span>Payments settle in seconds, 24/7</span>
           </div>
         </div>
         <div class="feature-item">
           <img class="feature-icon" src="assets/icons/globe.svg" alt="" />
           <div class="feature-text">
-            <strong>Global payouts</strong>
-            <span>Payouts to anywhere in the world</span>
+            <strong>Same API &amp; dashboard</strong>
+            <span>Stripe-compatible — migrate in an afternoon</span>
           </div>
         </div>
         <div class="feature-item">
           <img class="feature-icon" src="assets/icons/savings.svg" alt="" />
           <div class="feature-text">
             <strong>Near-zero fees</strong>
-            <span>No platform fees — just minimal Solana gas</span>
+            <span>Fractions of a cent per payment, not a percentage cut</span>
           </div>
         </div>
         <div class="feature-item">
@@ -79,8 +79,8 @@
             alt=""
           />
           <div class="feature-text">
-            <strong>No lock-in</strong>
-            <span>Fully open-source and free to use</span>
+            <strong>Self-custody</strong>
+            <span>Your keys, your money — fully open-source</span>
           </div>
         </div>
       </div>
@@ -90,8 +90,8 @@
       </button>
 
       <p class="setup-note">
-        This setup will only take a minute. You'll need to configure your
-        platform details and Solana wallet.
+        This setup will only take a minute. You'll configure your business
+        details and Solana wallet.
       </p>
     </div>
     }
@@ -101,73 +101,18 @@
     <div class="setup-content">
       <button type="button" class="back-button" (click)="Back()">← Back</button>
 
-      <h1>Platform Details</h1>
+      <h1>Business Details</h1>
       <p class="step-description">
-        Configure your platform's name and branding.
+        Configure your business name and branding. These appear on Checkout,
+        Payment Links, and your dashboard.
       </p>
 
-      <div class="form-group">
-        <label for="platformName">Platform Name *</label>
-        <input
-          type="text"
-          id="platformName"
-          [ngModel]="platformName()"
-          (ngModelChange)="platformName.set($event)"
-          placeholder="My Marketplace"
-          class="form-input"
-        />
-        <span class="field-help"
-          >This will be shown to your users during onboarding.</span
-        >
-      </div>
-
-      <div class="form-group">
-        <label for="platformLogo">Logo URL (optional)</label>
-        <input
-          type="url"
-          id="platformLogo"
-          [ngModel]="platformLogoUrl()"
-          (ngModelChange)="platformLogoUrl.set($event)"
-          placeholder="https://example.com/logo.png"
-          class="form-input"
-        />
-        <span class="field-help"
-          >A square image works best. If not provided, initials will be
-          shown.</span
-        >
-      </div>
-
-      <div class="form-group">
-        <label for="termsUrl">Terms of Service URL (optional)</label>
-        <input
-          type="url"
-          id="termsUrl"
-          [ngModel]="termsUrl()"
-          (ngModelChange)="termsUrl.set($event)"
-          placeholder="https://example.com/terms"
-          class="form-input"
-        />
-        <span class="field-help"
-          >Your platform's Terms of Service page. Shown to sellers during
-          onboarding.</span
-        >
-      </div>
-
-      <div class="form-group">
-        <label for="privacyUrl">Privacy Policy URL (optional)</label>
-        <input
-          type="url"
-          id="privacyUrl"
-          [ngModel]="privacyUrl()"
-          (ngModelChange)="privacyUrl.set($event)"
-          placeholder="https://example.com/privacy"
-          class="form-input"
-        />
-        <span class="field-help"
-          >Your platform's Privacy Policy page. Shown to sellers during
-          onboarding.</span
-        >
-      </div>
+      <app-business-profile-form
+        #platformDetailsForm
+        mode="setup"
+        [initialData]="platformDetails()"
+        [showErrors]="platformShowErrors()"
+      ></app-business-profile-form>
 
       @if(error()) {
       <div class="error-message">{{ error() }}</div>
@@ -186,9 +131,9 @@
 
       <h1>Solana Wallet</h1>
       <p class="step-description">
-        Configure your platform's Solana wallet for receiving USDC deposits and
-        sending payouts. Your wallet's secret key is generated locally and never
-        sent to Zoneless.
+        Configure the Solana wallet that holds your USDC balance. Your secret
+        key is generated locally and never sent to Zoneless — self-custody by
+        default.
       </p>
 
       <div class="wallet-options">
@@ -274,7 +219,7 @@
           </div>
           <div class="credential-value mono">{{ generatedPublicKey() }}</div>
           <span class="credential-help">
-            Send USDC to this address to top up your platform balance.
+            Send USDC to this address to fund your balance.
           </span>
         </div>
 
@@ -293,7 +238,7 @@
             {{ generatedSecretKey() }}
           </div>
           <span class="credential-help warning">
-            Store this securely on your server. You'll use it to sign payout
+            Store this securely on your server. You'll use it to sign
             transactions. This key is never sent to Zoneless.
           </span>
         </div>
@@ -312,7 +257,7 @@
           />
           <span class="field-help">
             Enter your Solana wallet address. Keep your secret key safe on your
-            own server - you'll use it to sign payout transactions.
+            own server — you'll use it to sign transactions.
           </span>
         </div>
       </div>
@@ -344,7 +289,7 @@
       />
       <h1>Setup Complete!</h1>
       <p class="step-description">
-        Your platform is configured and ready to use. Save your API key below -
+        Your payments stack is ready. Save your API key below —
         <strong>it won't be shown again.</strong>
       </p>
 
@@ -389,7 +334,7 @@
             {{ setupResult()!.solana_public_key }}
           </div>
           <span class="credential-help">
-            Send USDC to this address to top up your platform balance.
+            Send USDC to this address to fund your balance.
           </span>
         </div>
       </div>
@@ -397,7 +342,7 @@
       <div class="next-steps">
         <h3>Next Steps</h3>
         <ol>
-          <li>Save your API key - you'll need it to make API requests</li>
+          <li>Save your API key — you'll need it to make API requests</li>
           @if(walletOption() === 'generate') {
           <li>
             Save your secret key securely on your server (shown in previous
@@ -405,7 +350,10 @@
           </li>
           }
           <li>Fund your Solana wallet with SOL (for fees) and USDC</li>
-          <li>Integrate the Zoneless API into your application</li>
+          <li>
+            Point your Stripe integration at this instance, or explore the
+            dashboard
+          </li>
         </ol>
       </div>
 
