@@ -172,6 +172,11 @@ zoneless/
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup, style guidelines, and the pull request process.
 
+## Anonymous usage telemetry
+
+Self-hosted Zoneless can optionally share anonymous usage heartbeats with
+maintainers (opt-in, off by default). See [TELEMETRY.md](./TELEMETRY.md).
+
 ## Security
 
 See [SECURITY.md](./SECURITY.md) to report vulnerabilities.

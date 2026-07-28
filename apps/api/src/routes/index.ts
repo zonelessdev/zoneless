@@ -33,6 +33,7 @@ import invoiceItemsRouter from './invoiceItems.routes';
 import invoicesRouter from './invoices.routes';
 import reportingRouter from './reporting.routes';
 import billingRouter from './billing.routes';
+import telemetryRouter from './telemetry.routes';
 
 const router = express.Router();
 
@@ -87,4 +88,5 @@ router.use('/charges', chargesRouter);
 router.use('/invoiceitems', invoiceItemsRouter);
 router.use('/invoices', invoicesRouter);
 router.use('/reporting', reportingRouter);
+router.use('/telemetry', telemetryRouter);
 export default router;

@@ -49,6 +49,11 @@ Key points:
 - Never commit `.env` files to version control
 - Rotate API keys periodically
 
+### Anonymous usage telemetry
+
+Opt-in anonymous usage heartbeats may be sent to zoneless.com (off by default).
+Force disable with `ZONELESS_TELEMETRY=0`. See [TELEMETRY.md](./TELEMETRY.md).
+
 ## Acknowledgments
 
 We would like to thank the following individuals for responsibly disclosing security issues.

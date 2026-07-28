@@ -449,6 +449,7 @@ export class Database {
       'TopUps',
       'Transfers',
       'UsageCounters',
+      'TelemetryConfigs',
       'WebhookEndpoints',
     ];
 

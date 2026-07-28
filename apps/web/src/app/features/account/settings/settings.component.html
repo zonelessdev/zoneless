@@ -41,6 +41,37 @@
 </div>
 }
 
+<!-- Anonymous usage (self-host platform only) -->
+@if ( authService.isPlatform() && telemetryService.status()?.available ) {
+<div class="view-section">
+  <div class="settings-section-title">Anonymous usage</div>
+  <label class="custom-checkbox field-check telemetry-opt-in">
+    <input
+      type="checkbox"
+      [checked]="!!telemetryService.status()?.consented"
+      [disabled]="!!telemetryService.status()?.forced_off || telemetrySaving()"
+      (change)="OnTelemetryToggle($any($event.target).checked)"
+    />
+    <span class="checkmark"></span>
+    <div>
+      Share anonymous usage statistics with Zoneless. Helps improve the
+      open-source project. No payment details, emails, or business data.
+      <a
+        href="https://zoneless.com/privacy"
+        target="_blank"
+        rel="noopener noreferrer"
+        >Learn more</a
+      >.
+    </div>
+  </label>
+  @if (telemetryService.status()?.forced_off) {
+  <p class="telemetry-forced-off">
+    Telemetry is disabled on this instance via environment configuration.
+  </p>
+  }
+</div>
+}
+
 <div class="view-section">
   <button
     type="button"

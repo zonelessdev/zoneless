@@ -114,6 +114,25 @@
         [showErrors]="platformShowErrors()"
       ></app-business-profile-form>
 
+      <label class="custom-checkbox field-check telemetry-opt-in">
+        <input
+          type="checkbox"
+          [checked]="telemetryEnabled()"
+          (change)="telemetryEnabled.set($any($event.target).checked)"
+        />
+        <span class="checkmark"></span>
+        <div>
+          Share anonymous usage statistics with Zoneless. Helps improve the
+          open-source project. No payment details, emails, or business data.
+          <a
+            href="https://zoneless.com/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Learn more</a
+          >.
+        </div>
+      </label>
+
       @if(error()) {
       <div class="error-message">{{ error() }}</div>
       }
