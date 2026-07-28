@@ -36,7 +36,9 @@ export class TelemetryMonitor {
     }
 
     if (!TelemetryMonitor.ShouldStart()) {
-      Logger.info('TelemetryMonitor skipped (disabled, operator, or test mode)');
+      Logger.info(
+        'TelemetryMonitor skipped (disabled, operator, or test mode)'
+      );
       return;
     }
 
