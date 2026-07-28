@@ -1,33 +1,32 @@
 /**
  * @fileOverview Telemetry Monitor — daily anonymous usage heartbeats
  *
- * Always starts; SendReport no-ops when consent is off or ZONELESS_TELEMETRY=0.
+ * Starts only for self-host live mode. SendReport still no-ops when consent
+ * is off or ZONELESS_TELEMETRY=0.
  *
  * @module TelemetryMonitor
  */
 
 import { Database } from './Database';
+import { GetAppConfig } from './AppConfig';
 import { GetTelemetryModule, IsTelemetryForcedOff } from './Telemetry';
 import { Logger } from '../utils/Logger';
 
-const TELEMETRY_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const TELEMETRY_INTERVAL_MS = 1000 * 60 * 60 * 24;
 
 export class TelemetryMonitor {
   private readonly db: Database;
   private intervalId: NodeJS.Timeout | null = null;
+  private startupTimeoutId: NodeJS.Timeout | null = null;
   private isRunning = false;
 
   constructor(db: Database) {
     this.db = db;
   }
 
-  static GetPollInterval(): number {
-    return TELEMETRY_INTERVAL_MS;
-  }
-
-  /** Skip starting when telemetry is force-disabled via env. */
+  /** Skip when force-disabled, operator mode, or test mode. */
   static ShouldStart(): boolean {
-    return !IsTelemetryForcedOff();
+    return !IsTelemetryForcedOff() && GetAppConfig().livemode;
   }
 
   Start(): void {
@@ -37,7 +36,7 @@ export class TelemetryMonitor {
     }
 
     if (!TelemetryMonitor.ShouldStart()) {
-      Logger.info('TelemetryMonitor skipped (ZONELESS_TELEMETRY=0)');
+      Logger.info('TelemetryMonitor skipped (disabled, operator, or test mode)');
       return;
     }
 
@@ -47,7 +46,8 @@ export class TelemetryMonitor {
     });
 
     // Delay first tick slightly so startup isn't blocked on network
-    setTimeout(() => {
+    this.startupTimeoutId = setTimeout(() => {
+      this.startupTimeoutId = null;
       this.Tick().catch((error) => {
         Logger.warn('TelemetryMonitor initial tick failed', {
           error: error instanceof Error ? error.message : String(error),
@@ -65,16 +65,16 @@ export class TelemetryMonitor {
   }
 
   Stop(): void {
+    if (this.startupTimeoutId) {
+      clearTimeout(this.startupTimeoutId);
+      this.startupTimeoutId = null;
+    }
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
     this.isRunning = false;
     Logger.info('TelemetryMonitor stopped');
-  }
-
-  IsRunning(): boolean {
-    return this.isRunning;
   }
 
   private async Tick(): Promise<void> {

@@ -32,7 +32,8 @@ const SEVEN_DAYS_SECONDS = 7 * 24 * 60 * 60;
 
 /** Amounts in BalanceTransactions are Stripe-style cents. */
 const VOLUME_BUCKETS: { maxCents: number; bucket: TelemetryVolumeBucket }[] = [
-  { maxCents: 0, bucket: '0' },
+  { maxCents: 1_000, bucket: 'lt_10' }, // < $10
+  { maxCents: 10_000, bucket: 'lt_100' }, // < $100
   { maxCents: 100_000, bucket: 'lt_1k' }, // < $1,000
   { maxCents: 1_000_000, bucket: 'lt_10k' },
   { maxCents: 10_000_000, bucket: 'lt_100k' },
@@ -76,7 +77,6 @@ function BucketPaymentCount(count: number): TelemetryPaymentCountBucket {
 function BucketVolumeCents(cents: number): TelemetryVolumeBucket {
   if (cents <= 0) return '0';
   for (const { maxCents, bucket } of VOLUME_BUCKETS) {
-    if (maxCents === 0) continue;
     if (cents < maxCents) return bucket;
   }
   return 'gte_1m';
@@ -111,10 +111,11 @@ export class TelemetryModule {
     const available = IsTelemetryAvailable();
     const forcedOff = IsTelemetryForcedOff();
     const consented = !!config?.enabled;
+    const livemode = GetAppConfig().livemode;
     return {
       object: 'telemetry_status',
       available,
-      enabled: available && consented && !forcedOff,
+      enabled: available && consented && !forcedOff && livemode,
       consented,
       forced_off: forcedOff,
       instance_id: config?.instance_id ?? null,
@@ -174,6 +175,10 @@ export class TelemetryModule {
     if (IsTelemetryForcedOff()) {
       return false;
     }
+    // Test-mode instances never report (consent may still be stored).
+    if (!GetAppConfig().livemode) {
+      return false;
+    }
     const config = await this.GetConfig();
     return !!config?.enabled && !!config.instance_id;
   }
@@ -187,7 +192,7 @@ export class TelemetryModule {
     const platforms = await this.accountModule.GetPlatformAccounts();
     const setupCompleted = platforms.length > 0;
 
-    const { paymentCount, volumeCents, connectedCount } =
+    const { paymentCount, volumeCents, payoutVolumeCents, connectedCount } =
       await this.AggregateSevenDayMetrics();
 
     const nodeMajor = parseInt(process.versions.node.split('.')[0], 10) || 0;
@@ -202,6 +207,7 @@ export class TelemetryModule {
       node_major: nodeMajor,
       payment_count_7d: BucketPaymentCount(paymentCount),
       usdc_volume_7d: BucketVolumeCents(volumeCents),
+      usdc_payout_volume_7d: BucketVolumeCents(payoutVolumeCents),
       connected_accounts: BucketConnectedAccounts(connectedCount),
     };
   }
@@ -225,12 +231,11 @@ export class TelemetryModule {
         return false;
       }
 
-      const url = TELEMETRY_URL;
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS);
 
       try {
-        const response = await fetch(url, {
+        const response = await fetch(TELEMETRY_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(report),
@@ -265,11 +270,14 @@ export class TelemetryModule {
   private async AggregateSevenDayMetrics(): Promise<{
     paymentCount: number;
     volumeCents: number;
+    payoutVolumeCents: number;
     connectedCount: number;
   }> {
     const end = Now();
     const start = end - SEVEN_DAYS_SECONDS;
 
+    // One BalanceTransaction per event — payment and charge are alternate types,
+    // not two rows for the same payment. Current writers use type: 'payment'.
     const volumeRows = await this.db.Aggregate<{
       count: number;
       gross: number;
@@ -292,6 +300,27 @@ export class TelemetryModule {
     const paymentCount = volumeRows[0]?.count ?? 0;
     const volumeCents = volumeRows[0]?.gross ?? 0;
 
+    // Payout BTs store amount as negative; bucket absolute outflow.
+    const payoutRows = await this.db.Aggregate<{ gross: number }>(
+      'BalanceTransactions',
+      [
+        {
+          $match: {
+            type: 'payout',
+            created: { $gte: start, $lt: end },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            gross: { $sum: { $abs: '$amount' } },
+          },
+        },
+      ]
+    );
+
+    const payoutVolumeCents = payoutRows[0]?.gross ?? 0;
+
     const connectedRows = await this.db.Aggregate<{ count: number }>(
       'Accounts',
       [
@@ -306,7 +335,7 @@ export class TelemetryModule {
 
     const connectedCount = connectedRows[0]?.count ?? 0;
 
-    return { paymentCount, volumeCents, connectedCount };
+    return { paymentCount, volumeCents, payoutVolumeCents, connectedCount };
   }
 }
 

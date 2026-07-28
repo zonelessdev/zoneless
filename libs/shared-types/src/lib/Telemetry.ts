@@ -17,6 +17,8 @@ export type TelemetryPaymentCountBucket =
  */
 export type TelemetryVolumeBucket =
   | '0'
+  | 'lt_10'
+  | 'lt_100'
   | 'lt_1k'
   | 'lt_10k'
   | 'lt_100k'
@@ -44,7 +46,10 @@ export interface TelemetryReport {
   os: string;
   node_major: number;
   payment_count_7d: TelemetryPaymentCountBucket;
+  /** Settled payment/charge volume (last 7 days), coarse bucket */
   usdc_volume_7d: TelemetryVolumeBucket;
+  /** Absolute payout volume (last 7 days), coarse bucket */
+  usdc_payout_volume_7d: TelemetryVolumeBucket;
   connected_accounts: TelemetryConnectedAccountsBucket;
 }
 
@@ -70,7 +75,7 @@ export interface TelemetryStatus {
   object: 'telemetry_status';
   /** False on operator-managed instances (telemetry UI hidden) */
   available: boolean;
-  /** Effective enabled state (available && consented && !forced_off) */
+  /** Effective enabled state (available && consented && !forced_off && livemode) */
   enabled: boolean;
   /** Whether this instance has consented in the DB */
   consented: boolean;
