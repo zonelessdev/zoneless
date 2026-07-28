@@ -100,6 +100,11 @@ export interface SetupRequest {
   country?: string;
   /** Solana wallet public key (required - generated in browser or existing wallet) */
   solana_public_key: string;
+  /**
+   * Opt into anonymous usage telemetry (default false).
+   * See TELEMETRY.md — never sends PII or exact payment amounts.
+   */
+  telemetry_enabled?: boolean;
 }
 
 /**

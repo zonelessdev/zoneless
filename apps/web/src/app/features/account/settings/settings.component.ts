@@ -21,6 +21,7 @@ import {
   WebhookEndpointService,
   TopupService,
   ConfigService,
+  TelemetryService,
 } from '../../../data';
 import {
   BusinessProfileFormComponent,
@@ -59,6 +60,7 @@ export class SettingsComponent implements OnInit {
   readonly apiKeyService = inject(ApiKeyService);
   readonly topupService = inject(TopupService);
   readonly configService = inject(ConfigService);
+  readonly telemetryService = inject(TelemetryService);
   readonly router = inject(Router);
   private readonly metaService = inject(MetaService);
 
@@ -78,8 +80,25 @@ export class SettingsComponent implements OnInit {
   editBusinessLoading: WritableSignal<boolean> = signal(false);
   editBusinessShowErrors: WritableSignal<boolean> = signal(false);
 
+  telemetrySaving: WritableSignal<boolean> = signal(false);
+
   ngOnInit(): void {
     this.metaService.SetMetaTitle('Settings');
+    if (this.authService.isPlatform()) {
+      this.telemetryService.GetStatus();
+    }
+  }
+
+  async OnTelemetryToggle(checked: boolean): Promise<void> {
+    this.telemetrySaving.set(true);
+    try {
+      await this.telemetryService.SetEnabled(checked);
+    } catch (error) {
+      console.error('Failed to update telemetry preference:', error);
+      await this.telemetryService.GetStatus();
+    } finally {
+      this.telemetrySaving.set(false);
+    }
   }
 
   // Edit Business Panel
@@ -220,6 +239,7 @@ export class SettingsComponent implements OnInit {
     this.webhookEndpointService.Reset();
     this.apiKeyService.Reset();
     this.topupService.Reset();
+    this.telemetryService.Reset();
     this.router.navigateByUrl('/');
   }
 }

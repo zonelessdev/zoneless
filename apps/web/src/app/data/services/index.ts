@@ -15,6 +15,7 @@ export * from './product.service';
 export * from './reporting.service';
 export * from './setup.service';
 export * from './subscription.service';
+export * from './telemetry.service';
 export * from './topup.service';
 export * from './transaction.service';
 export * from './webhook-endpoint.service';

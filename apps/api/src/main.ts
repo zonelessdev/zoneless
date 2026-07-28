@@ -26,6 +26,10 @@ import {
 import { db } from './modules/Database';
 import { GetTopUpMonitor, TopUpMonitor } from './modules/TopUpMonitor';
 import { GetBillingMonitor, BillingMonitor } from './modules/BillingMonitor';
+import {
+  GetTelemetryMonitor,
+  TelemetryMonitor,
+} from './modules/TelemetryMonitor';
 import { AccountModule } from './modules/Account';
 import { ExternalWalletModule } from './modules/ExternalWallet';
 
@@ -207,6 +211,11 @@ async function StartServer() {
       );
     }
 
+    // Daily anonymous usage heartbeats (no-ops unless opted in)
+    if (TelemetryMonitor.ShouldStart()) {
+      GetTelemetryMonitor(db).Start();
+    }
+
     const server = app.listen(port, () => {
       console.log(`🚀 API running at http://localhost:${port}/v1`);
       console.log(`📊 Health check at http://localhost:${port}/api/health`);
@@ -239,6 +248,11 @@ async function StartServer() {
       if (BillingMonitor.IsEnabled()) {
         const billingMonitor = GetBillingMonitor(db);
         billingMonitor.Stop();
+      }
+
+      if (TelemetryMonitor.ShouldStart()) {
+        const telemetryMonitor = GetTelemetryMonitor(db);
+        telemetryMonitor.Stop();
       }
 
       server.close(async () => {

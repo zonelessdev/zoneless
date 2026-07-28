@@ -1,3 +1,45 @@
 @use '../../../styles/base.scss' as *;
 @use '../../../styles/buttons.scss' as *;
 @use '../../../styles/account.scss' as *;
+@use '../../../styles/forms.scss' as *;
+
+.telemetry-opt-in {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-small;
+  margin-top: $spacing-small;
+  margin-bottom: 0;
+  cursor: pointer;
+
+  .checkmark {
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
+    margin-top: 2px;
+    box-sizing: border-box;
+  }
+
+  div {
+    flex: 1;
+    margin-left: 0;
+    font-size: $font-size;
+    line-height: 1.45;
+    color: $text-color;
+  }
+
+  a {
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    text-decoration: underline;
+  }
+}
+
+.telemetry-forced-off {
+  margin-top: $spacing-small;
+  font-size: $font-size-small;
+  color: rgba($text-color, 0.65);
+}

@@ -60,6 +60,9 @@ export class SetupComponent implements OnInit {
   platformDetails: WritableSignal<BusinessProfileSetupData | null> =
     signal(null);
 
+  /** Anonymous usage telemetry opt-in (default off; self-host setup only) */
+  telemetryEnabled: WritableSignal<boolean> = signal(false);
+
   // Wallet options
   walletOption: WritableSignal<'generate' | 'import'> = signal('generate');
 
@@ -221,6 +224,7 @@ export class SetupComponent implements OnInit {
       const response = await this.setupService.CompleteSetup({
         ...platformDetails,
         solana_public_key: publicKey,
+        telemetry_enabled: this.telemetryEnabled(),
       });
 
       this.setupResult.set(response);
