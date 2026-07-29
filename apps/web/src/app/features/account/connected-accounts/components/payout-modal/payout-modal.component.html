@@ -3,8 +3,9 @@
   title="Pay out to wallet"
   closeLabel="Cancel"
   submitLabel="Pay out"
-  [submitDisabled]="true"
-  (submitted)="OnSubmit()"
+  [loading]="actions.payoutLoading()"
+  [submitDisabled]="!actions.canSubmitPayout()"
+  (submitted)="actions.ConfirmPayout()"
   (closed)="actions.ClosePayout()"
 >
   <div class="fund-modal">
@@ -23,6 +24,7 @@
           placeholder="0.00"
           [value]="actions.payoutAmount()"
           (input)="OnAmountInput($event)"
+          [disabled]="actions.payoutLoading()"
         />
       </div>
       <div class="field-help">
@@ -40,12 +42,13 @@
       </div>
     </div>
 
-    <div class="field">
+    <!-- <div class="field">
       <div class="field-title">Delivery method</div>
       <select
         class="text-input"
         [value]="actions.payoutMethod()"
         (change)="OnMethodChange($event)"
+        [disabled]="actions.payoutLoading()"
       >
         <option value="instant">Instant</option>
         <option value="standard">Standard</option>
@@ -60,8 +63,9 @@
         maxlength="22"
         [value]="actions.payoutStatementDescriptor()"
         (input)="OnStatementInput($event)"
+        [disabled]="actions.payoutLoading()"
       />
-    </div>
+    </div> -->
 
     <div class="confirm-section">
       <div class="confirm-heading">Confirm payout</div>
@@ -70,9 +74,25 @@
           type="checkbox"
           [checked]="actions.payoutConfirmed()"
           (change)="OnConfirmChange($event)"
+          [disabled]="actions.payoutLoading()"
         />
         <span>{{ confirmLabel() }}</span>
       </label>
     </div>
+
+    @if (actions.payoutError()) {
+    <div class="fund-error">
+      {{ actions.payoutError() }}
+      @if (showFeePayerHelp()) {
+      <a
+        href="https://zoneless.com/docs/environment-variables"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Learn how to configure environment variables.
+      </a>
+      }
+    </div>
+    }
   </div>
 </app-modal>

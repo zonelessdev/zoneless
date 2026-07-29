@@ -18,8 +18,9 @@ import {
   AccountService,
   AccountLinkService,
   BalanceService,
-  TransferService,
   ExternalWalletService,
+  PayoutService,
+  TransferService,
 } from '../../../../data';
 import { GetCountryName } from '../../../../utils';
 
@@ -39,7 +40,8 @@ export type ConnectedAccountActionEvent =
     }
   | { type: 'updated'; account: Account }
   | { type: 'funds_added'; accountId: string }
-  | { type: 'funds_pulled'; accountId: string };
+  | { type: 'funds_pulled'; accountId: string }
+  | { type: 'payout_processed'; accountId: string };
 
 export interface ConnectedAccountDraft {
   country: string;
@@ -60,6 +62,7 @@ export class ConnectedAccountActionsService {
   private readonly balanceService = inject(BalanceService);
   private readonly transferService = inject(TransferService);
   private readonly externalWalletService = inject(ExternalWalletService);
+  private readonly payoutService = inject(PayoutService);
 
   // ── Create flow ──────────────────────────────────────────────────────────
   flowOpen: WritableSignal<boolean> = signal(false);
@@ -110,6 +113,8 @@ export class ConnectedAccountActionsService {
   payoutStatementDescriptor: WritableSignal<string> = signal('');
   payoutConfirmed: WritableSignal<boolean> = signal(false);
   payoutMethod: WritableSignal<'standard' | 'instant'> = signal('instant');
+  payoutLoading: WritableSignal<boolean> = signal(false);
+  payoutError: WritableSignal<string> = signal('');
 
   profilePanelOpen: WritableSignal<boolean> = signal(false);
 
@@ -138,6 +143,18 @@ export class ConnectedAccountActionsService {
     const amount = this.ParseAmountCents(this.pullFundsAmount());
     const available = this.GetAvailableAmount(this.connectedBalance());
     return amount > 0 && amount <= available && !this.pullFundsLoading();
+  });
+
+  readonly canSubmitPayout = computed(() => {
+    const amount = this.ParseAmountCents(this.payoutAmount());
+    const available = this.GetAvailableAmount(this.connectedBalance());
+    return (
+      amount > 0 &&
+      amount <= available &&
+      !!this.GetDefaultWallet() &&
+      this.payoutConfirmed() &&
+      !this.payoutLoading()
+    );
   });
 
   readonly events$ = new Subject<ConnectedAccountActionEvent>();
@@ -432,14 +449,18 @@ export class ConnectedAccountActionsService {
     }
   }
 
-  // ── Payout (UI only) ─────────────────────────────────────────────────────
+  // ── Payout ───────────────────────────────────────────────────────────────
 
   async OpenPayout(account: Account): Promise<void> {
     this.activeAccount.set(account);
     this.payoutAmount.set('');
-    this.payoutStatementDescriptor.set('');
+    this.payoutStatementDescriptor.set(
+      account.settings?.payouts?.statement_descriptor ?? ''
+    );
     this.payoutConfirmed.set(false);
     this.payoutMethod.set('instant');
+    this.payoutError.set('');
+    this.payoutLoading.set(false);
     try {
       const [connectedBalance] = await Promise.all([
         this.balanceService.GetBalance(account.id),
@@ -454,6 +475,53 @@ export class ConnectedAccountActionsService {
 
   ClosePayout(): void {
     this.payoutOpen.set(false);
+    this.payoutError.set('');
+    this.payoutLoading.set(false);
+  }
+
+  async ConfirmPayout(): Promise<void> {
+    const account = this.activeAccount();
+    const wallet = this.GetDefaultWallet();
+    if (!account || !wallet || !this.canSubmitPayout()) return;
+
+    this.payoutLoading.set(true);
+    this.payoutError.set('');
+
+    try {
+      const statementDescriptor = this.payoutStatementDescriptor().trim();
+      const result = await this.payoutService.CreateDashboardPayout(
+        account.id,
+        {
+          amount: this.ParseAmountCents(this.payoutAmount()),
+          currency: 'usdc',
+          destination: wallet.id,
+          method: this.payoutMethod(),
+          ...(statementDescriptor
+            ? { statement_descriptor: statementDescriptor }
+            : {}),
+        }
+      );
+
+      this.events$.next({
+        type: 'payout_processed',
+        accountId: account.id,
+      });
+
+      if (result.status === 'failed') {
+        this.payoutError.set(
+          result.failure_message || 'Failed to process payout.'
+        );
+        return;
+      }
+
+      this.ClosePayout();
+    } catch (err) {
+      this.payoutError.set(
+        err instanceof Error ? err.message : 'Failed to process payout.'
+      );
+    } finally {
+      this.payoutLoading.set(false);
+    }
   }
 
   // ── Profile panel ────────────────────────────────────────────────────────
