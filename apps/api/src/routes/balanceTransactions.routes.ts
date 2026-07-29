@@ -9,6 +9,7 @@ import { db } from '../modules/Database';
 import { BalanceTransactionModule } from '../modules/BalanceTransaction';
 import { AccountModule } from '../modules/Account';
 import { CanAccessAccount } from '../modules/PlatformAccess';
+import { OptionalConnectedAccount } from '../middleware/Authorization';
 
 const router = express.Router();
 
@@ -34,10 +35,15 @@ const accountModule = new AccountModule(db);
  */
 router.get(
   '/',
+  OptionalConnectedAccount('zoneless-account'),
   AsyncHandler(async (req: express.Request, res: express.Response) => {
-    const accountId = req.user.account;
+    // Platforms may pass Zoneless-Account to list a connected account's transactions
+    const accountId = req.connectedAccount?.id ?? req.user.account;
 
-    Logger.info('Listing balance transactions', { accountId });
+    Logger.info('Listing balance transactions', {
+      accountId,
+      onBehalf: !!req.connectedAccount,
+    });
 
     const limit = req.query.limit
       ? parseInt(req.query.limit as string, 10)

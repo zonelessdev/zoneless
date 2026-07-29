@@ -13,6 +13,13 @@ export const connectedAccountRoutes: Routes = [
             './views/connected-accounts-list/connected-accounts-list.component'
           ).then((m) => m.ConnectedAccountsListComponent),
       },
+      {
+        path: ':accountId',
+        loadComponent: () =>
+          import(
+            './views/connected-account-detail/connected-account-detail.component'
+          ).then((m) => m.ConnectedAccountDetailViewComponent),
+      },
     ],
   },
 ];

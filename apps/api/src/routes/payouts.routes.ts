@@ -12,6 +12,7 @@ import {
   RequirePlatform,
   RequireResourceOwnership,
   RequireConnectedAccountOwnership,
+  OptionalConnectedAccount,
 } from '../middleware/Authorization';
 import {
   CreatePayoutSchema,
@@ -289,6 +290,7 @@ router.get(
  */
 router.get(
   '/',
+  OptionalConnectedAccount('zoneless-account'),
   AsyncHandler(async (req: express.Request, res: express.Response) => {
     const limit = req.query.limit
       ? parseInt(req.query.limit as string, 10)
@@ -313,9 +315,22 @@ router.get(
       | undefined;
 
     try {
-      // For platforms, get payouts for all connected accounts using platform_account
-      // For connected accounts, only get their own payouts
-      if (req.user.platform) {
+      // Platform acting on behalf of a connected account
+      if (req.connectedAccount) {
+        const result = await payoutModule.ListPayouts({
+          account: req.connectedAccount.id,
+          limit,
+          startingAfter,
+          endingBefore,
+          status: statusFilter,
+          destination,
+          created,
+          arrivalDate,
+        });
+
+        res.json(result);
+      } else if (req.user.platform) {
+        // For platforms, get payouts for all connected accounts using platform_account
         const result = await payoutModule.ListPayoutsByPlatform({
           platformAccount: req.user.account,
           limit,

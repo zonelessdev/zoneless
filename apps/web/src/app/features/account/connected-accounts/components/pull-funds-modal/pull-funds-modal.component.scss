@@ -1,0 +1,47 @@
+@use '../../../../../styles/base.scss' as *;
+@use '../../../../../styles/forms.scss' as *;
+@use '../../../../../styles/spacing.scss' as *;
+
+.fund-modal {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing;
+}
+
+.fund-static-value {
+  font-size: $font-size;
+  padding: $spacing-extra-small 0;
+}
+
+.amount-input-row {
+  display: flex;
+  align-items: stretch;
+  gap: $spacing-small;
+}
+
+.currency-badge {
+  display: flex;
+  align-items: center;
+  gap: $spacing-extra-small;
+  padding: 0 $spacing-small;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  font-size: $font-size-small;
+  font-weight: 600;
+  white-space: nowrap;
+
+  img {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.amount-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.fund-error {
+  color: #dc2626;
+  font-size: $font-size-small;
+}

@@ -33,6 +33,8 @@ export class ModalComponent implements OnChanges {
   @Input() destructive = false;
   /** Show a loader on the confirm button and block dismissal */
   @Input() loading = false;
+  /** Disable the confirm button without showing a loader */
+  @Input() submitDisabled = false;
 
   @Output() submitted = new EventEmitter<void>();
   @Output() closed = new EventEmitter<void>();
@@ -79,7 +81,7 @@ export class ModalComponent implements OnChanges {
   }
 
   OnSubmit(): void {
-    if (this.loading) return;
+    if (this.loading || this.submitDisabled) return;
     this.submitted.emit();
   }
 }

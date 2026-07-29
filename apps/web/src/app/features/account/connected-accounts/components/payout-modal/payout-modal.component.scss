@@ -1,0 +1,74 @@
+@use '../../../../../styles/base.scss' as *;
+@use '../../../../../styles/forms.scss' as *;
+@use '../../../../../styles/spacing.scss' as *;
+
+.fund-modal {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing;
+}
+
+.payout-status {
+  font-size: $font-size-small;
+  opacity: $dimmed;
+}
+
+.amount-input-row {
+  display: flex;
+  align-items: center;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  overflow: hidden;
+}
+
+.amount-prefix {
+  padding: 0 $spacing-small 0 $spacing;
+  font-size: $font-size;
+  opacity: $dimmed;
+  white-space: nowrap;
+}
+
+.amount-input {
+  border: none !important;
+  border-radius: 0 !important;
+  flex: 1;
+  min-width: 0;
+}
+
+.fund-static-value {
+  font-size: $font-size;
+  padding: $spacing-extra-small 0;
+}
+
+.wallet-default {
+  opacity: $dimmed;
+}
+
+.confirm-section {
+  border-top: 1px solid $darkest-background-color;
+  padding-top: $spacing;
+  margin-top: $spacing-extra-small;
+}
+
+.confirm-heading {
+  font-size: $font-size-small;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: $dimmed;
+  margin-bottom: $spacing-small;
+}
+
+.confirm-row {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-small;
+  font-size: $font-size;
+  cursor: pointer;
+  line-height: 1.4;
+
+  input {
+    margin-top: 3px;
+    flex-shrink: 0;
+  }
+}

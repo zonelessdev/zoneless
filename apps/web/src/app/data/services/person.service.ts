@@ -98,8 +98,15 @@ export class PersonService {
     const lines: string[] = [];
     if (person.address.line1) lines.push(person.address.line1);
     if (person.address.line2) lines.push(person.address.line2);
-    if (person.address.city) lines.push(person.address.city);
-    if (person.address.postal_code) lines.push(person.address.postal_code);
+
+    const cityState = [person.address.city, person.address.state]
+      .filter(Boolean)
+      .join(', ');
+    const locality = [cityState, person.address.postal_code]
+      .filter(Boolean)
+      .join(' ');
+    if (locality) lines.push(locality);
+
     if (person.address.country) {
       const countryName = GetCountryName(person.address.country);
       lines.push(countryName || person.address.country);

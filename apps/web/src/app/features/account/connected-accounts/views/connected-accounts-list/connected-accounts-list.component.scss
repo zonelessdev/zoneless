@@ -1,9 +1,2 @@
 @use '../../../../../styles/account.scss' as *;
 @use '../../../../../styles/buttons.scss' as *;
-
-.loading-state {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-}

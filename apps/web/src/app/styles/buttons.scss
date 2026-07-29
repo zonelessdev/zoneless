@@ -154,3 +154,11 @@
   transform: none;
   box-shadow: none;
 }
+
+.action-button:disabled,
+.action-button:disabled:hover {
+  opacity: $dimmed-extra;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}

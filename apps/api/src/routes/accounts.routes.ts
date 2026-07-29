@@ -58,8 +58,8 @@ async function PopulateAccountResources(
     account.individual = person;
   }
 
-  // External accounts and login links are only returned when controller.is_controller is true
-  if (isPlatformRequest && account.controller?.is_controller) {
+  // External accounts and login links are returned for platform/controller requests
+  if (isPlatformRequest) {
     const [externalWallets, loginLinkRecords] = await Promise.all([
       externalWalletModule.GetExternalWalletsByAccount(account.id),
       loginLinkModule.GetLoginLinksByAccount(account.id),

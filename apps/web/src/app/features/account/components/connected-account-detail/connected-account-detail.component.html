@@ -14,16 +14,9 @@
   <button
     type="button"
     class="action-button action-button-dainty outline panel-action-button"
-    (click)="CopyLoginLink()"
-    [disabled]="loadingLoginLink()"
+    (click)="OnViewDashboard()"
   >
-    @if (loadingLoginLink()) {
-    <span>Copying...</span>
-    } @else if (copiedLoginLink()) {
-    <span>Copied! Open in incognito</span>
-    } @else {
-    <span>Copy login link</span>
-    }
+    <span>View dashboard as account</span>
   </button>
 
   <!-- Account Details Section -->
@@ -134,6 +127,15 @@
     <div class="panel-row">
       <span class="panel-label">Date of birth</span>
       <span class="panel-value">{{ GetPersonDob() }}</span>
+    </div>
+    } @if (GetPersonAddressLines(); as addressLines) {
+    <div class="panel-row">
+      <span class="panel-label">Address</span>
+      <span class="panel-value">
+        @for (line of addressLines; track line) {
+        <div>{{ line }}</div>
+        }
+      </span>
     </div>
     }
   </div>

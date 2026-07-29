@@ -22,6 +22,7 @@ import { ValidateRequest } from '../middleware/ValidateRequest';
 import {
   RequirePlatform,
   RequireResourceOwnership,
+  OptionalConnectedAccount,
 } from '../middleware/Authorization';
 import {
   CreateTransferSchema,
@@ -131,12 +132,44 @@ const requireTransferReadAccess = AsyncHandler(
 router.post(
   '/',
   RequirePlatform(),
+  OptionalConnectedAccount('zoneless-account'),
   ValidateRequest(CreateTransferSchema),
   AsyncHandler(async (req: express.Request, res: express.Response) => {
     const platformAccountId = req.user.account;
     const { destination } = req.body;
 
-    // Verify the destination account belongs to this platform
+    // Pull funds: platform acts on behalf of connected account → platform balance
+    if (req.connectedAccount) {
+      if (destination !== platformAccountId) {
+        throw new AppError(
+          'When using Zoneless-Account, destination must be the platform account.',
+          ERRORS.INVALID_REQUEST.status,
+          ERRORS.INVALID_REQUEST.type
+        );
+      }
+
+      Logger.info('Creating pull-funds transfer', {
+        account: req.connectedAccount.id,
+        amount: req.body.amount,
+        destination: platformAccountId,
+      });
+
+      const transfer = await transferModule.CreateTransfer(
+        req.connectedAccount.id,
+        req.body
+      );
+
+      Logger.info('Pull-funds transfer created successfully', {
+        transferId: transfer.id,
+        amount: transfer.amount,
+        destination: transfer.destination,
+      });
+
+      res.status(201).json(transfer);
+      return;
+    }
+
+    // Add funds: platform → connected account
     const destinationAccount = await accountModule.GetAccount(destination);
 
     if (!destinationAccount) {

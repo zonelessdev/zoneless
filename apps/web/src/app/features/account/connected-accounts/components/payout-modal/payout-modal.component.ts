@@ -1,0 +1,69 @@
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ModalComponent } from '../../../../../shared';
+import { ConnectedAccountActionsService } from '../../services/connected-account-actions.service';
+
+@Component({
+  selector: 'app-payout-modal',
+  imports: [ModalComponent, FormsModule],
+  templateUrl: './payout-modal.component.html',
+  styleUrl: './payout-modal.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class PayoutModalComponent {
+  readonly actions = inject(ConnectedAccountActionsService);
+
+  readonly availableCents = computed(() =>
+    this.actions.GetAvailableAmount(this.actions.connectedBalance())
+  );
+
+  readonly availableLabel = computed(() =>
+    (this.availableCents() / 100).toFixed(2)
+  );
+
+  readonly hasBalance = computed(() => this.availableCents() > 0);
+
+  readonly walletLabel = computed(() =>
+    this.actions.FormatWalletLabel(this.actions.GetDefaultWallet())
+  );
+
+  readonly confirmLabel = computed(() => {
+    const amount = this.actions.ParseAmountCents(this.actions.payoutAmount());
+    const dollars = (amount / 100).toFixed(2);
+    const name = this.actions.GetDisplayName();
+    const wallet = this.walletLabel();
+    return `Pay out US$${dollars} from ${name}'s balance to ${wallet}.`;
+  });
+
+  OnAmountInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.actions.payoutAmount.set(value);
+  }
+
+  OnStatementInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.actions.payoutStatementDescriptor.set(value);
+  }
+
+  OnConfirmChange(event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.actions.payoutConfirmed.set(checked);
+  }
+
+  OnMethodChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value as
+      | 'standard'
+      | 'instant';
+    this.actions.payoutMethod.set(value);
+  }
+
+  OnSubmit(): void {
+    // Payout logic is intentionally not implemented yet
+    this.actions.ClosePayout();
+  }
+}

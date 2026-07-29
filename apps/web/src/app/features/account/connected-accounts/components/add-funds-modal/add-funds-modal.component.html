@@ -1,0 +1,72 @@
+<app-modal
+  [isOpen]="actions.addFundsOpen()"
+  [title]="'Send funds to ' + actions.GetDisplayName()"
+  closeLabel="Cancel"
+  submitLabel="Send"
+  [loading]="actions.addFundsLoading()"
+  [submitDisabled]="!actions.canSubmitAddFunds()"
+  (submitted)="actions.ConfirmAddFunds()"
+  (closed)="actions.CloseAddFunds()"
+>
+  <div class="fund-modal">
+    <div class="fund-source">
+      From your platform balance
+      <span class="fund-available">US${{ availableLabel() }} available</span>
+    </div>
+
+    <div class="field">
+      <div class="field-title">Amount</div>
+      <div class="amount-input-row">
+        <span class="amount-prefix">US$</span>
+        <input
+          type="text"
+          inputmode="decimal"
+          class="text-input amount-input"
+          placeholder="0.00"
+          [value]="actions.addFundsAmount()"
+          (input)="OnAmountInput($event)"
+          [disabled]="actions.addFundsLoading()"
+        />
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-title">Send to</div>
+      <div class="fund-static-value">
+        {{ actions.GetDisplayName() }}'s balance
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-title">
+        Transfer group
+        <span class="field-optional">Optional</span>
+      </div>
+      <input
+        type="text"
+        class="text-input"
+        placeholder="Optional"
+        [value]="actions.addFundsTransferGroup()"
+        (input)="OnTransferGroupInput($event)"
+        [disabled]="actions.addFundsLoading()"
+      />
+    </div>
+
+    <div class="confirm-section">
+      <div class="confirm-heading">Confirm transfer</div>
+      <label class="confirm-row">
+        <input
+          type="checkbox"
+          [checked]="actions.addFundsConfirmed()"
+          (change)="OnConfirmChange($event)"
+          [disabled]="actions.addFundsLoading()"
+        />
+        <span>{{ confirmLabel() }}</span>
+      </label>
+    </div>
+
+    @if (actions.addFundsError()) {
+    <div class="fund-error">{{ actions.addFundsError() }}</div>
+    }
+  </div>
+</app-modal>
