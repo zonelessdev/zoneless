@@ -6,6 +6,7 @@ import {
   signal,
   WritableSignal,
 } from '@angular/core';
+import { Router } from '@angular/router';
 
 import { TransactionService, AccountService } from '../../../../data';
 import { AuthService } from '../../../../core';
@@ -23,7 +24,7 @@ import {
   TransferDetailComponent,
 } from './components/index';
 
-import type { BalanceTransaction, Account } from '@zoneless/shared-types';
+import type { BalanceTransaction } from '@zoneless/shared-types';
 
 @Component({
   selector: 'app-transaction-list',
@@ -44,16 +45,18 @@ export class TransactionListComponent {
   @Input() limit = 10;
   @Input() paginationEnabled = true;
   @Input() queryParams: Record<string, string> = {};
+  /** Act on behalf of a connected account when listing transactions */
+  @Input() zonelessAccount = '';
+  /** Account ID used when loading payout destination wallets */
+  @Input() accountId = '';
 
   private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
   readonly transactionService = inject(TransactionService);
   private readonly accountService = inject(AccountService);
 
   // Transaction detail panel state
   transactionDetailPanelOpen: WritableSignal<boolean> = signal(false);
-
-  // Connected Account detail panel state (platform only)
-  connectedAccountPanelOpen: WritableSignal<boolean> = signal(false);
 
   IsPlatform(): boolean {
     return this.authService.isPlatform();
@@ -90,15 +93,15 @@ export class TransactionListComponent {
       return;
     }
 
-    const account = this.GetAccount();
-    if (!account) return;
+    const accountId = this.GetAccountId();
+    if (!accountId) return;
 
     // Open the panel and load transaction details
     this.transactionDetailPanelOpen.set(true);
 
     try {
       await this.transactionService.LoadTransactionDetail(
-        account.id,
+        accountId,
         transaction.source,
         transaction.type
       );
@@ -107,25 +110,15 @@ export class TransactionListComponent {
     }
   }
 
-  GetAccount() {
-    return this.accountService.account();
+  GetAccountId(): string | null {
+    if (this.accountId) return this.accountId;
+    if (this.zonelessAccount) return this.zonelessAccount;
+    return this.accountService.account()?.id ?? null;
   }
 
   async OnTransferAccountClick(accountId: string): Promise<void> {
     this.transactionDetailPanelOpen.set(false);
     this.transactionService.ClearSelection();
-    await this.OnConnectedAccountClick({ id: accountId } as Account);
-  }
-
-  // Connected Accounts Methods (Platform Only)
-  async OnConnectedAccountClick(item: unknown): Promise<void> {
-    const account = item as Account;
-    this.connectedAccountPanelOpen.set(true);
-
-    try {
-      await this.accountService.LoadConnectedAccount(account.id);
-    } catch (error) {
-      console.error('Failed to load connected account details:', error);
-    }
+    await this.router.navigate(['/account/connected-accounts', accountId]);
   }
 }

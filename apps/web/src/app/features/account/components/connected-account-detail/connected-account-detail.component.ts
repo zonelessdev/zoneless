@@ -1,15 +1,17 @@
 import {
   Component,
   Input,
+  Output,
+  EventEmitter,
   ChangeDetectionStrategy,
   inject,
-  signal,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 
 import { Account, Person } from '@zoneless/shared-types';
 import { StatusChipComponent } from '../../../../shared';
 import { AccountService } from '../../../../data/services/account.service';
+import { PersonService } from '../../../../data/services/person.service';
 import { GetCountryName } from '../../../../utils';
 
 @Component({
@@ -22,27 +24,15 @@ import { GetCountryName } from '../../../../utils';
 })
 export class ConnectedAccountDetailComponent {
   private accountService = inject(AccountService);
+  private personService = inject(PersonService);
 
   @Input({ required: true }) account!: Account;
   @Input() person: Person | null = null;
 
-  loadingLoginLink = signal(false);
-  copiedLoginLink = signal(false);
+  @Output() viewDashboard = new EventEmitter<Account>();
 
-  async CopyLoginLink(): Promise<void> {
-    this.loadingLoginLink.set(true);
-    try {
-      const loginLink = await this.accountService.CreateLoginLink(
-        this.account.id
-      );
-      await navigator.clipboard.writeText(loginLink.url);
-      this.copiedLoginLink.set(true);
-      setTimeout(() => this.copiedLoginLink.set(false), 3000);
-    } catch (error) {
-      console.error('Failed to create login link:', error);
-    } finally {
-      this.loadingLoginLink.set(false);
-    }
+  OnViewDashboard(): void {
+    this.viewDashboard.emit(this.account);
   }
 
   GetDisplayName(): string {
@@ -135,6 +125,10 @@ export class ConnectedAccountDetailComponent {
     return `${this.person.dob.day}/${this.person.dob.month}/${this.person.dob.year}`;
   }
 
+  GetPersonAddressLines(): string[] | null {
+    return this.personService.FormatAddress(this.person);
+  }
+
   GetExternalWalletsCount(): number {
     return this.account.external_accounts?.total_count ?? 0;
   }
@@ -153,6 +147,6 @@ export class ConnectedAccountDetailComponent {
   }
 
   CopyToClipboard(text: string): void {
-    navigator.clipboard.writeText(text);
+    void navigator.clipboard.writeText(text);
   }
 }

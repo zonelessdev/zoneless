@@ -19,11 +19,18 @@ export class BalanceService {
     this.balanceDetails.set(null);
   }
 
-  async GetBalance(): Promise<Balance> {
+  async GetBalance(zonelessAccount?: string): Promise<Balance> {
     this.loading.set(true);
     try {
-      const balance = await this.api.Call<Balance>('GET', 'balance');
-      this.balance.set(balance);
+      const balance = await this.api.Call<Balance>(
+        'GET',
+        'balance',
+        {},
+        zonelessAccount ? { zonelessAccount } : undefined
+      );
+      if (!zonelessAccount) {
+        this.balance.set(balance);
+      }
       return balance;
     } finally {
       this.loading.set(false);

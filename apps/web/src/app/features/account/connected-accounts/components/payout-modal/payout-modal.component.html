@@ -1,0 +1,78 @@
+<app-modal
+  [isOpen]="actions.payoutOpen()"
+  title="Pay out to wallet"
+  closeLabel="Cancel"
+  submitLabel="Pay out"
+  [submitDisabled]="true"
+  (submitted)="OnSubmit()"
+  (closed)="actions.ClosePayout()"
+>
+  <div class="fund-modal">
+    @if (!hasBalance()) {
+    <div class="payout-status">No balance available</div>
+    }
+
+    <div class="field">
+      <div class="field-title">Amount</div>
+      <div class="amount-input-row">
+        <span class="amount-prefix">US$</span>
+        <input
+          type="text"
+          inputmode="decimal"
+          class="text-input amount-input"
+          placeholder="0.00"
+          [value]="actions.payoutAmount()"
+          (input)="OnAmountInput($event)"
+        />
+      </div>
+      <div class="field-help">
+        Available to pay out: US${{ availableLabel() }}
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-title">Send to</div>
+      <div class="fund-static-value">
+        {{ walletLabel() }}
+        @if (actions.GetDefaultWallet()?.default_for_currency) {
+        <span class="wallet-default"> (Default for USDC)</span>
+        }
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-title">Delivery method</div>
+      <select
+        class="text-input"
+        [value]="actions.payoutMethod()"
+        (change)="OnMethodChange($event)"
+      >
+        <option value="instant">Instant</option>
+        <option value="standard">Standard</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <div class="field-title">Statement descriptor</div>
+      <input
+        type="text"
+        class="text-input"
+        maxlength="22"
+        [value]="actions.payoutStatementDescriptor()"
+        (input)="OnStatementInput($event)"
+      />
+    </div>
+
+    <div class="confirm-section">
+      <div class="confirm-heading">Confirm payout</div>
+      <label class="confirm-row">
+        <input
+          type="checkbox"
+          [checked]="actions.payoutConfirmed()"
+          (change)="OnConfirmChange($event)"
+        />
+        <span>{{ confirmLabel() }}</span>
+      </label>
+    </div>
+  </div>
+</app-modal>

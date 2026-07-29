@@ -1,0 +1,48 @@
+<app-modal
+  [isOpen]="actions.pullFundsOpen()"
+  title="Pull funds"
+  closeLabel="Cancel"
+  submitLabel="Pull"
+  [loading]="actions.pullFundsLoading()"
+  [submitDisabled]="!actions.canSubmitPullFunds()"
+  (submitted)="actions.ConfirmPullFunds()"
+  (closed)="actions.ClosePullFunds()"
+>
+  <div class="fund-modal">
+    <div class="field">
+      <div class="field-title">Source</div>
+      <div class="fund-static-value">
+        {{ actions.GetDisplayName() }}'s balance
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-title">Destination</div>
+      <div class="fund-static-value">Your platform balance</div>
+    </div>
+
+    <div class="field">
+      <div class="field-title">Amount</div>
+      <div class="amount-input-row">
+        <div class="currency-badge">
+          <img src="assets/images/logos/usdc.svg" alt="" />
+          <span>USDC</span>
+        </div>
+        <input
+          type="text"
+          inputmode="decimal"
+          class="text-input amount-input"
+          placeholder="0.00"
+          [value]="actions.pullFundsAmount()"
+          (input)="OnAmountInput($event)"
+          [disabled]="actions.pullFundsLoading()"
+        />
+      </div>
+      <div class="field-help">Available to pull: US${{ availableLabel() }}</div>
+    </div>
+
+    @if (actions.pullFundsError()) {
+    <div class="fund-error">{{ actions.pullFundsError() }}</div>
+    }
+  </div>
+</app-modal>

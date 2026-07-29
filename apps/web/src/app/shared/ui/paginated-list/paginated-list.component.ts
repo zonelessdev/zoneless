@@ -110,6 +110,9 @@ export class PaginatedListComponent<T extends ListItem>
   /** Which fields to expand */
   @Input() expand: string[] = [];
 
+  /** Act on behalf of a connected account (Zoneless-Account header) */
+  @Input() zonelessAccount = '';
+
   /** Emits when a row is clicked */
   @Output() rowClick = new EventEmitter<T>();
 
@@ -143,6 +146,13 @@ export class PaginatedListComponent<T extends ListItem>
     if (
       changes['queryParams'] &&
       !changes['queryParams'].firstChange &&
+      this.initialLoadComplete()
+    ) {
+      await this.Reset();
+    }
+    if (
+      changes['zonelessAccount'] &&
+      !changes['zonelessAccount'].firstChange &&
       this.initialLoadComplete()
     ) {
       await this.Reset();
@@ -195,7 +205,14 @@ export class PaginatedListComponent<T extends ListItem>
         url = url.slice(0, -1);
       }
 
-      const response = await this.api.Call<ListResponse<T>>('GET', url);
+      const response = await this.api.Call<ListResponse<T>>(
+        'GET',
+        url,
+        {},
+        this.zonelessAccount
+          ? { zonelessAccount: this.zonelessAccount }
+          : undefined
+      );
 
       this.items.set(response.data);
       this.hasMore.set(response.has_more);

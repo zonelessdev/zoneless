@@ -46,7 +46,8 @@
         class="action-button action-button-dainty"
         [class.modal-confirm-destructive]="destructive"
         [class.loader-button]="loading"
-        [disabled]="loading"
+        [class.action-button-disabled]="submitDisabled && !loading"
+        [disabled]="loading || submitDisabled"
         (click)="OnSubmit()"
       >
         @if (loading) {

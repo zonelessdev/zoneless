@@ -1,0 +1,42 @@
+<app-modal
+  [isOpen]="actions.loginLinkOpen()"
+  [title]="GetTitle()"
+  closeLabel="Done"
+  [submitLabel]="GetSubmitLabel()"
+  [loading]="false"
+  [submitDisabled]="!actions.loginLink()?.url || actions.loginLinkLoading()"
+  (submitted)="OnSubmit()"
+  (closed)="actions.CloseLoginLink()"
+>
+  <div class="login-link-modal">
+    <p class="login-link-description">
+      This login link opens the connected account's Express dashboard. Copy it
+      and open it in an incognito or private window so you stay signed in to
+      your platform account.
+    </p>
+
+    @if (actions.loginLinkLoading()) {
+    <div class="login-link-loading">
+      <app-loader size="medium"></app-loader>
+    </div>
+    } @else if (actions.loginLinkError()) {
+    <div class="login-link-error">{{ actions.loginLinkError() }}</div>
+    } @else if (actions.loginLink(); as link) {
+    <div class="login-link-field">
+      <input type="text" [value]="link.url" readonly />
+      <button
+        type="button"
+        class="copy-link-button"
+        title="Copy to clipboard"
+        (click)="OnSubmit()"
+      >
+        @if (actions.loginLinkCopied()) {
+        <img src="assets/icons/check.svg" alt="Copied" />
+        } @else {
+        <img src="assets/icons/content_copy.svg" alt="Copy" />
+        }
+      </button>
+    </div>
+    }
+  </div>
+</app-modal>

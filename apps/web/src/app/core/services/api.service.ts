@@ -6,6 +6,8 @@ export interface ApiOptions {
   timeout?: number;
   retries?: number;
   retryDelay?: number;
+  /** Act on behalf of a connected account (sends Zoneless-Account header) */
+  zonelessAccount?: string;
 }
 
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
@@ -42,7 +44,8 @@ export class ApiService {
           method,
           endpoint,
           parameters,
-          timeout
+          timeout,
+          options.zonelessAccount
         );
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
@@ -67,7 +70,8 @@ export class ApiService {
     method: string,
     endpoint: string,
     parameters: object,
-    timeout: number
+    timeout: number,
+    zonelessAccount?: string
   ): Promise<T> {
     const cleanEndpoint = endpoint.startsWith('/')
       ? endpoint.substring(1)
@@ -78,20 +82,23 @@ export class ApiService {
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const options: RequestInit = {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: controller.signal,
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
       };
 
       const token = this.storage.GetItemString('auth_token');
       if (token) {
-        (options.headers as Record<string, string>)[
-          'Authorization'
-        ] = `Bearer ${token}`;
+        headers['Authorization'] = `Bearer ${token}`;
       }
+      if (zonelessAccount) {
+        headers['Zoneless-Account'] = zonelessAccount;
+      }
+
+      const options: RequestInit = {
+        method: method,
+        headers,
+        signal: controller.signal,
+      };
 
       if (method.toUpperCase() === 'GET') {
         const urlParams = new URLSearchParams(

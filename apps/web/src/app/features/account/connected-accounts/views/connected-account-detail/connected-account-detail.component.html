@@ -1,0 +1,418 @@
+@if (account(); as a) {
+<div class="flex align-vert-start space-between">
+  <div class="flex flex-column gap-small">
+    <a class="link-highlight" routerLink="/account/connected-accounts"
+      >Connected accounts</a
+    >
+    <div class="flex align-vert gap-small">
+      <h1>{{ displayName() }}</h1>
+      <app-status-chip [status]="status()"></app-status-chip>
+    </div>
+    <div class="header-meta flex align-vert gap-medium">
+      @if (email(); as accountEmail) {
+      <div class="meta-item">
+        <app-copy-text [text]="accountEmail" [opacity]="0.5"></app-copy-text>
+      </div>
+      }
+      <div class="meta-item" [class.meta-item-active]="a.payouts_enabled">
+        <img
+          src="assets/icons/account_balance_wallet.svg"
+          alt=""
+          class="meta-icon"
+        />
+        <span>{{
+          a.payouts_enabled ? 'Payouts active' : 'Payouts inactive'
+        }}</span>
+      </div>
+      <div class="meta-item" [class.meta-item-active]="a.charges_enabled">
+        <img src="assets/icons/bolt.svg" alt="" class="meta-icon" />
+        <span>{{
+          a.charges_enabled ? 'Payments active' : 'Payments inactive'
+        }}</span>
+      </div>
+    </div>
+  </div>
+  <div class="flex gap-extra-small align-vert">
+    <button
+      type="button"
+      class="action-button action-button-dainty outline"
+      (click)="CopyId()"
+    >
+      <img
+        class="button-icon-dark"
+        src="assets/icons/content_copy.svg"
+        alt=""
+      />
+      <span>{{ idCopied() ? 'Copied' : 'Copy ID' }}</span>
+    </button>
+    <app-popup-menu
+      [actions]="accountActions"
+      [item]="a"
+      [highlightIcon]="true"
+    ></app-popup-menu>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <button
+    type="button"
+    class="tab-button"
+    [class.tab-active]="activeTab() === 'overview'"
+    (click)="SetTab('overview')"
+  >
+    Overview
+  </button>
+  <button
+    type="button"
+    class="tab-button"
+    [class.tab-active]="activeTab() === 'payments'"
+    (click)="SetTab('payments')"
+  >
+    Payments
+  </button>
+</div>
+
+@if (activeTab() === 'overview') {
+<div class="flex gap-extra-large view-panels">
+  <div class="view-left-panel">
+    <div class="view-section">
+      <div class="flex align-vert space-between gap-small balances-header">
+        <h2 class="section-title">Account balances</h2>
+        <div class="flex gap-extra-small flex-wrap">
+          <button
+            type="button"
+            class="action-button action-button-dainty outline"
+            (click)="OnAddFunds()"
+          >
+            <span>Add funds</span>
+          </button>
+          <button
+            type="button"
+            class="action-button action-button-dainty outline"
+            (click)="OnPullFunds()"
+          >
+            <span>Pull funds</span>
+          </button>
+          <button
+            type="button"
+            class="action-button action-button-dainty outline"
+            (click)="OnPayout()"
+          >
+            <span>Pay out account balance</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="balance-cards">
+        <div class="balance-card">
+          <div class="balance-card-label">Total balance</div>
+          <div class="balance-card-value">
+            US${{ totalBalance() | number : '1.2-2' }}
+            <span class="balance-card-currency">USDC</span>
+          </div>
+        </div>
+        <div class="balance-card">
+          <div class="balance-card-label">Available soon</div>
+          <div class="balance-card-value">
+            US${{ pendingDollars() | number : '1.2-2' }}
+            <span class="balance-card-currency">USDC</span>
+          </div>
+        </div>
+        <div class="balance-card">
+          <div class="balance-card-label">Available to pay out</div>
+          <div class="balance-card-value">
+            US${{ availableDollars() | number : '1.2-2' }}
+            <span class="balance-card-currency">USDC</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view-section">
+      <h2 class="section-title">Money movement</h2>
+      <div class="tab-bar tab-bar-nested">
+        <button
+          type="button"
+          class="tab-button"
+          [class.tab-active]="moneyMovementTab() === 'transfers'"
+          (click)="SetMoneyMovementTab('transfers')"
+        >
+          Transfers
+        </button>
+        <button
+          type="button"
+          class="tab-button"
+          [class.tab-active]="moneyMovementTab() === 'payouts'"
+          (click)="SetMoneyMovementTab('payouts')"
+        >
+          Payouts
+        </button>
+      </div>
+
+      @if (moneyMovementTab() === 'transfers') {
+      <app-paginated-list
+        #overviewTransfers
+        endpoint="balance_transactions"
+        [columns]="transferColumns"
+        [limit]="5"
+        [queryParams]="transferQueryParams"
+        [zonelessAccount]="a.id"
+        [paginationEnabled]="false"
+        [showResultCount]="true"
+      ></app-paginated-list>
+      <button
+        type="button"
+        class="text-link view-all-link"
+        (click)="ViewAllMoneyMovement('transfers')"
+      >
+        View all transfers
+      </button>
+      } @else {
+      <app-paginated-list
+        #overviewPayouts
+        endpoint="payouts"
+        [columns]="payoutColumns"
+        [limit]="5"
+        [zonelessAccount]="a.id"
+        [paginationEnabled]="false"
+        [showResultCount]="true"
+      ></app-paginated-list>
+      <button
+        type="button"
+        class="text-link view-all-link"
+        (click)="ViewAllMoneyMovement('payouts')"
+      >
+        View all payouts
+      </button>
+      }
+    </div>
+
+    <div class="view-section">
+      <h2 class="section-title">Payout information</h2>
+      <!-- <div class="mb">
+        <div class="bolded mb-small">Payout schedule</div>
+        <div class="dimmed">{{ FormatPayoutSchedule(a) }}</div>
+      </div> -->
+      <div class="mb">
+        <div class="bolded mb-small">Default currency</div>
+        <div class="dimmed">{{ GetDefaultCurrency() }}</div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Payout statement descriptor</div>
+        <div class="dimmed">
+          {{ GetStatementDescriptor() || 'None' }}
+        </div>
+      </div>
+    </div>
+
+    <div class="view-section">
+      <h2 class="section-title">External wallets</h2>
+      @if (externalWallets().length > 0) {
+      <div class="wallet-list">
+        @for (wallet of externalWallets(); track wallet.id) {
+        <div class="wallet-row">
+          <img
+            src="assets/icons/account_balance_wallet.svg"
+            alt=""
+            class="wallet-icon"
+          />
+          <div class="wallet-info">
+            <div class="wallet-name">{{ FormatWalletDisplay(wallet) }}</div>
+            <div class="wallet-address dimmed">
+              {{ wallet.wallet_address }}
+            </div>
+          </div>
+          <div class="wallet-badges">
+            <span class="chip grey-chip">{{
+              wallet.currency.toUpperCase()
+            }}</span>
+            @if (wallet.default_for_currency) {
+            <span class="chip blue-chip">Default</span>
+            }
+          </div>
+        </div>
+        }
+      </div>
+      } @else {
+      <div class="dashed-placeholder">
+        <span>No external wallets</span>
+      </div>
+      }
+    </div>
+
+    <div class="view-section">
+      <h2 class="section-title">Events</h2>
+      <app-events-list [itemId]="a.id"></app-events-list>
+    </div>
+  </div>
+
+  <div class="view-right-panel">
+    <div class="view-section">
+      <div class="flex align-vert-start space-between">
+        <h2 class="section-title">Capabilities</h2>
+      </div>
+      @if (HasActiveCapabilities(a)) {
+      <div class="capabilities-status">
+        <img
+          src="assets/icons/check_circle.svg"
+          alt=""
+          class="capabilities-check-icon"
+        />
+        <span class="capabilities-active">Active</span>
+      </div>
+      <div class="dimmed capabilities-list">
+        {{ FormatCapabilityList(a) }}
+      </div>
+      } @else {
+      <div class="dashed-placeholder">
+        <span>No active capabilities</span>
+      </div>
+      }
+    </div>
+
+    <div class="view-section">
+      <div class="flex align-vert-start space-between">
+        <h2 class="section-title">Profile</h2>
+        <button type="button" class="text-link" (click)="OnViewProfile()">
+          View all
+        </button>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Account ID</div>
+        <div><app-copy-text [text]="a.id"></app-copy-text></div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Created</div>
+        <div class="dimmed">
+          {{ a.created * 1000 | date : 'd MMM y, HH:mm' }}
+          ({{ FormatRelativeTime(a.created) }})
+        </div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Terms accepted</div>
+        <div class="dimmed">
+          @if (GetTosAccepted(); as tosDate) {
+          {{ tosDate * 1000 | date : 'd MMM y, HH:mm' }}
+          } @else { None }
+        </div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Country</div>
+        <div class="dimmed">{{ FormatAccountCountry(a) }}</div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Doing business as</div>
+        <div class="dimmed">{{ GetDoingBusinessAs() }}</div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Email</div>
+        @if (email(); as accountEmail) {
+        <div><app-copy-text [text]="accountEmail"></app-copy-text></div>
+        } @else {
+        <div class="dimmed">None</div>
+        }
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Phone number</div>
+        <div class="dimmed">{{ GetPhone() || 'None' }}</div>
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Address</div>
+        @if (GetAddressLines(); as addressLines) {
+        <div class="dimmed">
+          @for (line of addressLines; track line) {
+          <div>{{ line }}</div>
+          }
+        </div>
+        } @else {
+        <div class="dimmed">None</div>
+        }
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Website</div>
+        @if (GetWebsite(); as website) {
+        <div>
+          <a class="link-highlight" [href]="website" target="_blank">{{
+            website
+          }}</a>
+        </div>
+        } @else {
+        <div class="dimmed">None</div>
+        }
+      </div>
+      <div class="mb">
+        <div class="bolded mb-small">Statement descriptor</div>
+        <div class="dimmed">
+          {{ GetStatementDescriptor() || 'None' }}
+        </div>
+      </div>
+    </div>
+
+    <div class="view-section">
+      <div class="flex align-vert-start space-between">
+        <h2 class="section-title">Metadata</h2>
+        <button
+          type="button"
+          class="action-button action-button-small outline"
+          (click)="OnEditMetadata()"
+        >
+          <img src="assets/icons/edit.svg" class="icon" alt="Edit icon" />
+        </button>
+      </div>
+      @if (MetadataToArray(a.metadata).length > 0) { @for (entry of
+      MetadataToArray(a.metadata); track entry.key) {
+      <div class="mb">
+        <div class="bolded mb-small">{{ entry.key }}</div>
+        <div class="dimmed">{{ entry.value }}</div>
+      </div>
+      } } @else {
+      <div class="dashed-placeholder">
+        <span>No metadata</span>
+      </div>
+      }
+    </div>
+  </div>
+</div>
+} @else {
+<div class="payments-tab">
+  <div class="tab-bar tab-bar-nested">
+    <button
+      type="button"
+      class="tab-button"
+      [class.tab-active]="paymentsTab() === 'transfers'"
+      (click)="SetPaymentsTab('transfers')"
+    >
+      Transfers
+    </button>
+    <button
+      type="button"
+      class="tab-button"
+      [class.tab-active]="paymentsTab() === 'payouts'"
+      (click)="SetPaymentsTab('payouts')"
+    >
+      Payouts
+    </button>
+  </div>
+
+  @if (paymentsTab() === 'transfers') {
+  <app-paginated-list
+    #paymentsTransfers
+    endpoint="balance_transactions"
+    [columns]="transferColumns"
+    [limit]="20"
+    [queryParams]="transferQueryParams"
+    [zonelessAccount]="a.id"
+  ></app-paginated-list>
+  } @else {
+  <app-paginated-list
+    #paymentsPayouts
+    endpoint="payouts"
+    [columns]="payoutColumns"
+    [limit]="20"
+    [zonelessAccount]="a.id"
+  ></app-paginated-list>
+  }
+</div>
+} }
+
+<app-connected-account-actions-host></app-connected-account-actions-host>

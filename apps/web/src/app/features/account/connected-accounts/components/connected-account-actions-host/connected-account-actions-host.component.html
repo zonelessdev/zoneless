@@ -1,0 +1,33 @@
+<app-add-funds-modal></app-add-funds-modal>
+<app-pull-funds-modal></app-pull-funds-modal>
+<app-payout-modal></app-payout-modal>
+<app-login-link-modal></app-login-link-modal>
+
+<app-slide-panel
+  [isOpen]="actions.profilePanelOpen()"
+  [title]="GetProfileTitle()"
+  [viewOnly]="true"
+  (closed)="actions.CloseProfile()"
+>
+  @if (actions.activeAccount(); as account) {
+  <app-connected-account-detail
+    [account]="account"
+    [person]="account.individual ?? null"
+    (viewDashboard)="OnViewDashboard($event)"
+  ></app-connected-account-detail>
+  } @else {
+  <div class="loading-state">
+    <app-loader size="medium"></app-loader>
+  </div>
+  }
+</app-slide-panel>
+
+<app-metadata-edit-modal
+  [isOpen]="actions.metadataDialogOpen()"
+  [loading]="actions.metadataSaving()"
+  title="Edit metadata"
+  [metadata]="actions.metadataDraft()"
+  (formChange)="actions.OnMetadataChange($event)"
+  (confirmed)="actions.ConfirmEditMetadata()"
+  (cancelled)="actions.metadataDialogOpen.set(false)"
+></app-metadata-edit-modal>

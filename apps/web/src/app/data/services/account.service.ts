@@ -17,14 +17,8 @@ export class AccountService {
   account: WritableSignal<Account | null> = signal(null);
   loading: WritableSignal<boolean> = signal(false);
 
-  // Connected account selection state (for viewing connected accounts in panel)
-  selectedConnectedAccount: WritableSignal<Account | null> = signal(null);
-  loadingConnectedAccount: WritableSignal<boolean> = signal(false);
-
   Reset(): void {
     this.account.set(null);
-    this.selectedConnectedAccount.set(null);
-    this.loadingConnectedAccount.set(false);
   }
 
   async GetAccount(): Promise<Account | null> {
@@ -53,7 +47,10 @@ export class AccountService {
         `accounts/${accountId}`,
         data
       );
-      this.account.set(account);
+      // Only update the signed-in account signal when editing self
+      if (this.account()?.id === accountId) {
+        this.account.set(account);
+      }
       return account;
     } finally {
       this.loading.set(false);
@@ -87,34 +84,10 @@ export class AccountService {
   }
 
   /**
-   * Fetch any account by ID (used for viewing connected accounts).
-   * Sets the selectedConnectedAccount signal for panel display.
+   * Fetch a connected account by ID.
    */
-  async LoadConnectedAccount(accountId: string): Promise<Account | null> {
-    this.loadingConnectedAccount.set(true);
-    this.selectedConnectedAccount.set(null);
-
-    try {
-      const account = await this.api.Call<Account>(
-        'GET',
-        `accounts/${accountId}`
-      );
-      this.selectedConnectedAccount.set(account);
-      return account;
-    } catch (error) {
-      console.error('Failed to load connected account:', error);
-      this.selectedConnectedAccount.set(null);
-      return null;
-    } finally {
-      this.loadingConnectedAccount.set(false);
-    }
-  }
-
-  /**
-   * Clear the selected connected account.
-   */
-  ClearSelectedConnectedAccount(): void {
-    this.selectedConnectedAccount.set(null);
+  async GetConnectedAccount(accountId: string): Promise<Account> {
+    return this.api.Call<Account>('GET', `accounts/${accountId}`);
   }
 
   /**

@@ -18,25 +18,6 @@
   (rowClick)="OnConnectedAccountClick($event)"
 ></app-paginated-list>
 
-<!-- Connected Account Detail Slide Panel (Platform Only) -->
-<app-slide-panel
-  [isOpen]="connectedAccountPanelOpen()"
-  [title]="GetConnectedAccountPanelTitle()"
-  [viewOnly]="true"
-  (closed)="OnConnectedAccountPanelClosed()"
->
-  @if (accountService.selectedConnectedAccount(); as account) {
-  <app-connected-account-detail
-    [account]="account"
-    [person]="account.individual ?? null"
-  ></app-connected-account-detail>
-  } @else {
-  <div class="loading-state">
-    <app-loader size="medium"></app-loader>
-  </div>
-  }
-</app-slide-panel>
-
 <app-create-connected-account-host
   (viewAccount)="OnViewCreatedAccount($event)"
 ></app-create-connected-account-host>
