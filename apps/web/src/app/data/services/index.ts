@@ -10,6 +10,7 @@ export * from './invoice.service';
 export * from './payment-intent.service';
 export * from './payment-link.service';
 export * from './person.service';
+export * from './payout.service';
 export * from './price.service';
 export * from './product.service';
 export * from './reporting.service';

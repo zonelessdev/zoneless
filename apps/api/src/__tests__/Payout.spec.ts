@@ -34,6 +34,10 @@ jest.mock('../modules/chains/Solana', () => ({
       last_valid_block_height: 100000,
       recipients_count: 1,
     }),
+    GetCheckoutFeePayerPublicKey: jest.fn().mockReturnValue('platform_wallet'),
+    SignAndSimulatePayoutTransaction: jest
+      .fn()
+      .mockResolvedValue('signed_base64tx'),
     BroadcastSignedTransaction: jest.fn().mockResolvedValue({
       status: 'paid',
       signature: 'sig123',
@@ -198,6 +202,130 @@ describe('PayoutModule', () => {
       await expect(module.CancelPayout('po_z_1')).rejects.toThrow(
         'Payout cannot be canceled'
       );
+    });
+  });
+
+  describe('CreateAndProcessDashboardPayout', () => {
+    const payout = {
+      id: 'po_z_1',
+      object: 'payout',
+      account: 'acct_z_seller',
+      platform_account: 'acct_z_platform',
+      amount: 1000,
+      currency: 'usdc',
+      destination: 'wa_z_1',
+      status: 'pending',
+    } as Payout;
+
+    const input = {
+      amount: 1000,
+      currency: 'usdc',
+      destination: 'wa_z_1',
+    };
+
+    it('rejects a signer mismatch before creating the payout', async () => {
+      jest
+        .spyOn(module as any, 'GetPlatformWalletPublicKey')
+        .mockResolvedValue('different_wallet');
+      const createSpy = jest.spyOn(module, 'CreatePayout');
+
+      await expect(
+        module.CreateAndProcessDashboardPayout(
+          'acct_z_platform',
+          'acct_z_seller',
+          input
+        )
+      ).rejects.toThrow(
+        'TRANSACTION_FEE_PAYER_KEY environment variable must match the platform payout wallet'
+      );
+      expect(createSpy).not.toHaveBeenCalled();
+    });
+
+    it('reuses the build and broadcast flow for a dashboard payout', async () => {
+      jest
+        .spyOn(module as any, 'GetPlatformWalletPublicKey')
+        .mockResolvedValue('platform_wallet');
+      jest.spyOn(module, 'CreatePayout').mockResolvedValue(payout);
+      jest.spyOn(module, 'BuildPayoutsBatch').mockResolvedValue({
+        object: 'payout_batch_build',
+        unsigned_transaction: 'base64tx',
+        estimated_fee_lamports: 5000,
+        blockhash: 'blockhash123',
+        last_valid_block_height: 100000,
+        payouts: [payout],
+        total_amount: 1000,
+        recipients_count: 1,
+      });
+      const broadcastSpy = jest
+        .spyOn(module, 'BroadcastPayoutsBatch')
+        .mockResolvedValue({
+          object: 'payout_batch_broadcast',
+          signature: 'sig123',
+          status: 'paid',
+          viewer_url: 'https://solscan.io/tx/sig123',
+          payouts: [{ ...payout, status: 'paid' }],
+        });
+
+      const result = await module.CreateAndProcessDashboardPayout(
+        'acct_z_platform',
+        'acct_z_seller',
+        input
+      );
+
+      expect(result.status).toBe('paid');
+      expect(broadcastSpy).toHaveBeenCalledWith('acct_z_platform', {
+        signed_transaction: 'signed_base64tx',
+        payouts: ['po_z_1'],
+        blockhash: 'blockhash123',
+        last_valid_block_height: 100000,
+      });
+    });
+
+    it('fails and refunds a payout when signing or simulation fails', async () => {
+      jest
+        .spyOn(module as any, 'GetPlatformWalletPublicKey')
+        .mockResolvedValue('platform_wallet');
+      jest.spyOn(module, 'CreatePayout').mockResolvedValue(payout);
+      jest.spyOn(module, 'BuildPayoutsBatch').mockResolvedValue({
+        object: 'payout_batch_build',
+        unsigned_transaction: 'base64tx',
+        estimated_fee_lamports: 5000,
+        blockhash: 'blockhash123',
+        last_valid_block_height: 100000,
+        payouts: [payout],
+        total_amount: 1000,
+        recipients_count: 1,
+      });
+      (module as any).solana.SignAndSimulatePayoutTransaction.mockRejectedValue(
+        new Error('Simulation failed')
+      );
+      const processingPayout = { ...payout, status: 'processing' } as Payout;
+      const failedPayout = {
+        ...payout,
+        status: 'failed',
+        failure_message: 'Simulation failed',
+      } as Payout;
+      jest
+        .spyOn(module, 'GetPayout')
+        .mockResolvedValueOnce(processingPayout)
+        .mockResolvedValueOnce(failedPayout);
+      const failSpy = jest
+        .spyOn(module as any, 'MarkPayoutFailed')
+        .mockResolvedValue(undefined);
+
+      const result = await module.CreateAndProcessDashboardPayout(
+        'acct_z_platform',
+        'acct_z_seller',
+        input
+      );
+
+      expect(failSpy).toHaveBeenCalledWith(
+        processingPayout,
+        'blockchain_error',
+        'Simulation failed'
+      );
+      expect(result.status).toBe('failed');
+      expect(result.payouts).toEqual([failedPayout]);
     });
   });
 });

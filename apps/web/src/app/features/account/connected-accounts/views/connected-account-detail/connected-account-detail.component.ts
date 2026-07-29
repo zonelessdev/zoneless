@@ -264,7 +264,9 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
     this.metaService.SetMetaTitle(this.displayName());
     this.sub = this.actions.events$.subscribe((event) => {
       if (
-        (event.type === 'funds_added' || event.type === 'funds_pulled') &&
+        (event.type === 'funds_added' ||
+          event.type === 'funds_pulled' ||
+          event.type === 'payout_processed') &&
         event.accountId === id
       ) {
         void this.RefreshBalance(id);

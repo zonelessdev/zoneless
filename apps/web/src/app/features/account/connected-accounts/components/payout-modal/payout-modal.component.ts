@@ -32,6 +32,10 @@ export class PayoutModalComponent {
     this.actions.FormatWalletLabel(this.actions.GetDefaultWallet())
   );
 
+  readonly showFeePayerHelp = computed(() =>
+    this.actions.payoutError().includes('TRANSACTION_FEE_PAYER_KEY')
+  );
+
   readonly confirmLabel = computed(() => {
     const amount = this.actions.ParseAmountCents(this.actions.payoutAmount());
     const dollars = (amount / 100).toFixed(2);
@@ -60,10 +64,5 @@ export class PayoutModalComponent {
       | 'standard'
       | 'instant';
     this.actions.payoutMethod.set(value);
-  }
-
-  OnSubmit(): void {
-    // Payout logic is intentionally not implemented yet
-    this.actions.ClosePayout();
   }
 }

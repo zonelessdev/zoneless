@@ -28,6 +28,15 @@
   font-size: $font-size-small;
 }
 
+.fund-error {
+  color: #dc2626;
+  font-size: $font-size-small;
+
+  a {
+    font-size: inherit;
+  }
+}
+
 .field-top {
   display: flex;
   align-items: center;
