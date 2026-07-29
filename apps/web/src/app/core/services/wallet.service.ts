@@ -88,7 +88,7 @@ export class SolanaWalletService {
 
   /**
    * Sign a (possibly partially signed) transaction without broadcasting.
-   * Used when TRANSACTION_FEE_PAYER_KEY sponsors fees and the API relays.
+   * Used when the API is responsible for relaying the signed transaction.
    */
   async SignUnsignedTransaction(
     unsignedTxBase64: string,
@@ -120,12 +120,78 @@ export class SolanaWalletService {
     return result[0].signedTransaction;
   }
 
+  async GetSecretKeyAddress(secretKey: string): Promise<string> {
+    const decodedSecret = await this.DecodeSecretKey(secretKey);
+    try {
+      const { Keypair } = await import('@solana/web3.js');
+      return Keypair.fromSecretKey(decodedSecret).publicKey.toBase58();
+    } catch {
+      throw new Error('Invalid Solana private key');
+    } finally {
+      decodedSecret.fill(0);
+    }
+  }
+
+  async SignUnsignedTransactionWithSecretKey(
+    unsignedTxBase64: string,
+    secretKey: string,
+    expectedSigner: string
+  ): Promise<Uint8Array> {
+    const decodedSecret = await this.DecodeSecretKey(secretKey);
+    let keypair: import('@solana/web3.js').Keypair | null = null;
+
+    try {
+      const { Keypair, Transaction } = await import('@solana/web3.js');
+      keypair = Keypair.fromSecretKey(decodedSecret);
+      const signerAddress = keypair.publicKey.toBase58();
+      if (signerAddress !== expectedSigner) {
+        throw new Error(
+          'Private key does not match the configured platform wallet'
+        );
+      }
+
+      const transaction = Transaction.from(
+        this.Base64ToBytes(unsignedTxBase64)
+      );
+      if (transaction.feePayer?.toBase58() !== expectedSigner) {
+        throw new Error(
+          'Payout transaction does not match the configured platform wallet'
+        );
+      }
+
+      const requiresSigner = transaction.signatures.some(
+        ({ publicKey }) => publicKey.toBase58() === expectedSigner
+      );
+      if (!requiresSigner) {
+        throw new Error('Platform wallet is not a required payout signer');
+      }
+
+      transaction.sign(keypair);
+      return new Uint8Array(transaction.serialize());
+    } catch (error) {
+      if (error instanceof Error) throw error;
+      throw new Error('Failed to sign payout transaction');
+    } finally {
+      decodedSecret.fill(0);
+      keypair?.secretKey.fill(0);
+    }
+  }
+
   BytesToBase64(bytes: Uint8Array): string {
     let binary = '';
     for (let i = 0; i < bytes.length; i += 1) {
       binary += String.fromCharCode(bytes[i]);
     }
     return btoa(binary);
+  }
+
+  private async DecodeSecretKey(secretKey: string): Promise<Uint8Array> {
+    try {
+      const bs58 = await import('bs58');
+      return bs58.default.decode(secretKey.trim());
+    } catch {
+      throw new Error('Invalid base58 Solana private key');
+    }
   }
 
   private Base64ToBytes(base64: string): Uint8Array {
