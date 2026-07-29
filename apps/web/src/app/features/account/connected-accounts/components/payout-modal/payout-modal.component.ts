@@ -4,13 +4,12 @@ import {
   computed,
   inject,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { ModalComponent } from '../../../../../shared';
 import { ConnectedAccountActionsService } from '../../services/connected-account-actions.service';
 
 @Component({
   selector: 'app-payout-modal',
-  imports: [ModalComponent, FormsModule],
+  imports: [ModalComponent],
   templateUrl: './payout-modal.component.html',
   styleUrl: './payout-modal.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,9 +31,14 @@ export class PayoutModalComponent {
     this.actions.FormatWalletLabel(this.actions.GetDefaultWallet())
   );
 
-  readonly showFeePayerHelp = computed(() =>
-    this.actions.payoutError().includes('TRANSACTION_FEE_PAYER_KEY')
+  readonly connectedSignerAddress = computed(() =>
+    this.actions.solanaWalletService.GetAddress()
   );
+
+  readonly connectedSignerLabel = computed(() => {
+    const address = this.connectedSignerAddress();
+    return address ? `${address.slice(0, 6)}…${address.slice(-6)}` : '';
+  });
 
   readonly confirmLabel = computed(() => {
     const amount = this.actions.ParseAmountCents(this.actions.payoutAmount());
@@ -49,20 +53,17 @@ export class PayoutModalComponent {
     this.actions.payoutAmount.set(value);
   }
 
-  OnStatementInput(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.actions.payoutStatementDescriptor.set(value);
-  }
-
   OnConfirmChange(event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
     this.actions.payoutConfirmed.set(checked);
   }
 
-  OnMethodChange(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value as
-      | 'standard'
-      | 'instant';
-    this.actions.payoutMethod.set(value);
+  OnSignerMethodChange(method: 'wallet' | 'private_key'): void {
+    this.actions.SetPayoutSignerMethod(method);
+  }
+
+  OnPrivateKeyInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.actions.SetPayoutPrivateKey(value);
   }
 }

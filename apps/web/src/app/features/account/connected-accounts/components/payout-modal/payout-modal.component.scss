@@ -1,4 +1,5 @@
 @use '../../../../../styles/base.scss' as *;
+@use '../../../../../styles/buttons.scss' as *;
 @use '../../../../../styles/forms.scss' as *;
 @use '../../../../../styles/spacing.scss' as *;
 
@@ -42,6 +43,62 @@
 
 .wallet-default {
   opacity: $dimmed;
+}
+
+.signer-options {
+  display: flex;
+  gap: $spacing-medium;
+  margin: $spacing-small 0;
+}
+
+.signer-option {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+  cursor: pointer;
+  font-size: $font-size;
+
+  input[type='radio'] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    flex-shrink: 0;
+    accent-color: $button-color;
+    box-shadow: none;
+  }
+}
+
+.signer-help {
+  margin-top: 0;
+}
+
+.signer-details {
+  padding: $spacing;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  background-color: $darker-background-color;
+}
+
+.signer-button {
+  margin: 0;
+}
+
+.signer-address {
+  margin-bottom: 0;
+  overflow-wrap: anywhere;
+
+  span {
+    font-family: monospace;
+  }
+}
+
+.private-key-input {
+  font-family: monospace;
+}
+
+.signer-valid {
+  color: $success-green;
+  margin-bottom: 0;
 }
 
 .confirm-section {

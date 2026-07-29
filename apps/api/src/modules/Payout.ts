@@ -643,18 +643,6 @@ export class PayoutModule {
       recipients
     );
 
-    // Mark all payouts as processing (to prevent duplicate builds)
-    await this.db.RunTransaction(async (session: ClientSession) => {
-      for (const payout of payouts) {
-        await this.db.Update(
-          'Payouts',
-          payout.id,
-          { status: 'processing' },
-          session
-        );
-      }
-    });
-
     const totalAmount = payouts.reduce((sum, p) => sum + p.amount, 0);
 
     return {
@@ -667,88 +655,6 @@ export class PayoutModule {
       total_amount: totalAmount,
       recipients_count: transactionData.recipients_count,
     };
-  }
-
-  /**
-   * Create and process a payout initiated from the platform dashboard.
-   *
-   * The configured fee payer must also be the platform wallet because that
-   * wallet owns the USDC being transferred.
-   */
-  async CreateAndProcessDashboardPayout(
-    platformAccountId: string,
-    connectedAccountId: string,
-    input: CreatePayoutInput
-  ): Promise<PayoutBatchBroadcastResponse> {
-    const platformWalletPublicKey = await this.GetPlatformWalletPublicKey(
-      platformAccountId
-    );
-    let configuredSigner: string;
-    try {
-      configuredSigner = this.solana.GetCheckoutFeePayerPublicKey();
-    } catch {
-      throw new AppError(
-        'TRANSACTION_FEE_PAYER_KEY environment variable is required for dashboard payouts',
-        400,
-        'invalid_request_error'
-      );
-    }
-
-    if (configuredSigner !== platformWalletPublicKey) {
-      throw new AppError(
-        'TRANSACTION_FEE_PAYER_KEY environment variable must match the platform payout wallet',
-        400,
-        'invalid_request_error'
-      );
-    }
-
-    const payout = await this.CreatePayout(connectedAccountId, input);
-    let buildResult: PayoutBatchBuildResponse;
-
-    try {
-      buildResult = await this.BuildPayoutsBatch(platformAccountId, {
-        payouts: [payout.id],
-      });
-
-      const signedTransaction =
-        await this.solana.SignAndSimulatePayoutTransaction(
-          buildResult.unsigned_transaction,
-          platformWalletPublicKey
-        );
-
-      return this.BroadcastPayoutsBatch(platformAccountId, {
-        signed_transaction: signedTransaction,
-        payouts: [payout.id],
-        blockhash: buildResult.blockhash,
-        last_valid_block_height: buildResult.last_valid_block_height,
-      });
-    } catch (error: unknown) {
-      const failureMessage =
-        error instanceof Error ? error.message : 'Failed to process payout';
-      const currentPayout = await this.GetPayout(payout.id);
-
-      if (
-        currentPayout &&
-        (currentPayout.status === 'pending' ||
-          currentPayout.status === 'processing')
-      ) {
-        await this.MarkPayoutFailed(
-          currentPayout,
-          'blockchain_error',
-          failureMessage
-        );
-      }
-
-      const failedPayout = await this.GetPayout(payout.id);
-      return {
-        object: 'payout_batch_broadcast',
-        signature: '',
-        status: 'failed',
-        viewer_url: '',
-        payouts: failedPayout ? [failedPayout] : [],
-        failure_message: failureMessage,
-      };
-    }
   }
 
   /**
@@ -778,7 +684,7 @@ export class PayoutModule {
         );
       }
 
-      // Verify payout is in processing state (was built)
+      // Accept legacy processing payouts as well as newly built pending payouts.
       if (payout.status !== 'processing' && payout.status !== 'pending') {
         throw new AppError(
           `Payout ${payoutId} is not ready for broadcast (status: ${payout.status})`,

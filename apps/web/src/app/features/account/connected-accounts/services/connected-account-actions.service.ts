@@ -12,16 +12,20 @@ import type {
   Balance,
   ExternalWallet,
   LoginLink,
+  PayoutBatchBuildResponse,
 } from '@zoneless/shared-types';
 import type { CreateAccountInput } from '@zoneless/shared-schemas';
 import {
   AccountService,
   AccountLinkService,
   BalanceService,
+  ConfigService,
   ExternalWalletService,
   PayoutService,
+  TopupService,
   TransferService,
 } from '../../../../data';
+import { SolanaWalletService } from '../../../../core';
 import { GetCountryName } from '../../../../utils';
 
 export type CreateConnectedAccountStep = 'summary' | 'edit-details' | 'success';
@@ -63,6 +67,9 @@ export class ConnectedAccountActionsService {
   private readonly transferService = inject(TransferService);
   private readonly externalWalletService = inject(ExternalWalletService);
   private readonly payoutService = inject(PayoutService);
+  private readonly topupService = inject(TopupService);
+  private readonly configService = inject(ConfigService);
+  readonly solanaWalletService = inject(SolanaWalletService);
 
   // ── Create flow ──────────────────────────────────────────────────────────
   flowOpen: WritableSignal<boolean> = signal(false);
@@ -110,11 +117,18 @@ export class ConnectedAccountActionsService {
 
   payoutOpen: WritableSignal<boolean> = signal(false);
   payoutAmount: WritableSignal<string> = signal('');
-  payoutStatementDescriptor: WritableSignal<string> = signal('');
   payoutConfirmed: WritableSignal<boolean> = signal(false);
-  payoutMethod: WritableSignal<'standard' | 'instant'> = signal('instant');
   payoutLoading: WritableSignal<boolean> = signal(false);
   payoutError: WritableSignal<string> = signal('');
+  payoutSignerMethod: WritableSignal<'wallet' | 'private_key'> =
+    signal('wallet');
+  payoutPrivateKey: WritableSignal<string> = signal('');
+  payoutPrivateKeyAddress: WritableSignal<string> = signal('');
+  payoutPlatformWalletAddress: WritableSignal<string> = signal('');
+  payoutCreatedId: WritableSignal<string> = signal('');
+  payoutSignedTransaction: WritableSignal<string> = signal('');
+  payoutBuildResult: WritableSignal<PayoutBatchBuildResponse | null> =
+    signal(null);
 
   profilePanelOpen: WritableSignal<boolean> = signal(false);
 
@@ -148,10 +162,14 @@ export class ConnectedAccountActionsService {
   readonly canSubmitPayout = computed(() => {
     const amount = this.ParseAmountCents(this.payoutAmount());
     const available = this.GetAvailableAmount(this.connectedBalance());
+    const signerReady =
+      !!this.payoutSignedTransaction() ||
+      this.GetPayoutSignerAddress() === this.payoutPlatformWalletAddress();
     return (
       amount > 0 &&
       amount <= available &&
       !!this.GetDefaultWallet() &&
+      signerReady &&
       this.payoutConfirmed() &&
       !this.payoutLoading()
     );
@@ -454,29 +472,47 @@ export class ConnectedAccountActionsService {
   async OpenPayout(account: Account): Promise<void> {
     this.activeAccount.set(account);
     this.payoutAmount.set('');
-    this.payoutStatementDescriptor.set(
-      account.settings?.payouts?.statement_descriptor ?? ''
-    );
     this.payoutConfirmed.set(false);
-    this.payoutMethod.set('instant');
     this.payoutError.set('');
     this.payoutLoading.set(false);
+    this.ResetPayoutSigner();
     try {
-      const [connectedBalance] = await Promise.all([
+      const [connectedBalance, , depositInfo] = await Promise.all([
         this.balanceService.GetBalance(account.id),
         this.LoadExternalWallets(account.id),
+        this.topupService.GetDepositInfo(),
+        this.configService.LoadConfig(),
       ]);
       this.connectedBalance.set(connectedBalance);
+      this.payoutPlatformWalletAddress.set(depositInfo.wallet_address);
     } catch {
       this.connectedBalance.set(null);
+      this.payoutError.set('Failed to load payout signing details.');
     }
     this.payoutOpen.set(true);
   }
 
-  ClosePayout(): void {
+  async ClosePayout(): Promise<void> {
+    const pendingPayoutId = this.payoutCreatedId();
+    if (pendingPayoutId) {
+      try {
+        await this.payoutService.CancelPayout(pendingPayoutId);
+      } catch {
+        // The payout may already be broadcasting or terminal.
+      }
+      const account = this.activeAccount();
+      if (account) {
+        this.events$.next({
+          type: 'payout_processed',
+          accountId: account.id,
+        });
+      }
+    }
+
     this.payoutOpen.set(false);
     this.payoutError.set('');
     this.payoutLoading.set(false);
+    this.ResetPayoutSigner();
   }
 
   async ConfirmPayout(): Promise<void> {
@@ -488,19 +524,18 @@ export class ConnectedAccountActionsService {
     this.payoutError.set('');
 
     try {
-      const statementDescriptor = this.payoutStatementDescriptor().trim();
-      const result = await this.payoutService.CreateDashboardPayout(
-        account.id,
-        {
-          amount: this.ParseAmountCents(this.payoutAmount()),
-          currency: 'usdc',
-          destination: wallet.id,
-          method: this.payoutMethod(),
-          ...(statementDescriptor
-            ? { statement_descriptor: statementDescriptor }
-            : {}),
-        }
-      );
+      const statementDescriptor =
+        account.settings?.payouts?.statement_descriptor?.trim() ?? '';
+      const input = {
+        amount: this.ParseAmountCents(this.payoutAmount()),
+        currency: 'usdc',
+        destination: wallet.id,
+        method: 'instant' as const,
+        ...(statementDescriptor
+          ? { statement_descriptor: statementDescriptor }
+          : {}),
+      };
+      const result = await this.ConfirmClientSignedPayout(account.id, input);
 
       this.events$.next({
         type: 'payout_processed',
@@ -508,13 +543,15 @@ export class ConnectedAccountActionsService {
       });
 
       if (result.status === 'failed') {
+        this.ClearPayoutRetryState();
         this.payoutError.set(
           result.failure_message || 'Failed to process payout.'
         );
         return;
       }
 
-      this.ClosePayout();
+      this.ClearPayoutRetryState();
+      await this.ClosePayout();
     } catch (err) {
       this.payoutError.set(
         err instanceof Error ? err.message : 'Failed to process payout.'
@@ -522,6 +559,137 @@ export class ConnectedAccountActionsService {
     } finally {
       this.payoutLoading.set(false);
     }
+  }
+
+  GetPayoutSignerAddress(): string {
+    return this.payoutSignerMethod() === 'wallet'
+      ? this.solanaWalletService.GetAddress()
+      : this.payoutPrivateKeyAddress();
+  }
+
+  async ConnectPayoutWallet(): Promise<void> {
+    this.payoutError.set('');
+    try {
+      await this.solanaWalletService.Connect();
+      this.ValidatePayoutSignerAddress(this.solanaWalletService.GetAddress());
+    } catch (error) {
+      this.payoutError.set(
+        error instanceof Error ? error.message : 'Failed to connect wallet.'
+      );
+    }
+  }
+
+  async ValidatePayoutPrivateKey(): Promise<void> {
+    this.payoutPrivateKeyAddress.set('');
+    const secretKey = this.payoutPrivateKey().trim();
+    if (!secretKey) return;
+
+    try {
+      const address = await this.solanaWalletService.GetSecretKeyAddress(
+        secretKey
+      );
+      this.ValidatePayoutSignerAddress(address);
+      this.payoutPrivateKeyAddress.set(address);
+      this.payoutError.set('');
+    } catch (error) {
+      this.payoutError.set(
+        error instanceof Error ? error.message : 'Invalid Solana private key.'
+      );
+    }
+  }
+
+  SetPayoutSignerMethod(method: 'wallet' | 'private_key'): void {
+    this.payoutSignerMethod.set(method);
+    this.payoutSignedTransaction.set('');
+    this.payoutError.set('');
+  }
+
+  SetPayoutPrivateKey(secretKey: string): void {
+    this.payoutPrivateKey.set(secretKey);
+    this.payoutPrivateKeyAddress.set('');
+    this.payoutSignedTransaction.set('');
+    this.payoutError.set('');
+  }
+
+  private ValidatePayoutSignerAddress(address: string): void {
+    if (!address || address !== this.payoutPlatformWalletAddress()) {
+      throw new Error(
+        'Signer does not match the configured platform payout wallet'
+      );
+    }
+  }
+
+  private async ConfirmClientSignedPayout(
+    connectedAccountId: string,
+    input: Parameters<PayoutService['CreatePayoutForConnectedAccount']>[1]
+  ) {
+    const expectedSigner = this.payoutPlatformWalletAddress();
+    if (!this.payoutSignedTransaction()) {
+      this.ValidatePayoutSignerAddress(this.GetPayoutSignerAddress());
+    }
+
+    let buildResult = this.payoutBuildResult();
+    if (!buildResult) {
+      let payoutId = this.payoutCreatedId();
+      if (!payoutId) {
+        const payout = await this.payoutService.CreatePayoutForConnectedAccount(
+          connectedAccountId,
+          input
+        );
+        payoutId = payout.id;
+        this.payoutCreatedId.set(payoutId);
+      }
+      buildResult = await this.payoutService.BuildPayoutsBatch({
+        payouts: [payoutId],
+      });
+      this.payoutBuildResult.set(buildResult);
+    }
+
+    const chain = this.configService.config()?.livemode
+      ? 'solana:mainnet'
+      : 'solana:devnet';
+    let signedTransaction = this.payoutSignedTransaction();
+    if (!signedTransaction) {
+      const signedBytes =
+        this.payoutSignerMethod() === 'wallet'
+          ? await this.solanaWalletService.SignUnsignedTransaction(
+              buildResult.unsigned_transaction,
+              chain
+            )
+          : await this.solanaWalletService.SignUnsignedTransactionWithSecretKey(
+              buildResult.unsigned_transaction,
+              this.payoutPrivateKey(),
+              expectedSigner
+            );
+      signedTransaction = this.solanaWalletService.BytesToBase64(signedBytes);
+      this.payoutSignedTransaction.set(signedTransaction);
+
+      if (this.payoutSignerMethod() === 'private_key') {
+        this.payoutPrivateKey.set('');
+        this.payoutPrivateKeyAddress.set('');
+      }
+    }
+
+    return this.payoutService.BroadcastPayoutsBatch({
+      signed_transaction: signedTransaction,
+      payouts: buildResult.payouts.map((payout) => payout.id),
+      blockhash: buildResult.blockhash,
+      last_valid_block_height: buildResult.last_valid_block_height,
+    });
+  }
+
+  private ResetPayoutSigner(): void {
+    this.payoutSignerMethod.set('wallet');
+    this.payoutPlatformWalletAddress.set('');
+    this.ClearPayoutRetryState();
+  }
+
+  private ClearPayoutRetryState(): void {
+    this.payoutPrivateKey.set('');
+    this.payoutPrivateKeyAddress.set('');
+    this.payoutCreatedId.set('');
+    this.payoutSignedTransaction.set('');
+    this.payoutBuildResult.set(null);
   }
 
   // ── Profile panel ────────────────────────────────────────────────────────

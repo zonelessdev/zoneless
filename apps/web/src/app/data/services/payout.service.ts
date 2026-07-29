@@ -1,6 +1,14 @@
 import { Injectable, inject } from '@angular/core';
-import type { CreatePayoutInput } from '@zoneless/shared-schemas';
-import type { PayoutBatchBroadcastResponse } from '@zoneless/shared-types';
+import type {
+  BroadcastPayoutsBatchInput,
+  BuildPayoutsBatchInput,
+  CreatePayoutInput,
+} from '@zoneless/shared-schemas';
+import type {
+  Payout,
+  PayoutBatchBroadcastResponse,
+  PayoutBatchBuildResponse,
+} from '@zoneless/shared-types';
 import { ApiService } from '../../core';
 
 @Injectable({
@@ -9,21 +17,37 @@ import { ApiService } from '../../core';
 export class PayoutService {
   private readonly api = inject(ApiService);
 
-  /**
-   * Create and process a connected-account payout from the dashboard.
-   */
-  async CreateDashboardPayout(
+  async CreatePayoutForConnectedAccount(
     connectedAccountId: string,
     input: CreatePayoutInput
+  ): Promise<Payout> {
+    return this.api.Call<Payout>('POST', 'payouts', input, {
+      zonelessAccount: connectedAccountId,
+    });
+  }
+
+  async BuildPayoutsBatch(
+    input: BuildPayoutsBatchInput
+  ): Promise<PayoutBatchBuildResponse> {
+    return this.api.Call<PayoutBatchBuildResponse>(
+      'POST',
+      'payouts/build',
+      input
+    );
+  }
+
+  async BroadcastPayoutsBatch(
+    input: BroadcastPayoutsBatchInput
   ): Promise<PayoutBatchBroadcastResponse> {
     return this.api.Call<PayoutBatchBroadcastResponse>(
       'POST',
-      'dashboard/payouts',
+      'payouts/broadcast',
       input,
-      {
-        timeout: 60000,
-        zonelessAccount: connectedAccountId,
-      }
+      { timeout: 60000 }
     );
+  }
+
+  async CancelPayout(payoutId: string): Promise<Payout> {
+    return this.api.Call<Payout>('POST', `payouts/${payoutId}/cancel`);
   }
 }

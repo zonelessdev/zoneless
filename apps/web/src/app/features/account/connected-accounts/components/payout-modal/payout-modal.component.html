@@ -42,30 +42,78 @@
       </div>
     </div>
 
-    <!-- <div class="field">
-      <div class="field-title">Delivery method</div>
-      <select
-        class="text-input"
-        [value]="actions.payoutMethod()"
-        (change)="OnMethodChange($event)"
-        [disabled]="actions.payoutLoading()"
-      >
-        <option value="instant">Instant</option>
-        <option value="standard">Standard</option>
-      </select>
-    </div>
-
     <div class="field">
-      <div class="field-title">Statement descriptor</div>
-      <input
-        type="text"
-        class="text-input"
-        maxlength="22"
-        [value]="actions.payoutStatementDescriptor()"
-        (input)="OnStatementInput($event)"
-        [disabled]="actions.payoutLoading()"
-      />
-    </div> -->
+      <div class="field-title">Sign payout</div>
+      <div class="field-help signer-help">
+        Sign with the platform wallet that holds the payout funds.
+      </div>
+      <div class="signer-options">
+        <label class="signer-option">
+          <input
+            type="radio"
+            name="payout-signer"
+            [checked]="actions.payoutSignerMethod() === 'wallet'"
+            (change)="OnSignerMethodChange('wallet')"
+            [disabled]="actions.payoutLoading()"
+          />
+          <span>Browser wallet</span>
+        </label>
+        <label class="signer-option">
+          <input
+            type="radio"
+            name="payout-signer"
+            [checked]="actions.payoutSignerMethod() === 'private_key'"
+            (change)="OnSignerMethodChange('private_key')"
+            [disabled]="actions.payoutLoading()"
+          />
+          <span>Private key</span>
+        </label>
+      </div>
+
+      <div class="signer-details">
+        @if (actions.payoutSignerMethod() === 'wallet') {
+        <button
+          type="button"
+          class="action-button action-button-dainty outline signer-button"
+          (click)="actions.ConnectPayoutWallet()"
+          [disabled]="actions.payoutLoading()"
+        >
+          {{
+            connectedSignerAddress()
+              ? 'Change wallet'
+              : 'Connect platform wallet'
+          }}
+        </button>
+        @if (connectedSignerAddress()) {
+        <div class="field-help signer-address">
+          Connected:
+          <span [title]="connectedSignerAddress()">{{
+            connectedSignerLabel()
+          }}</span>
+        </div>
+        } } @else {
+        <input
+          type="password"
+          class="text-input private-key-input"
+          name="payout-private-key"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="Paste base58 private key"
+          [value]="actions.payoutPrivateKey()"
+          (input)="OnPrivateKeyInput($event)"
+          (blur)="actions.ValidatePayoutPrivateKey()"
+          [disabled]="actions.payoutLoading()"
+        />
+        <div class="field-help">
+          Your private key is used only in this browser to sign this payout. It
+          is never sent to or stored by Zoneless.
+        </div>
+        @if (actions.payoutPrivateKeyAddress()) {
+        <div class="field-help signer-valid">Private key verified.</div>
+        } }
+      </div>
+    </div>
 
     <div class="confirm-section">
       <div class="confirm-heading">Confirm payout</div>
@@ -81,18 +129,7 @@
     </div>
 
     @if (actions.payoutError()) {
-    <div class="fund-error">
-      {{ actions.payoutError() }}
-      @if (showFeePayerHelp()) {
-      <a
-        href="https://zoneless.com/docs/environment-variables"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Learn how to configure environment variables.
-      </a>
-      }
-    </div>
+    <div class="fund-error">{{ actions.payoutError() }}</div>
     }
   </div>
 </app-modal>
