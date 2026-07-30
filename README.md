@@ -13,6 +13,7 @@
 <p align="center">
   <a href="https://zoneless.com/docs">Docs</a> &middot;
   <a href="https://zoneless.com">Website</a> &middot;
+  <a href="https://zoneless.com/#live-demo">Demo</a> &middot;
   <a href="https://discord.gg/mdMQJug9mG">Discord</a>
 </p>
 
@@ -99,6 +100,8 @@ Zoneless was built for [PromptBase](https://promptbase.com), an AI marketplace s
 Over a 14-week period, 73% of eligible sellers chose Zoneless instead of Stripe for their payouts. More than 2,500 sellers completed onboarding.
 
 ## Dashboard and onboarding
+
+Try the [live demo](https://zoneless.com/#live-demo) of the platform dashboard and seller onboarding in test mode.
 
 ### Platform dashboard
 
