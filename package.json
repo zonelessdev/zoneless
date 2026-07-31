@@ -96,6 +96,7 @@
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.3",
+    "libphonenumber-js": "^1.13.10",
     "mongoose": "^9.0.1",
     "rxjs": "~7.8.0",
     "zod": "^4.4.3"

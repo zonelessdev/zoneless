@@ -17,6 +17,7 @@ import type {
   ExternalWallet,
   Payout,
 } from '@zoneless/shared-types';
+import { IsRejectedAccountReason } from '@zoneless/shared-schemas';
 import { Subscription } from 'rxjs';
 import {
   AccountService,
@@ -85,6 +86,7 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
 
   account: WritableSignal<Account | null> = signal(null);
   loading: WritableSignal<boolean> = signal(false);
+  approvingIdentity: WritableSignal<boolean> = signal(false);
   activeTab: WritableSignal<DetailTab> = signal('overview');
   moneyMovementTab: WritableSignal<MoneyMovementTab> = signal('payouts');
   paymentsTab: WritableSignal<MoneyMovementTab> = signal('transfers');
@@ -235,16 +237,59 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
     },
   ];
 
-  accountActions: PopupMenuAction[] = [
-    {
-      title: 'View dashboard as account',
-      action: () => this.OnViewDashboard(),
-    },
-    {
-      title: 'Copy account ID',
-      action: () => this.CopyId(),
-    },
-  ];
+  GetAccountActions(): PopupMenuAction[] {
+    const name = this.displayName();
+    return [
+      {
+        title: `View Dashboard as ${name}`,
+        external: true,
+        action: () => this.OnViewDashboard(),
+      },
+      {
+        title: 'Pause payouts',
+        section: 'Actions',
+        destructive: true,
+        action: (account: Account) => this.actions.OpenPausePayouts(account),
+        hidden: (account: Account) =>
+          !account.payouts_enabled || this.actions.IsAccountRejected(account),
+      },
+      {
+        title: 'Resume payouts',
+        section: 'Actions',
+        action: (account: Account) => this.actions.OpenResumePayouts(account),
+        hidden: (account: Account) =>
+          !!account.payouts_enabled || this.actions.IsAccountRejected(account),
+      },
+      {
+        title: 'Pause payments',
+        section: 'Actions',
+        destructive: true,
+        action: (account: Account) => this.actions.OpenPausePayments(account),
+        hidden: (account: Account) =>
+          !account.charges_enabled || this.actions.IsAccountRejected(account),
+      },
+      {
+        title: 'Resume payments',
+        section: 'Actions',
+        action: (account: Account) => this.actions.OpenResumePayments(account),
+        hidden: (account: Account) =>
+          !!account.charges_enabled || this.actions.IsAccountRejected(account),
+      },
+      {
+        title: 'Reject account',
+        section: 'Actions',
+        destructive: true,
+        action: (account: Account) => this.actions.OpenReject(account),
+        hidden: (account: Account) => this.actions.IsAccountRejected(account),
+      },
+      {
+        title: 'Unreject account',
+        section: 'Actions',
+        action: (account: Account) => this.actions.OpenUnreject(account),
+        hidden: (account: Account) => !this.actions.IsAccountRejected(account),
+      },
+    ];
+  }
 
   private sub?: Subscription;
 
@@ -418,6 +463,60 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
 
   GetDefaultCurrency(): string {
     return (this.account()?.default_currency ?? 'usdc').toUpperCase();
+  }
+
+  GetCurrentlyDue(): string[] {
+    return this.account()?.requirements?.currently_due ?? [];
+  }
+
+  GetPendingVerification(): string[] {
+    return this.account()?.requirements?.pending_verification ?? [];
+  }
+
+  GetRequirementErrors(): Array<{ requirement: string; reason: string }> {
+    return this.account()?.requirements?.errors ?? [];
+  }
+
+  GetDisabledReason(): string | null {
+    return this.account()?.requirements?.disabled_reason ?? null;
+  }
+
+  NeedsIdentityReview(): boolean {
+    return (
+      this.GetPendingVerification().length > 0 ||
+      this.GetDisabledReason() === 'under_review'
+    );
+  }
+
+  GetIdentityStatusLabel(): string | null {
+    const reason = this.GetDisabledReason();
+    if (IsRejectedAccountReason(reason)) {
+      return `Rejected (${reason!.replace('rejected.', '')})`;
+    }
+    if (reason === 'under_review' || this.GetPendingVerification().length > 0) {
+      return 'Needs review';
+    }
+    if (this.GetCurrentlyDue().length > 0) {
+      return 'Requirements due';
+    }
+    return null;
+  }
+
+  async OnApproveIdentity(): Promise<void> {
+    const account = this.account();
+    if (!account || this.approvingIdentity()) return;
+
+    this.approvingIdentity.set(true);
+    try {
+      const updated = await this.accountService.ApproveIdentity(account.id);
+      this.account.set(updated);
+      this.actions.SetActiveAccount(updated);
+      this.actions.events$.next({ type: 'updated', account: updated });
+    } catch (error) {
+      console.error('Failed to dismiss identity review:', error);
+    } finally {
+      this.approvingIdentity.set(false);
+    }
   }
 
   private ReloadMoneyMovementLists(): void {

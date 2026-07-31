@@ -9,6 +9,7 @@ import { db } from '../modules/Database';
 import { EventService } from '../modules/EventService';
 import { AccountModule } from '../modules/Account';
 import { ExternalWalletModule } from '../modules/ExternalWallet';
+import { IdentityLiteModule } from '../modules/IdentityLite';
 
 import { ValidateRequest } from '../middleware/ValidateRequest';
 import { RequireAccountOwnership } from '../middleware/Authorization';
@@ -23,6 +24,7 @@ const router = express.Router();
 const eventService = new EventService(db);
 const accountModule = new AccountModule(db, eventService);
 const externalWalletModule = new ExternalWalletModule(db, eventService);
+const identityLiteModule = new IdentityLiteModule(db);
 
 // POST /v1/accounts/:id/external_accounts
 router.post(
@@ -37,6 +39,27 @@ router.post(
       fields: Object.keys(req.body),
     });
 
+    const account = await accountModule.GetAccount(accountId);
+    if (!account) {
+      throw new AppError(
+        ERRORS.ACCOUNT_NOT_FOUND.message,
+        ERRORS.ACCOUNT_NOT_FOUND.status,
+        ERRORS.ACCOUNT_NOT_FOUND.type
+      );
+    }
+
+    // Soft-block: outstanding hard identity requirements only
+    await identityLiteModule.EvaluateAndApply(accountId);
+    const refreshed = await accountModule.GetAccount(accountId);
+    if (!refreshed) {
+      throw new AppError(
+        ERRORS.ACCOUNT_NOT_FOUND.message,
+        ERRORS.ACCOUNT_NOT_FOUND.status,
+        ERRORS.ACCOUNT_NOT_FOUND.type
+      );
+    }
+    identityLiteModule.AssertCanEnablePayouts(refreshed);
+
     const externalWallet = await externalWalletModule.CreateExternalWallet(
       accountId,
       req.body
@@ -44,6 +67,11 @@ router.post(
 
     // Enable payouts on the account now that a wallet is set up
     await accountModule.PayoutsEnabled(accountId);
+
+    // Flag duplicate wallets for operator review (does not undo payouts_enabled)
+    await identityLiteModule.EvaluateAndApply(accountId, null, {
+      walletAddress: externalWallet.wallet_address,
+    });
 
     Logger.info('External wallet created successfully', {
       externalWalletId: externalWallet.id,

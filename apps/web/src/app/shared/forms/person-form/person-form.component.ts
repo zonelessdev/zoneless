@@ -328,10 +328,12 @@ export class PersonFormComponent implements OnInit, OnChanges {
     const value = this.firstName();
     if (!value || !value.trim()) {
       this.firstNameError.set('Please enter a first name');
-    } else if (value.length < NAME_MIN_LENGTH) {
+    } else if (value.trim().length < NAME_MIN_LENGTH) {
       this.firstNameError.set('First name is too short');
     } else if (value.length > NAME_MAX_LENGTH) {
       this.firstNameError.set('First name is too long');
+    } else if (/^\d+$/.test(value.trim())) {
+      this.firstNameError.set('Name cannot be only numbers');
     } else {
       this.firstNameError.set('');
     }
@@ -341,10 +343,12 @@ export class PersonFormComponent implements OnInit, OnChanges {
     const value = this.lastName();
     if (!value || !value.trim()) {
       this.lastNameError.set('Please enter a last name');
-    } else if (value.length < NAME_MIN_LENGTH) {
+    } else if (value.trim().length < NAME_MIN_LENGTH) {
       this.lastNameError.set('Last name is too short');
     } else if (value.length > NAME_MAX_LENGTH) {
       this.lastNameError.set('Last name is too long');
+    } else if (/^\d+$/.test(value.trim())) {
+      this.lastNameError.set('Name cannot be only numbers');
     } else {
       this.lastNameError.set('');
     }
@@ -452,10 +456,36 @@ export class PersonFormComponent implements OnInit, OnChanges {
     const number = this.phoneNumber();
     if (!number || !number.trim()) {
       this.phoneError.set('Please enter a phone number');
-    } else if (number.length < 6) {
+    } else if (number.replace(/\D/g, '').length < 7) {
       this.phoneError.set('Phone number is too short');
     } else {
       this.phoneError.set('');
+    }
+  }
+
+  /**
+   * Map Stripe-shaped requirement errors from the API onto form fields.
+   */
+  ApplyRequirementErrors(
+    errors: Array<{ requirement: string; reason: string }> | null | undefined
+  ): void {
+    if (!errors?.length) return;
+
+    for (const error of errors) {
+      const path = error.requirement;
+      if (path === 'individual.first_name') {
+        this.firstNameError.set(error.reason);
+      } else if (path === 'individual.last_name') {
+        this.lastNameError.set(error.reason);
+      } else if (path === 'individual.email') {
+        this.emailError.set(error.reason);
+      } else if (path === 'individual.phone') {
+        this.phoneError.set(error.reason);
+      } else if (path === 'individual.dob') {
+        this.dobError.set(error.reason);
+      } else if (path.startsWith('individual.address')) {
+        this.addressError.set(error.reason);
+      }
     }
   }
 

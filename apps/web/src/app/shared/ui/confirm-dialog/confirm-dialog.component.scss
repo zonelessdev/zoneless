@@ -1,8 +1,16 @@
 @use '../../../styles/base.scss' as *;
 
-.dialogue-description {
+.dialog-description {
   font-size: $font-size;
   color: $text-color;
   line-height: 1.5;
   margin: 0;
+  opacity: $dimmed;
+}
+
+.dialog-error {
+  margin: $spacing-small 0 0;
+  font-size: $font-size-small;
+  color: #dc2626;
+  line-height: 1.4;
 }

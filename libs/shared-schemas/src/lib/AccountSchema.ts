@@ -210,9 +210,66 @@ export type UpdateAccountInput = z.infer<typeof UpdateAccountSchema>;
  */
 export const RejectAccountSchema = z.object({
   reason: z.enum(['fraud', 'terms_of_service', 'other']),
+  /** When true (default), also pause payouts. Payments are always paused on reject. */
+  pause_payouts: z.boolean().optional(),
 });
 
 export type RejectAccountInput = z.infer<typeof RejectAccountSchema>;
+
+/**
+ * Schema for enabling or pausing payments (charges) on a connected account.
+ */
+export const SetChargesEnabledSchema = z.object({
+  charges_enabled: z.boolean(),
+});
+
+export type SetChargesEnabledInput = z.infer<typeof SetChargesEnabledSchema>;
+
+/**
+ * Schema for enabling or pausing payouts on a connected account.
+ */
+export const SetPayoutsEnabledSchema = z.object({
+  payouts_enabled: z.boolean(),
+});
+
+export type SetPayoutsEnabledInput = z.infer<typeof SetPayoutsEnabledSchema>;
+
+/** disabled_reason values written by RejectAccount */
+export const REJECTED_DISABLED_REASONS = [
+  'rejected.fraud',
+  'rejected.terms_of_service',
+  'rejected.other',
+] as const;
+
+/** Status values accepted by GET /v1/accounts?status= (excluding "all") */
+export const CONNECTED_ACCOUNT_STATUS_FILTERS = [
+  'restricted',
+  'requires_review',
+  'rejected',
+  'enabled',
+] as const;
+
+export type ConnectedAccountStatusFilter =
+  (typeof CONNECTED_ACCOUNT_STATUS_FILTERS)[number];
+
+export type ConnectedAccountListStatus =
+  | 'all'
+  | ConnectedAccountStatusFilter;
+
+export function IsConnectedAccountStatusFilter(
+  value: string | undefined
+): value is ConnectedAccountStatusFilter {
+  return (
+    !!value &&
+    (CONNECTED_ACCOUNT_STATUS_FILTERS as readonly string[]).includes(value)
+  );
+}
+
+export function IsRejectedAccountReason(
+  reason: string | null | undefined
+): boolean {
+  return typeof reason === 'string' && reason.startsWith('rejected.');
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // List Accounts Schema (SDK-specific, not from API)
@@ -223,6 +280,8 @@ export const ListAccountsSchema = z
     limit: z.number().int().min(1).max(100),
     starting_after: z.string(),
     ending_before: z.string(),
+    /** Connected-account overview filter (platform dashboard) */
+    status: z.enum(CONNECTED_ACCOUNT_STATUS_FILTERS),
     created: z
       .object({
         gt: z.number().int(),

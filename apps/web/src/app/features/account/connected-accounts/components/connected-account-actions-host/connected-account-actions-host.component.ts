@@ -1,6 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import type { Account } from '@zoneless/shared-types';
-import { SlidePanelComponent, LoaderComponent } from '../../../../../shared';
+import {
+  SlidePanelComponent,
+  LoaderComponent,
+  ConfirmDialogComponent,
+} from '../../../../../shared';
 import { ConnectedAccountDetailComponent } from '../../../components';
 import { MetadataEditModalComponent } from '../../../components';
 import { ConnectedAccountActionsService } from '../../services/connected-account-actions.service';
@@ -8,18 +12,21 @@ import { AddFundsModalComponent } from '../add-funds-modal/add-funds-modal.compo
 import { PullFundsModalComponent } from '../pull-funds-modal/pull-funds-modal.component';
 import { PayoutModalComponent } from '../payout-modal/payout-modal.component';
 import { LoginLinkModalComponent } from '../login-link-modal/login-link-modal.component';
+import { RejectAccountModalComponent } from '../reject-account-modal/reject-account-modal.component';
 
 @Component({
   selector: 'app-connected-account-actions-host',
   imports: [
     SlidePanelComponent,
     LoaderComponent,
+    ConfirmDialogComponent,
     ConnectedAccountDetailComponent,
     MetadataEditModalComponent,
     AddFundsModalComponent,
     PullFundsModalComponent,
     PayoutModalComponent,
     LoginLinkModalComponent,
+    RejectAccountModalComponent,
   ],
   templateUrl: './connected-account-actions-host.component.html',
   styleUrl: './connected-account-actions-host.component.scss',

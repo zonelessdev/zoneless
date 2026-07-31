@@ -10,11 +10,30 @@
   </button>
 </div>
 
+<div class="field">
+  <div class="field-pill">
+    @for (tab of statusTabs; track tab.id) {
+    <div
+      class="field-pill-option"
+      role="button"
+      tabindex="0"
+      [class.field-pill-option-selected]="statusTab() === tab.id"
+      (click)="SetStatusTab(tab.id)"
+      (keydown.enter)="SetStatusTab(tab.id)"
+      (keydown.space)="SetStatusTab(tab.id)"
+    >
+      <span>{{ tab.label }}</span>
+    </div>
+    }
+  </div>
+</div>
+
 <app-paginated-list
   #accountsList
   endpoint="accounts"
   [columns]="connectedAccountColumns"
   [limit]="20"
+  [queryParams]="accountsQueryParams()"
   (rowClick)="OnConnectedAccountClick($event)"
 ></app-paginated-list>
 

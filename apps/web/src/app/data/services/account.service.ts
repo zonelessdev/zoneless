@@ -72,6 +72,66 @@ export class AccountService {
     }
   }
 
+  /**
+   * Platform-only: dismiss lite identity review flags.
+   */
+  async ApproveIdentity(accountId: string): Promise<Account> {
+    return this.api.Call<Account>(
+      'POST',
+      `accounts/${accountId}/approve_identity`,
+      {}
+    );
+  }
+
+  /**
+   * Platform-only: reject a connected account.
+   */
+  async RejectAccount(
+    accountId: string,
+    data: { reason: 'fraud' | 'terms_of_service' | 'other'; pause_payouts?: boolean }
+  ): Promise<Account> {
+    return this.api.Call<Account>('POST', `accounts/${accountId}/reject`, data);
+  }
+
+  /**
+   * Platform-only: unreject a previously rejected connected account.
+   */
+  async UnrejectAccount(accountId: string): Promise<Account> {
+    return this.api.Call<Account>(
+      'POST',
+      `accounts/${accountId}/unreject`,
+      {}
+    );
+  }
+
+  /**
+   * Platform-only: pause or resume payments (charges).
+   */
+  async SetChargesEnabled(
+    accountId: string,
+    chargesEnabled: boolean
+  ): Promise<Account> {
+    return this.api.Call<Account>(
+      'POST',
+      `accounts/${accountId}/charges_enabled`,
+      { charges_enabled: chargesEnabled }
+    );
+  }
+
+  /**
+   * Platform-only: pause or resume payouts.
+   */
+  async SetPayoutsEnabled(
+    accountId: string,
+    payoutsEnabled: boolean
+  ): Promise<Account> {
+    return this.api.Call<Account>(
+      'POST',
+      `accounts/${accountId}/payouts_enabled`,
+      { payouts_enabled: payoutsEnabled }
+    );
+  }
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Connected Account Methods (Platform Only)
   // ─────────────────────────────────────────────────────────────────────────────

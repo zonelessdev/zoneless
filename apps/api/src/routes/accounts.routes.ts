@@ -12,6 +12,7 @@ import { BalanceModule } from '../modules/Balance';
 import { ExternalWalletModule } from '../modules/ExternalWallet';
 import { LoginLinkModule, ToLoginLinkResponse } from '../modules/LoginLink';
 import { EventService } from '../modules/EventService';
+import { IdentityLiteModule } from '../modules/IdentityLite';
 
 import { ValidateRequest } from '../middleware/ValidateRequest';
 import {
@@ -23,6 +24,9 @@ import {
   CreateAccountSchema,
   UpdateAccountSchema,
   RejectAccountSchema,
+  SetChargesEnabledSchema,
+  SetPayoutsEnabledSchema,
+  IsConnectedAccountStatusFilter,
 } from '@zoneless/shared-schemas';
 
 import { Account as AccountType } from '@zoneless/shared-types';
@@ -35,6 +39,7 @@ const personModule = new PersonModule(db, eventService);
 const balanceModule = new BalanceModule(db, eventService);
 const externalWalletModule = new ExternalWalletModule(db);
 const loginLinkModule = new LoginLinkModule(db);
+const identityLiteModule = new IdentityLiteModule(db);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: Populate account with related resources
@@ -83,6 +88,34 @@ async function PopulateAccountResources(
       total_count: loginLinks.length,
       url: `/v1/accounts/${account.id}/login_links`,
     };
+  }
+
+  return account;
+}
+
+/**
+ * Load a connected account and assert it belongs to the requesting platform.
+ */
+async function RequirePlatformOwnedAccount(
+  accountId: string,
+  platformAccountId: string
+): Promise<AccountType> {
+  const account = await accountModule.GetAccount(accountId);
+
+  if (!account) {
+    throw new AppError(
+      ERRORS.ACCOUNT_NOT_FOUND.message,
+      ERRORS.ACCOUNT_NOT_FOUND.status,
+      ERRORS.ACCOUNT_NOT_FOUND.type
+    );
+  }
+
+  if (account.platform_account !== platformAccountId) {
+    throw new AppError(
+      ERRORS.NO_SUCH_CONNECTED_ACCOUNT.message,
+      ERRORS.NO_SUCH_CONNECTED_ACCOUNT.status,
+      ERRORS.NO_SUCH_CONNECTED_ACCOUNT.type
+    );
   }
 
   return account;
@@ -152,12 +185,17 @@ router.get(
     const startingAfter = req.query.starting_after as string | undefined;
     const endingBefore = req.query.ending_before as string | undefined;
     const created = ParseCreatedFilter(req.query as Record<string, unknown>);
+    const statusParam = req.query.status as string | undefined;
+    const status = IsConnectedAccountStatusFilter(statusParam)
+      ? statusParam
+      : undefined;
 
     Logger.info('Listing accounts', {
       platformAccountId,
       limit,
       startingAfter,
       endingBefore,
+      status,
     });
 
     try {
@@ -166,6 +204,7 @@ router.get(
         startingAfter,
         endingBefore,
         created,
+        status,
       });
 
       result.data = await Promise.all(
@@ -326,26 +365,7 @@ router.post(
   ValidateRequest(RejectAccountSchema),
   AsyncHandler(async (req: express.Request, res: express.Response) => {
     const accountId = req.params.id;
-
-    // Verify the account belongs to this platform
-    const existingAccount = await accountModule.GetAccount(accountId);
-
-    if (!existingAccount) {
-      throw new AppError(
-        ERRORS.ACCOUNT_NOT_FOUND.message,
-        ERRORS.ACCOUNT_NOT_FOUND.status,
-        ERRORS.ACCOUNT_NOT_FOUND.type
-      );
-    }
-
-    // Ensure the platform owns this account
-    if (existingAccount.platform_account !== req.user.account) {
-      throw new AppError(
-        ERRORS.NO_SUCH_CONNECTED_ACCOUNT.message,
-        ERRORS.NO_SUCH_CONNECTED_ACCOUNT.status,
-        ERRORS.NO_SUCH_CONNECTED_ACCOUNT.type
-      );
-    }
+    await RequirePlatformOwnedAccount(accountId, req.user.account);
 
     Logger.info('Rejecting account', { accountId, reason: req.body.reason });
 
@@ -353,6 +373,105 @@ router.post(
     const populatedAccount = await PopulateAccountResources(account, true);
 
     Logger.info('Account rejected successfully', { accountId });
+
+    res.json(populatedAccount);
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /v1/accounts/:id/unreject - Unreject an account
+// Zoneless platform operator control
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/:id/unreject',
+  RequirePlatform(),
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const accountId = req.params.id;
+    await RequirePlatformOwnedAccount(accountId, req.user.account);
+
+    Logger.info('Unrejecting account', { accountId });
+
+    let account = await accountModule.UnrejectAccount(accountId);
+    // Re-run lite checks so hard dues / review signals can resurface
+    await identityLiteModule.EvaluateAndApply(accountId);
+    account = (await accountModule.GetAccount(accountId)) ?? account;
+    const populatedAccount = await PopulateAccountResources(account, true);
+
+    Logger.info('Account unrejected successfully', { accountId });
+
+    res.json(populatedAccount);
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /v1/accounts/:id/charges_enabled - Pause or resume payments
+// Platform operator control (Zoneless extension)
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/:id/charges_enabled',
+  RequirePlatform(),
+  ValidateRequest(SetChargesEnabledSchema),
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const accountId = req.params.id;
+    await RequirePlatformOwnedAccount(accountId, req.user.account);
+
+    const enabled = req.body.charges_enabled === true;
+    Logger.info(enabled ? 'Resuming payments' : 'Pausing payments', {
+      accountId,
+    });
+
+    const account = enabled
+      ? await accountModule.ChargesEnabled(accountId)
+      : await accountModule.ChargesDisabled(accountId);
+    const populatedAccount = await PopulateAccountResources(account, true);
+
+    res.json(populatedAccount);
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /v1/accounts/:id/payouts_enabled - Pause or resume payouts
+// Platform operator control (Zoneless extension)
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/:id/payouts_enabled',
+  RequirePlatform(),
+  ValidateRequest(SetPayoutsEnabledSchema),
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const accountId = req.params.id;
+    await RequirePlatformOwnedAccount(accountId, req.user.account);
+
+    const enabled = req.body.payouts_enabled === true;
+    Logger.info(enabled ? 'Resuming payouts' : 'Pausing payouts', {
+      accountId,
+    });
+
+    const account = enabled
+      ? await accountModule.PayoutsEnabled(accountId)
+      : await accountModule.PayoutsDisabled(accountId);
+    const populatedAccount = await PopulateAccountResources(account, true);
+
+    res.json(populatedAccount);
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /v1/accounts/:id/approve_identity - Dismiss lite identity review flags
+// Zoneless extension: operator accepts risk; does not block payouts by itself
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/:id/approve_identity',
+  RequirePlatform(),
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const accountId = req.params.id;
+    await RequirePlatformOwnedAccount(accountId, req.user.account);
+
+    Logger.info('Approving identity for account', { accountId });
+
+    const account = await identityLiteModule.ApproveIdentity(accountId);
+    const populatedAccount = await PopulateAccountResources(account, true);
+
+    Logger.info('Identity approved successfully', { accountId });
 
     res.json(populatedAccount);
   })
@@ -374,6 +493,12 @@ router.post(
     Logger.info('Agreeing to terms', { accountId });
 
     await accountModule.TOSAccepted(accountId, ip, userAgent);
+
+    // Signup-context lite checks (IP vs address country when geo is known)
+    await identityLiteModule.EvaluateAndApply(accountId, null, {
+      ip,
+      headers: req.headers as Record<string, string | string[] | undefined>,
+    });
 
     const account = await accountModule.GetAccount(accountId);
 

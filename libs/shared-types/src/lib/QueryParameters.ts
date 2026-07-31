@@ -7,6 +7,8 @@ export enum QueryOperators {
   '!=' = '!=',
   'in' = 'in',
   'not-in' = 'not-in',
+  /** Field existence check — value should be boolean */
+  exists = 'exists',
 }
 
 export interface QueryParameters {

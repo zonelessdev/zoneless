@@ -306,6 +306,9 @@ describe('AccountModule', () => {
         id: 'acct_z_1',
         object: 'account',
         platform_account: 'acct_z_platform',
+        payouts_enabled: true,
+        charges_enabled: true,
+        capabilities: { transfers: 'active', usdc_payouts: 'active' },
         requirements: {
           alternatives: [],
           current_deadline: null,
@@ -329,6 +332,79 @@ describe('AccountModule', () => {
           payouts_enabled: false,
         })
       );
+    });
+  });
+
+  describe('UnrejectAccount', () => {
+    it('should clear rejection and re-enable payments and payouts', async () => {
+      const existing = {
+        id: 'acct_z_1',
+        object: 'account',
+        platform_account: 'acct_z_platform',
+        charges_enabled: false,
+        payouts_enabled: false,
+        capabilities: { transfers: 'inactive', usdc_payouts: 'inactive' },
+        requirements: {
+          currently_due: [],
+          disabled_reason: 'rejected.fraud',
+          errors: [],
+          eventually_due: [],
+          past_due: [],
+          pending_verification: [],
+        },
+      } as Account;
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValueOnce(existing)
+        .mockResolvedValueOnce({
+          ...existing,
+          charges_enabled: true,
+          payouts_enabled: true,
+          requirements: { ...existing.requirements, disabled_reason: null },
+        });
+
+      await accountModule.UnrejectAccount('acct_z_1');
+
+      expect(mockDb.Update).toHaveBeenCalledWith(
+        'Accounts',
+        'acct_z_1',
+        expect.objectContaining({
+          charges_enabled: true,
+          payouts_enabled: true,
+          requirements: expect.objectContaining({ disabled_reason: null }),
+        })
+      );
+    });
+
+    it('should error when the account is not rejected', async () => {
+      mockDb.Get = jest.fn().mockResolvedValue({
+        id: 'acct_z_1',
+        requirements: { disabled_reason: null, currently_due: [] },
+      } as Account);
+
+      await expect(accountModule.UnrejectAccount('acct_z_1')).rejects.toThrow(
+        /Only accounts rejected/
+      );
+    });
+  });
+
+  describe('ChargesDisabled', () => {
+    it('should pause payments without rejecting', async () => {
+      const existing = {
+        id: 'acct_z_1',
+        charges_enabled: true,
+        requirements: { disabled_reason: null, currently_due: [] },
+      } as Account;
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValueOnce(existing)
+        .mockResolvedValueOnce({ ...existing, charges_enabled: false });
+
+      await accountModule.ChargesDisabled('acct_z_1');
+
+      expect(mockDb.Update).toHaveBeenCalledWith('Accounts', 'acct_z_1', {
+        charges_enabled: false,
+      });
     });
   });
 });

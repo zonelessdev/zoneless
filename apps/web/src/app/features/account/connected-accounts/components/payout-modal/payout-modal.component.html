@@ -11,6 +11,11 @@
   <div class="fund-modal">
     @if (!hasBalance()) {
     <div class="payout-status">No balance available</div>
+    } @if (actions.activeAccount() && !actions.activeAccount()?.payouts_enabled) {
+    <div class="payout-status">
+      Payouts are not enabled for this account. Outstanding identity
+      requirements may need to be resolved first.
+    </div>
     }
 
     <div class="field">

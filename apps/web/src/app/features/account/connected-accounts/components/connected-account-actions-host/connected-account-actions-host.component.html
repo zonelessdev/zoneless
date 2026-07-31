@@ -2,6 +2,64 @@
 <app-pull-funds-modal></app-pull-funds-modal>
 <app-payout-modal></app-payout-modal>
 <app-login-link-modal></app-login-link-modal>
+<app-reject-account-modal></app-reject-account-modal>
+
+<app-confirm-dialog
+  [isOpen]="actions.pausePayoutsOpen()"
+  title="Pause payouts"
+  description="This will pause all payouts on the account."
+  confirmLabel="Pause"
+  [loading]="actions.platformActionLoading()"
+  [destructive]="true"
+  [error]="actions.platformActionError()"
+  (confirmed)="actions.ConfirmPausePayouts()"
+  (cancelled)="actions.ClosePausePayouts()"
+></app-confirm-dialog>
+
+<app-confirm-dialog
+  [isOpen]="actions.resumePayoutsOpen()"
+  title="Resume payouts"
+  description="This will resume payouts on the account."
+  confirmLabel="Resume"
+  [loading]="actions.platformActionLoading()"
+  [error]="actions.platformActionError()"
+  (confirmed)="actions.ConfirmResumePayouts()"
+  (cancelled)="actions.CloseResumePayouts()"
+></app-confirm-dialog>
+
+<app-confirm-dialog
+  [isOpen]="actions.pausePaymentsOpen()"
+  title="Pause payments"
+  description="This will pause all payments on the account."
+  confirmLabel="Pause"
+  [loading]="actions.platformActionLoading()"
+  [destructive]="true"
+  [error]="actions.platformActionError()"
+  (confirmed)="actions.ConfirmPausePayments()"
+  (cancelled)="actions.ClosePausePayments()"
+></app-confirm-dialog>
+
+<app-confirm-dialog
+  [isOpen]="actions.resumePaymentsOpen()"
+  title="Resume payments"
+  description="This will resume payments on the account."
+  confirmLabel="Resume"
+  [loading]="actions.platformActionLoading()"
+  [error]="actions.platformActionError()"
+  (confirmed)="actions.ConfirmResumePayments()"
+  (cancelled)="actions.CloseResumePayments()"
+></app-confirm-dialog>
+
+<app-confirm-dialog
+  [isOpen]="actions.unrejectOpen()"
+  title="Unreject account"
+  description="This will remove the rejection and may re-enable payments and payouts if there are no other restrictions."
+  confirmLabel="Unreject"
+  [loading]="actions.platformActionLoading()"
+  [error]="actions.platformActionError()"
+  (confirmed)="actions.ConfirmUnreject()"
+  (cancelled)="actions.CloseUnreject()"
+></app-confirm-dialog>
 
 <app-slide-panel
   [isOpen]="actions.profilePanelOpen()"
