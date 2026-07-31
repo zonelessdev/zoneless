@@ -3,7 +3,10 @@
  * Format/sanity checks only — no SMS OTP or document IDV.
  */
 
-import { parsePhoneNumberFromString, type CountryCode } from 'libphonenumber-js';
+import {
+  parsePhoneNumberFromString,
+  type CountryCode,
+} from 'libphonenumber-js';
 import { IsRejectedAccountReason } from './AccountSchema';
 
 /** Stripe-shaped requirement field paths for an individual */
@@ -153,7 +156,9 @@ export interface PhoneCheckResult extends ValidityResult {
 /**
  * Check whether a person name looks legitimate (not empty / placeholder / digits-only).
  */
-export function CheckPersonName(name: string | null | undefined): ValidityResult {
+export function CheckPersonName(
+  name: string | null | undefined
+): ValidityResult {
   if (!name || !name.trim()) {
     return { valid: false, reason: 'Name is required' };
   }
@@ -402,10 +407,15 @@ export const IDENTITY_REVIEW_ERROR_CODES: ReadonlySet<string> = new Set([
  * Whether account requirements block enabling / keeping payouts.
  * Hard-invalid currently_due and rejected.* block; pending review does not.
  */
-export function IsIdentityBlockingPayouts(requirements: {
-  currently_due?: string[] | null;
-  disabled_reason?: string | null;
-} | null | undefined): boolean {
+export function IsIdentityBlockingPayouts(
+  requirements:
+    | {
+        currently_due?: string[] | null;
+        disabled_reason?: string | null;
+      }
+    | null
+    | undefined
+): boolean {
   if (!requirements) return false;
 
   const currentlyDue = requirements.currently_due ?? [];

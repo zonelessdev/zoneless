@@ -956,8 +956,8 @@ export class ConnectedAccountActionsService {
         err instanceof Error
           ? err.message
           : enabled
-            ? 'Failed to resume payments.'
-            : 'Failed to pause payments.'
+          ? 'Failed to resume payments.'
+          : 'Failed to pause payments.'
       );
     } finally {
       this.platformActionLoading.set(false);
@@ -985,8 +985,8 @@ export class ConnectedAccountActionsService {
         err instanceof Error
           ? err.message
           : enabled
-            ? 'Failed to resume payouts.'
-            : 'Failed to pause payouts.'
+          ? 'Failed to resume payouts.'
+          : 'Failed to pause payouts.'
       );
     } finally {
       this.platformActionLoading.set(false);

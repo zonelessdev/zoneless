@@ -155,9 +155,9 @@ describe('IdentityValidators', () => {
   describe('CheckDob', () => {
     it('rejects under-13 and incomplete DOB', () => {
       const thisYear = new Date().getFullYear();
-      expect(
-        CheckDob({ day: 1, month: 1, year: thisYear - 5 }).valid
-      ).toBe(false);
+      expect(CheckDob({ day: 1, month: 1, year: thisYear - 5 }).valid).toBe(
+        false
+      );
       expect(CheckDob({ day: null, month: 1, year: 1990 }).valid).toBe(false);
     });
 
@@ -341,7 +341,9 @@ describe('IdentityLiteModule', () => {
     expect(evaluation.pendingVerification).toContain(
       IDENTITY_REQUIREMENT_FIELDS.email
     );
-    expect(storedAccounts.get(account.id)?.requirements?.disabled_reason).toBeNull();
+    expect(
+      storedAccounts.get(account.id)?.requirements?.disabled_reason
+    ).toBeNull();
     expect(
       storedAccounts.get(account.id)?.requirements?.pending_verification
     ).toContain(IDENTITY_REQUIREMENT_FIELDS.email);
@@ -478,9 +480,7 @@ describe('IdentityLiteModule', () => {
     expect(evaluation.pendingVerification.length).toBeGreaterThan(0);
     expect(evaluation.blocking).toBe(false);
     expect(
-      evaluation.errors.some((e) =>
-        e.reason.includes('Email is already used')
-      )
+      evaluation.errors.some((e) => e.reason.includes('Email is already used'))
     ).toBe(true);
     expect(evaluation.pendingVerification).toContain(
       IDENTITY_REQUIREMENT_FIELDS.email
@@ -491,22 +491,20 @@ describe('IdentityLiteModule', () => {
     const { account, person } = SeedClean();
     const wallet = 'D8VMZCmmTUUfhejNhNQKAmqvZCKfUq1qU6RqQKxQwXyX';
 
-    mockDb.Find2Custom.mockImplementation(
-      async (collection, field1) => {
-        if (collection === 'ExternalWallets' && field1 === 'wallet_address') {
-          return [
-            {
-              id: 'wa_z_other',
-              account: 'acct_z_other',
-              platform_account: 'acct_z_platform',
-              wallet_address: wallet,
-              status: 'new',
-            },
-          ];
-        }
-        return [];
+    mockDb.Find2Custom.mockImplementation(async (collection, field1) => {
+      if (collection === 'ExternalWallets' && field1 === 'wallet_address') {
+        return [
+          {
+            id: 'wa_z_other',
+            account: 'acct_z_other',
+            platform_account: 'acct_z_platform',
+            wallet_address: wallet,
+            status: 'new',
+          },
+        ];
       }
-    );
+      return [];
+    });
 
     const evaluation = await module.EvaluateAndApply(account.id, null, {
       walletAddress: wallet,
@@ -550,7 +548,9 @@ describe('IdentityLiteModule', () => {
 
     expect(evaluation.pendingVerification.length).toBeGreaterThan(0);
     expect(
-      evaluation.errors.some((e) => e.reason.includes('Signup IP is already used'))
+      evaluation.errors.some((e) =>
+        e.reason.includes('Signup IP is already used')
+      )
     ).toBe(true);
   });
 

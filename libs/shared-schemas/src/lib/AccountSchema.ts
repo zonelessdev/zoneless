@@ -252,9 +252,7 @@ export const CONNECTED_ACCOUNT_STATUS_FILTERS = [
 export type ConnectedAccountStatusFilter =
   (typeof CONNECTED_ACCOUNT_STATUS_FILTERS)[number];
 
-export type ConnectedAccountListStatus =
-  | 'all'
-  | ConnectedAccountStatusFilter;
+export type ConnectedAccountListStatus = 'all' | ConnectedAccountStatusFilter;
 
 export function IsConnectedAccountStatusFilter(
   value: string | undefined

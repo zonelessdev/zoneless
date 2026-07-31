@@ -289,8 +289,7 @@
         <div class="bolded mb-small">Status</div>
         <div class="dimmed">{{ statusLabel }}</div>
       </div>
-      }
-      @if (GetCurrentlyDue().length > 0) {
+      } @if (GetCurrentlyDue().length > 0) {
       <div class="mb">
         <div class="bolded mb-small">Currently due</div>
         <ul class="requirements-list dimmed">
@@ -299,8 +298,7 @@
           }
         </ul>
       </div>
-      }
-      @if (GetPendingVerification().length > 0) {
+      } @if (GetPendingVerification().length > 0) {
       <div class="mb">
         <div class="bolded mb-small">Pending review</div>
         <ul class="requirements-list dimmed">
@@ -309,23 +307,19 @@
           }
         </ul>
       </div>
-      }
-      @if (GetRequirementErrors().length > 0) {
+      } @if (GetRequirementErrors().length > 0) {
       <div class="mb">
         <div class="bolded mb-small">Notes</div>
         <ul class="requirements-list dimmed">
-          @for (err of GetRequirementErrors(); track err.requirement + err.reason) {
+          @for (err of GetRequirementErrors(); track err.requirement +
+          err.reason) {
           <li>{{ err.reason }}</li>
           }
         </ul>
       </div>
-      }
-      @if (
-        !GetIdentityStatusLabel() &&
-        GetCurrentlyDue().length === 0 &&
-        GetPendingVerification().length === 0 &&
-        GetRequirementErrors().length === 0
-      ) {
+      } @if ( !GetIdentityStatusLabel() && GetCurrentlyDue().length === 0 &&
+      GetPendingVerification().length === 0 && GetRequirementErrors().length ===
+      0 ) {
       <div class="dashed-placeholder">
         <span>No outstanding identity requirements</span>
       </div>

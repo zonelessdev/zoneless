@@ -123,11 +123,7 @@ export class IdentityLiteModule {
     const skipReview =
       options.skipReview === true || this.IsReviewDismissed(account);
 
-    const evaluation = this.EvaluatePerson(
-      resolvedPerson,
-      account,
-      skipReview
-    );
+    const evaluation = this.EvaluatePerson(resolvedPerson, account, skipReview);
 
     if (!skipReview) {
       await this.AppendDuplicateSignals(evaluation, account, resolvedPerson, {
@@ -308,10 +304,7 @@ export class IdentityLiteModule {
       );
     }
 
-    const postalCheck = CheckPostalCode(
-      address?.postal_code,
-      address?.country
-    );
+    const postalCheck = CheckPostalCode(address?.postal_code, address?.country);
     if (!postalCheck.valid) {
       PushHard(
         IDENTITY_REQUIREMENT_FIELDS.addressPostalCode,
@@ -461,7 +454,9 @@ export class IdentityLiteModule {
           evaluation,
           IDENTITY_REQUIREMENT_FIELDS.email,
           IDENTITY_ERROR_CODES.duplicateEmail,
-          `Email is already used by ${dupes} other connected account${dupes === 1 ? '' : 's'} on this platform`
+          `Email is already used by ${dupes} other connected account${
+            dupes === 1 ? '' : 's'
+          } on this platform`
         );
       }
     }
@@ -478,7 +473,9 @@ export class IdentityLiteModule {
           evaluation,
           IDENTITY_REQUIREMENT_FIELDS.phone,
           IDENTITY_ERROR_CODES.duplicatePhone,
-          `Phone number is already used by ${dupes} other connected account${dupes === 1 ? '' : 's'} on this platform`
+          `Phone number is already used by ${dupes} other connected account${
+            dupes === 1 ? '' : 's'
+          } on this platform`
         );
       }
     }
@@ -494,7 +491,9 @@ export class IdentityLiteModule {
           evaluation,
           IDENTITY_REQUIREMENT_FIELDS.externalAccount,
           IDENTITY_ERROR_CODES.duplicateWallet,
-          `Wallet address is already used by ${dupes} other connected account${dupes === 1 ? '' : 's'} on this platform`
+          `Wallet address is already used by ${dupes} other connected account${
+            dupes === 1 ? '' : 's'
+          } on this platform`
         );
       }
     }
@@ -511,7 +510,9 @@ export class IdentityLiteModule {
           evaluation,
           IDENTITY_REQUIREMENT_FIELDS.tosAcceptanceIp,
           IDENTITY_ERROR_CODES.duplicateIp,
-          `Signup IP is already used by ${dupes} other connected account${dupes === 1 ? '' : 's'} on this platform`
+          `Signup IP is already used by ${dupes} other connected account${
+            dupes === 1 ? '' : 's'
+          } on this platform`
         );
       }
     }
@@ -569,7 +570,9 @@ export class IdentityLiteModule {
 
     const accountIds = new Set(
       matches
-        .filter((w) => w.account !== excludeAccountId && w.status !== 'archived')
+        .filter(
+          (w) => w.account !== excludeAccountId && w.status !== 'archived'
+        )
         .map((w) => w.account)
     );
     return accountIds.size;
@@ -634,8 +637,8 @@ export class IdentityLiteModule {
     const disabledReason = IsRejectedAccountReason(existingReason)
       ? existingReason
       : existingReason === IDENTITY_UNDER_REVIEW
-        ? null
-        : existingReason;
+      ? null
+      : existingReason;
 
     const accountErrors = evaluation.errors.filter(
       (e) =>

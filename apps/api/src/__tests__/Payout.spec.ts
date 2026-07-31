@@ -121,10 +121,12 @@ describe('PayoutModule', () => {
 
   describe('CreatePayout', () => {
     it('should reject when payouts are not enabled', async () => {
-      jest.spyOn((module as any).accountModule, 'GetAccount').mockResolvedValue({
-        id: 'acct_z_seller',
-        payouts_enabled: false,
-      });
+      jest
+        .spyOn((module as any).accountModule, 'GetAccount')
+        .mockResolvedValue({
+          id: 'acct_z_seller',
+          payouts_enabled: false,
+        });
 
       await expect(
         module.CreatePayout('acct_z_seller', {

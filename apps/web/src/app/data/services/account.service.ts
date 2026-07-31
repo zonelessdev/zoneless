@@ -88,7 +88,10 @@ export class AccountService {
    */
   async RejectAccount(
     accountId: string,
-    data: { reason: 'fraud' | 'terms_of_service' | 'other'; pause_payouts?: boolean }
+    data: {
+      reason: 'fraud' | 'terms_of_service' | 'other';
+      pause_payouts?: boolean;
+    }
   ): Promise<Account> {
     return this.api.Call<Account>('POST', `accounts/${accountId}/reject`, data);
   }
@@ -97,11 +100,7 @@ export class AccountService {
    * Platform-only: unreject a previously rejected connected account.
    */
   async UnrejectAccount(accountId: string): Promise<Account> {
-    return this.api.Call<Account>(
-      'POST',
-      `accounts/${accountId}/unreject`,
-      {}
-    );
+    return this.api.Call<Account>('POST', `accounts/${accountId}/unreject`, {});
   }
 
   /**

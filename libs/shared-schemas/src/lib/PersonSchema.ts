@@ -25,12 +25,7 @@ export const PersonAddressSchema = z.object({
 export const PersonDobSchema = z.object({
   day: z.number().int().min(1).max(31).nullable(),
   month: z.number().int().min(1).max(12).nullable(),
-  year: z
-    .number()
-    .int()
-    .min(1900)
-    .max(new Date().getFullYear())
-    .nullable(),
+  year: z.number().int().min(1900).max(new Date().getFullYear()).nullable(),
 });
 
 /** Phone may be null; E.164 normalization happens in IdentityLite. */

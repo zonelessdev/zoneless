@@ -10,8 +10,7 @@
     (keydown.enter)="ToggleActionsMenu($event)"
     (keydown.space)="ToggleActionsMenu($event)"
   />
-  @if (menuOpen()) {
-  @let visibleActions = GetVisibleActions();
+  @if (menuOpen()) { @let visibleActions = GetVisibleActions();
   <div
     class="popup-menu"
     role="menu"
