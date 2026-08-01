@@ -9,10 +9,11 @@ import { db } from '../modules/Database';
 import { EventService } from '../modules/EventService';
 import { AccountModule } from '../modules/Account';
 import { ExternalWalletModule } from '../modules/ExternalWallet';
-import { IdentityLiteModule } from '../modules/IdentityLite';
+import { IdentityLiteModule } from '../modules/identity/IdentityLite';
 
 import { ValidateRequest } from '../middleware/ValidateRequest';
 import { RequireAccountOwnership } from '../middleware/Authorization';
+import { IsPlatformAccount } from '../modules/PlatformAccess';
 
 import {
   CreateExternalWalletSchema,
@@ -24,7 +25,7 @@ const router = express.Router();
 const eventService = new EventService(db);
 const accountModule = new AccountModule(db, eventService);
 const externalWalletModule = new ExternalWalletModule(db, eventService);
-const identityLiteModule = new IdentityLiteModule(db);
+const identityLiteModule = new IdentityLiteModule(db, eventService);
 
 // POST /v1/accounts/:id/external_accounts
 router.post(
@@ -48,17 +49,19 @@ router.post(
       );
     }
 
-    // Soft-block: outstanding hard identity requirements only
-    await identityLiteModule.EvaluateAndApply(accountId);
-    const refreshed = await accountModule.GetAccount(accountId);
-    if (!refreshed) {
-      throw new AppError(
-        ERRORS.ACCOUNT_NOT_FOUND.message,
-        ERRORS.ACCOUNT_NOT_FOUND.status,
-        ERRORS.ACCOUNT_NOT_FOUND.type
-      );
+    // Connected accounts only — platform accounts are not subject to Connect KYC
+    if (!IsPlatformAccount(account)) {
+      await identityLiteModule.EvaluateAndApply(accountId);
+      const refreshed = await accountModule.GetAccount(accountId);
+      if (!refreshed) {
+        throw new AppError(
+          ERRORS.ACCOUNT_NOT_FOUND.message,
+          ERRORS.ACCOUNT_NOT_FOUND.status,
+          ERRORS.ACCOUNT_NOT_FOUND.type
+        );
+      }
+      identityLiteModule.AssertCanEnablePayouts(refreshed);
     }
-    identityLiteModule.AssertCanEnablePayouts(refreshed);
 
     const externalWallet = await externalWalletModule.CreateExternalWallet(
       accountId,
@@ -68,10 +71,12 @@ router.post(
     // Enable payouts on the account now that a wallet is set up
     await accountModule.PayoutsEnabled(accountId);
 
-    // Flag duplicate wallets for operator review (does not undo payouts_enabled)
-    await identityLiteModule.EvaluateAndApply(accountId, null, {
-      walletAddress: externalWallet.wallet_address,
-    });
+    // Flag duplicate wallets for operator review (connected accounts only)
+    if (!IsPlatformAccount(account)) {
+      await identityLiteModule.EvaluateAndApply(accountId, null, {
+        walletAddress: externalWallet.wallet_address,
+      });
+    }
 
     Logger.info('External wallet created successfully', {
       externalWalletId: externalWallet.id,

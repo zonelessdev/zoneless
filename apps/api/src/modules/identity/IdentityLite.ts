@@ -10,19 +10,26 @@
  * (phone↔address, account↔address, IP↔address), and platform-scoped duplicates
  * of email / phone / wallet / signup IP.
  *
- * Does NOT set Person.verification.status to `verified` — reserved for Phase 2 IDV.
+ * Document IDV (`individual.verification.document`) is driven by platform
+ * identity threshold rules and IdentityVerificationSession outcomes. Person
+ * `verification.status = verified` is set by the VerificationSession webhook
+ * path, not by these lite checks. Crossing the threshold soft-disables
+ * payouts; clearing the document requirement (verified) restores them when
+ * no hard form dues remain and a payout wallet exists.
  *
  * @module IdentityLite
  */
 
-import { Database } from './Database';
-import { AccountModule } from './Account';
-import { PersonModule } from './Person';
-import { Logger } from '../utils/Logger';
-import { AppError } from '../utils/AppError';
-import { ERRORS } from '../utils/Errors';
+import { Database } from '../Database';
+import { AccountModule } from '../Account';
+import { PersonModule } from '../Person';
+import { ExternalWalletModule } from '../ExternalWallet';
+import { EventService } from '../EventService';
+import { Logger } from '../../utils/Logger';
+import { AppError } from '../../utils/AppError';
+import { ERRORS } from '../../utils/Errors';
 import { HeaderIpGeoProvider, IpGeoProvider } from './IpGeo';
-import { GetPlatformAccountId } from './PlatformAccess';
+import { GetPlatformAccountId } from '../PlatformAccess';
 import {
   Account as AccountType,
   AccountRequirementError,
@@ -48,12 +55,15 @@ import {
   IsIdentityBlockingPayouts,
   IsRejectedAccountReason,
   IsRoleEmail,
+  GetFormBlockingIdentityRequirements,
   NormalizeIpAddress,
 } from '@zoneless/shared-schemas';
+import { GetLifetimePaidPayoutVolumeCents } from './IdentityPayoutVolume';
 
 export interface IdentityLiteEvaluation {
   currentlyDue: string[];
   pendingVerification: string[];
+  eventuallyDue: string[];
   errors: AccountRequirementError[];
   normalizedPhone: string | null;
   /** True when hard-invalid currently_due would block payouts */
@@ -76,12 +86,18 @@ export class IdentityLiteModule {
   private readonly db: Database;
   private readonly accountModule: AccountModule;
   private readonly personModule: PersonModule;
+  private readonly externalWalletModule: ExternalWalletModule;
   private readonly ipGeo: IpGeoProvider;
 
-  constructor(db: Database, ipGeo?: IpGeoProvider) {
+  constructor(
+    db: Database,
+    eventService?: EventService | null,
+    ipGeo?: IpGeoProvider
+  ) {
     this.db = db;
-    this.accountModule = new AccountModule(db);
-    this.personModule = new PersonModule(db);
+    this.accountModule = new AccountModule(db, eventService ?? undefined);
+    this.personModule = new PersonModule(db, eventService ?? undefined);
+    this.externalWalletModule = new ExternalWalletModule(db);
     this.ipGeo = ipGeo ?? new HeaderIpGeoProvider();
   }
 
@@ -114,6 +130,7 @@ export class IdentityLiteModule {
       return {
         currentlyDue: [],
         pendingVerification: [],
+        eventuallyDue: [],
         errors: [],
         normalizedPhone: null,
         blocking: IsIdentityBlockingPayouts(account.requirements),
@@ -142,6 +159,11 @@ export class IdentityLiteModule {
     }
 
     this.FinalizePendingVerification(evaluation);
+    await this.AppendIdentityVerificationRequirements(
+      evaluation,
+      account,
+      resolvedPerson
+    );
     await this.ApplyEvaluation(account, resolvedPerson, evaluation);
 
     Logger.info('Identity lite evaluation applied', {
@@ -203,13 +225,17 @@ export class IdentityLiteModule {
 
   /**
    * Assert the account may attach a wallet / enable payouts.
+   * Hosted document IDV does not block wallet attach — payouts are
+   * soft-paused separately when that requirement is currently_due.
    */
   AssertCanEnablePayouts(account: AccountType): void {
     if (!IsIdentityBlockingPayouts(account.requirements)) {
       return;
     }
 
-    const due = account.requirements?.currently_due ?? [];
+    const due = GetFormBlockingIdentityRequirements(
+      account.requirements?.currently_due
+    );
     const reason = account.requirements?.disabled_reason;
     let message =
       'This account has outstanding identity requirements and cannot enable payouts yet.';
@@ -378,6 +404,7 @@ export class IdentityLiteModule {
     return {
       currentlyDue: [...new Set(currentlyDue)],
       pendingVerification: [],
+      eventuallyDue: [],
       errors: [...hardErrors, ...reviewErrors],
       normalizedPhone,
       blocking: currentlyDue.length > 0,
@@ -395,6 +422,96 @@ export class IdentityLiteModule {
       ),
     ];
     evaluation.blocking = evaluation.currentlyDue.length > 0;
+  }
+
+  /**
+   * Promote / foreshadow `individual.verification.document` based on the
+   * platform's payout-volume threshold and the person's verification status.
+   */
+  private async AppendIdentityVerificationRequirements(
+    evaluation: IdentityLiteEvaluation,
+    account: AccountType,
+    person: PersonType
+  ): Promise<void> {
+    const platformId = GetPlatformAccountId(account);
+    const platform =
+      platformId === account.id
+        ? account
+        : await this.accountModule.GetAccount(platformId);
+
+    const threshold =
+      platform?.settings?.identity?.rules?.payout_volume_threshold_cents ??
+      null;
+
+    if (threshold === null || threshold === undefined) {
+      return;
+    }
+
+    const docField = IDENTITY_REQUIREMENT_FIELDS.verificationDocument;
+    const verificationStatus = person.verification?.status ?? 'unverified';
+
+    if (verificationStatus === 'verified') {
+      evaluation.currentlyDue = evaluation.currentlyDue.filter(
+        (f) => f !== docField
+      );
+      evaluation.eventuallyDue = evaluation.eventuallyDue.filter(
+        (f) => f !== docField
+      );
+      evaluation.pendingVerification = evaluation.pendingVerification.filter(
+        (f) => f !== docField
+      );
+      evaluation.errors = evaluation.errors.filter(
+        (e) => e.requirement !== docField
+      );
+      evaluation.blocking = evaluation.currentlyDue.length > 0;
+      return;
+    }
+
+    const volume = await GetLifetimePaidPayoutVolumeCents(this.db, account.id);
+    const overThreshold = volume >= threshold;
+
+    if (overThreshold) {
+      if (!evaluation.currentlyDue.includes(docField)) {
+        evaluation.currentlyDue.push(docField);
+      }
+      evaluation.eventuallyDue = evaluation.eventuallyDue.filter(
+        (f) => f !== docField
+      );
+
+      if (verificationStatus === 'pending') {
+        if (!evaluation.pendingVerification.includes(docField)) {
+          evaluation.pendingVerification.push(docField);
+        }
+      }
+
+      if (
+        person.verification?.details_code ===
+        IDENTITY_ERROR_CODES.verificationFailed
+      ) {
+        const hasError = evaluation.errors.some(
+          (e) => e.requirement === docField
+        );
+        if (!hasError) {
+          evaluation.errors.push({
+            code: IDENTITY_ERROR_CODES.verificationFailed,
+            reason:
+              person.verification?.details ??
+              'Identity verification was declined',
+            requirement: docField,
+          });
+        }
+      }
+
+      evaluation.blocking = true;
+    } else {
+      evaluation.currentlyDue = evaluation.currentlyDue.filter(
+        (f) => f !== docField
+      );
+      if (!evaluation.eventuallyDue.includes(docField)) {
+        evaluation.eventuallyDue.push(docField);
+      }
+      evaluation.blocking = evaluation.currentlyDue.length > 0;
+    }
   }
 
   private PushReviewError(
@@ -628,6 +745,39 @@ export class IdentityLiteModule {
     return this.accountModule.UpdateAccount(account.id, { metadata });
   }
 
+  /**
+   * Re-enable payouts after identity document verification clears, when the
+   * account is otherwise eligible (not rejected, no hard form dues, has a
+   * payout wallet). Soft review signals do not prevent restore.
+   */
+  async RestorePayoutsIfEligible(
+    accountId: string
+  ): Promise<AccountType | null> {
+    const account = await this.accountModule.GetAccount(accountId);
+    if (!account || account.payouts_enabled) {
+      return account;
+    }
+
+    if (IsRejectedAccountReason(account.requirements?.disabled_reason)) {
+      return account;
+    }
+
+    if (IsIdentityBlockingPayouts(account.requirements)) {
+      return account;
+    }
+
+    const wallet = await this.externalWalletModule.GetDefaultWallet(accountId);
+    if (!wallet) {
+      return account;
+    }
+
+    const updated = await this.accountModule.PayoutsEnabled(accountId);
+    Logger.info('Restored payouts after identity requirements cleared', {
+      accountId,
+    });
+    return updated;
+  }
+
   private async ApplyEvaluation(
     account: AccountType,
     person: PersonType,
@@ -648,6 +798,7 @@ export class IdentityLiteModule {
 
     await this.accountModule.UpdateRequirements(account.id, {
       currently_due: evaluation.currentlyDue,
+      eventually_due: evaluation.eventuallyDue,
       pending_verification: evaluation.pendingVerification,
       errors: accountErrors,
       disabled_reason: disabledReason,
@@ -657,7 +808,7 @@ export class IdentityLiteModule {
       alternatives: person.requirements?.alternatives ?? [],
       currently_due: evaluation.currentlyDue,
       errors: accountErrors as PersonRequirementError[],
-      eventually_due: person.requirements?.eventually_due ?? [],
+      eventually_due: evaluation.eventuallyDue,
       past_due: person.requirements?.past_due ?? [],
       pending_verification: evaluation.pendingVerification,
     };

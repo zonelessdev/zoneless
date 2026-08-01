@@ -5,6 +5,11 @@
 @use '../../../../../styles/align.scss' as *;
 @use '../../../../../styles/spacing.scss' as *;
 @use '../../../../../styles/forms.scss' as *;
+@use '../../../../../styles/identity-requirements.scss' as *;
+
+.link-highlight {
+  font-weight: 500;
+}
 
 .header-meta {
   flex-wrap: wrap;
@@ -167,6 +172,79 @@
 
 .flex-wrap {
   flex-wrap: wrap;
+}
+
+.actions-required-header {
+  margin-bottom: $spacing;
+
+  .section-title {
+    margin-bottom: 0;
+    line-height: 1.2;
+  }
+}
+
+.actions-required-title {
+  margin-bottom: 0;
+}
+
+.actions-required-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background-color: #dc2626;
+  color: white;
+  font-size: $font-size-small;
+  font-weight: 600;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.action-required-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing;
+  width: 100%;
+  padding: $spacing $spacing-snug;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  background: $background-color;
+  text-align: left;
+  cursor: pointer;
+  font-family: $text-font;
+  color: $text-color;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: $darker-background-color;
+  }
+}
+
+.action-required-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.action-required-title {
+  font-size: $font-size;
+  font-weight: 600;
+  margin-bottom: $spacing-extra-small;
+}
+
+.action-required-subtitle {
+  font-size: $font-size-small;
+  opacity: $dimmed;
+}
+
+.action-required-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: $dimmed-extra;
 }
 
 @media only screen and (max-width: 1000px) {

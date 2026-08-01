@@ -3,6 +3,14 @@
   <div class="test-mode-bar">
     You're using test data. No real transactions will be processed.
   </div>
+  } @if (alert(); as banner) {
+  <app-account-alert-banner
+    [label]="banner.label"
+    [message]="banner.message"
+    [variant]="banner.variant"
+    [actionLabel]="banner.actionLabel"
+    (actionClicked)="OnAlertAction()"
+  ></app-account-alert-banner>
   }
 
   <div class="account-content-wrapper">

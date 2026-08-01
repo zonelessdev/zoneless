@@ -8,6 +8,7 @@ import { CheckoutSession } from './CheckoutSession';
 import { Customer } from './Customer';
 import { ExternalWallet } from './ExternalWallet';
 import { IdempotencyKey } from './IdempotencyKey';
+import { IdentityVerificationSession } from './IdentityVerificationSession';
 import { Invoice } from './Invoice';
 import { InvoiceItem } from './InvoiceItem';
 import { PaymentIntent } from './PaymentIntent';
@@ -77,6 +78,14 @@ export const EVENT_TYPES = [
   'external_account.created',
   'external_account.updated',
   'external_account.deleted',
+
+  // Identity verification session events
+  'identity.verification_session.created',
+  'identity.verification_session.processing',
+  'identity.verification_session.verified',
+  'identity.verification_session.requires_input',
+  'identity.verification_session.canceled',
+  'identity.verification_session.redacted',
 
   // Invoice events
   'invoice.created',
@@ -158,6 +167,7 @@ export type EventDataObject =
   | Customer
   | ExternalWallet
   | IdempotencyKey
+  | IdentityVerificationSession
   | Invoice
   | InvoiceItem
   | PaymentIntent

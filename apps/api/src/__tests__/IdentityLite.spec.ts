@@ -1,5 +1,5 @@
-import { IdentityLiteModule } from '../modules/IdentityLite';
-import { HeaderIpGeoProvider } from '../modules/IpGeo';
+import { IdentityLiteModule } from '../modules/identity/IdentityLite';
+import { HeaderIpGeoProvider } from '../modules/identity/IpGeo';
 import { Database } from '../modules/Database';
 import { Account, Person } from '@zoneless/shared-types';
 import {
@@ -190,10 +190,15 @@ describe('IdentityValidators', () => {
   });
 
   describe('IsIdentityBlockingPayouts', () => {
-    it('blocks on currently_due and rejected, but not pending review', () => {
+    it('blocks on hard currently_due and rejected, but not pending review or document IDV', () => {
       expect(
         IsIdentityBlockingPayouts({ currently_due: ['individual.phone'] })
       ).toBe(true);
+      expect(
+        IsIdentityBlockingPayouts({
+          currently_due: [IDENTITY_REQUIREMENT_FIELDS.verificationDocument],
+        })
+      ).toBe(false);
       expect(
         IsIdentityBlockingPayouts({
           currently_due: [],
@@ -378,6 +383,18 @@ describe('IdentityLiteModule', () => {
     );
   });
 
+  it('AssertCanEnablePayouts allows document IDV currently_due', () => {
+    const account = BuildAccount({
+      requirements: {
+        currently_due: [IDENTITY_REQUIREMENT_FIELDS.verificationDocument],
+        disabled_reason: null,
+        errors: [],
+      },
+    });
+
+    expect(() => module.AssertCanEnablePayouts(account)).not.toThrow();
+  });
+
   it('ApproveIdentity dismisses pending review and skips re-flagging review signals', async () => {
     const { account, person } = SeedClean();
     person.email = 'temp@mailinator.com';
@@ -407,7 +424,7 @@ describe('IdentityLiteModule', () => {
   });
 
   it('flags IP mismatch as pending review without blocking', async () => {
-    const geoModule = new IdentityLiteModule(mockDb, {
+    const geoModule = new IdentityLiteModule(mockDb, null, {
       LookupCountry: async () => 'GB',
     });
     const { account } = SeedClean();
@@ -565,6 +582,84 @@ describe('IdentityLiteModule', () => {
     storedPersons.set(person.id, person);
 
     await module.EvaluateAndApply(account.id, person);
+
+    expect(storedAccounts.get(account.id)?.payouts_enabled).toBe(false);
+  });
+
+  it('RestorePayoutsIfEligible re-enables when no hard dues and wallet exists', async () => {
+    const { account } = SeedClean();
+    storedAccounts.set(account.id, {
+      ...account,
+      payouts_enabled: false,
+      capabilities: { usdc_payouts: 'inactive', transfers: 'inactive' },
+      requirements: {
+        ...account.requirements,
+        currently_due: [],
+        pending_verification: [IDENTITY_REQUIREMENT_FIELDS.email],
+        errors: [
+          {
+            code: 'invalid_value',
+            reason: 'Email is already used',
+            requirement: IDENTITY_REQUIREMENT_FIELDS.email,
+          },
+        ],
+      },
+    });
+
+    mockDb.Find2Custom.mockImplementation(
+      async (collection, field1, _op1, value1) => {
+        if (
+          collection === 'ExternalWallets' &&
+          field1 === 'account' &&
+          value1 === account.id
+        ) {
+          return [
+            {
+              id: 'ba_z_1',
+              object: 'bank_account',
+              account: account.id,
+              default_for_currency: true,
+              status: 'new',
+            },
+          ];
+        }
+        return [];
+      }
+    );
+
+    await module.RestorePayoutsIfEligible(account.id);
+
+    expect(storedAccounts.get(account.id)?.payouts_enabled).toBe(true);
+  });
+
+  it('RestorePayoutsIfEligible does not re-enable with hard currently_due', async () => {
+    const { account } = SeedClean();
+    storedAccounts.set(account.id, {
+      ...account,
+      payouts_enabled: false,
+      requirements: {
+        ...account.requirements,
+        currently_due: [IDENTITY_REQUIREMENT_FIELDS.phone],
+      },
+    });
+
+    mockDb.Find2Custom.mockImplementation(
+      async (collection, field1, _op1, value1) => {
+        if (collection === 'ExternalWallets' && field1 === 'account') {
+          return [
+            {
+              id: 'ba_z_1',
+              account: value1,
+              default_for_currency: true,
+              status: 'new',
+            },
+          ];
+        }
+        return [];
+      }
+    );
+
+    await module.RestorePayoutsIfEligible(account.id);
 
     expect(storedAccounts.get(account.id)?.payouts_enabled).toBe(false);
   });

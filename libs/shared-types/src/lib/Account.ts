@@ -394,6 +394,13 @@ export interface AccountSettings {
   payouts?: AccountPayoutSettings;
 
   /**
+   * Identity verification provider credentials and threshold rules.
+   * Only applicable for platform accounts. Secrets are write-only.
+   * @zoneless_extension
+   */
+  identity?: AccountIdentitySettings | null;
+
+  /**
    * URL to the platform's Terms of Service page.
    * Only applicable for platform accounts.
    * @zoneless_extension
@@ -406,6 +413,59 @@ export interface AccountSettings {
    * @zoneless_extension
    */
   privacy_url?: string | null;
+}
+
+/**
+ * Platform identity / KYC provider configuration.
+ * @zoneless_extension
+ */
+export interface AccountIdentitySettings {
+  /** Active identity verification provider */
+  provider?: 'didit' | null;
+
+  /** Didit BYO credentials (api_key / webhook_secret are write-only) */
+  didit?: AccountIdentityDiditSettings | null;
+
+  /** Rules that promote IDV requirements onto connected accounts */
+  rules?: AccountIdentityRulesSettings | null;
+}
+
+export interface AccountIdentityDiditSettings {
+  /**
+   * Didit application API key.
+   * Write-only: encrypted at rest; redacted (null) on retrieve.
+   */
+  api_key?: string | null;
+
+  /** Didit workflow ID used when creating verification sessions */
+  workflow_id?: string | null;
+
+  /**
+   * Didit webhook destination shared secret.
+   * Write-only: encrypted at rest; redacted (null) on retrieve.
+   */
+  webhook_secret?: string | null;
+
+  /**
+   * True when an API key is stored (secrets are never returned).
+   * @zoneless_extension
+   */
+  api_key_set?: boolean;
+
+  /**
+   * True when a webhook secret is stored (secrets are never returned).
+   * @zoneless_extension
+   */
+  webhook_secret_set?: boolean;
+}
+
+export interface AccountIdentityRulesSettings {
+  /**
+   * Lifetime paid payout volume (cents) that promotes
+   * `individual.verification.document` to currently_due.
+   * null / omitted = threshold disabled.
+   */
+  payout_volume_threshold_cents?: number | null;
 }
 
 export interface AccountBrandingSettings {

@@ -47,9 +47,19 @@ import {
   GetAccountStatus,
   HasActiveCapabilities,
 } from '../../util/connected-account-display';
+import {
+  GetIdentityDocumentActionSubtitle,
+  GetIdentityDocumentImpactCopy,
+  GetIdentityDocumentMissingLabel,
+  GetIdentityDocumentPanelTitle,
+  GetIdentityDocumentRequirementState,
+  GetIdentityDocumentTaskDescription,
+  NeedsIdentityDocumentAction,
+} from '../../util/identity-requirements';
 
 type DetailTab = 'overview' | 'payments';
 type MoneyMovementTab = 'transfers' | 'payouts';
+type DetailPanel = 'main' | 'identity_document';
 
 @Component({
   selector: 'app-connected-account-detail-view',
@@ -88,6 +98,7 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
   loading: WritableSignal<boolean> = signal(false);
   approvingIdentity: WritableSignal<boolean> = signal(false);
   activeTab: WritableSignal<DetailTab> = signal('overview');
+  detailPanel: WritableSignal<DetailPanel> = signal('main');
   moneyMovementTab: WritableSignal<MoneyMovementTab> = signal('payouts');
   paymentsTab: WritableSignal<MoneyMovementTab> = signal('transfers');
   availableBalance: WritableSignal<number> = signal(0);
@@ -110,6 +121,51 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
   readonly email = computed(() => {
     const account = this.account();
     return account?.email ?? account?.individual?.email ?? null;
+  });
+
+  readonly showIdentityAction = computed(() =>
+    NeedsIdentityDocumentAction(this.account())
+  );
+
+  readonly identityDocumentState = computed(() => {
+    const account = this.account();
+    return account ? GetIdentityDocumentRequirementState(account) : 'none';
+  });
+
+  readonly identityPanelTitle = computed(() =>
+    GetIdentityDocumentPanelTitle(this.displayName())
+  );
+
+  readonly identityPanelDescription = computed(() =>
+    GetIdentityDocumentTaskDescription(this.displayName())
+  );
+
+  readonly identityDocumentMissingLabel = computed(() =>
+    GetIdentityDocumentMissingLabel(this.identityDocumentState())
+  );
+
+  readonly payoutVolumeThresholdCents = computed(
+    () =>
+      this.accountService.account()?.settings?.identity?.rules
+        ?.payout_volume_threshold_cents ?? null
+  );
+
+  readonly identityActionSubtitle = computed(() => {
+    const account = this.account();
+    if (!account) return '';
+    return GetIdentityDocumentActionSubtitle(
+      account,
+      this.payoutVolumeThresholdCents()
+    );
+  });
+
+  readonly identityImpactCopy = computed(() => {
+    const account = this.account();
+    if (!account) return '';
+    return GetIdentityDocumentImpactCopy(
+      account,
+      this.payoutVolumeThresholdCents()
+    );
   });
 
   readonly totalBalance = computed(
@@ -517,6 +573,25 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
     } finally {
       this.approvingIdentity.set(false);
     }
+  }
+
+  OpenIdentityDocumentDetail(): void {
+    this.detailPanel.set('identity_document');
+  }
+
+  CloseIdentityDocumentDetail(): void {
+    this.detailPanel.set('main');
+  }
+
+  OnRequestInformation(): void {
+    const account = this.account();
+    if (account) void this.actions.OpenVerificationLink(account);
+  }
+
+  GetPayoutsMetaLabel(): string {
+    const account = this.account();
+    if (!account) return 'Payouts inactive';
+    return account.payouts_enabled ? 'Payouts active' : 'Payouts inactive';
   }
 
   private ReloadMoneyMovementLists(): void {

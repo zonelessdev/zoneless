@@ -17,7 +17,7 @@ import { db } from '../modules/Database';
 import { PersonModule } from '../modules/Person';
 import { AccountModule } from '../modules/Account';
 import { EventService } from '../modules/EventService';
-import { IdentityLiteModule } from '../modules/IdentityLite';
+import { IdentityLiteModule } from '../modules/identity/IdentityLite';
 
 import { ValidateRequest } from '../middleware/ValidateRequest';
 import {
@@ -38,7 +38,7 @@ const router = express.Router();
 const eventService = new EventService(db);
 const accountModule = new AccountModule(db, eventService);
 const personModule = new PersonModule(db, eventService);
-const identityLiteModule = new IdentityLiteModule(db);
+const identityLiteModule = new IdentityLiteModule(db, eventService);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /v1/accounts/:id/persons - Create a person

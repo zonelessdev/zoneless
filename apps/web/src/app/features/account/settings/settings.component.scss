@@ -2,6 +2,9 @@
 @use '../../../styles/buttons.scss' as *;
 @use '../../../styles/account.scss' as *;
 @use '../../../styles/forms.scss' as *;
+@use '../../../styles/align.scss' as *;
+@use '../../../styles/spacing.scss' as *;
+@use '../../../styles/identity-requirements.scss' as *;
 
 .telemetry-opt-in {
   display: flex;
@@ -42,4 +45,90 @@
   margin-top: $spacing-small;
   font-size: $font-size-small;
   color: rgba($text-color, 0.65);
+}
+
+.identity-task-card {
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  overflow: hidden;
+}
+
+.identity-task-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing;
+  padding: $spacing;
+  background: $background-color;
+}
+
+.identity-task-card-title {
+  font-size: $font-size;
+  font-weight: 600;
+  min-width: 0;
+  flex: 1;
+}
+
+.identity-task-card-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing;
+  flex-shrink: 0;
+}
+
+.identity-task-card-bottom {
+  padding: $spacing;
+  background: $darker-background-color;
+  border-top: 1px solid $darkest-background-color;
+}
+
+.identity-task-card-description {
+  margin: 0 0 $spacing-snug;
+  font-size: $font-size;
+  line-height: 1.5;
+  opacity: $dimmed;
+}
+
+.identity-task-card-impact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-extra-small $spacing-small;
+  font-size: $font-size;
+  line-height: 1.5;
+}
+
+.identity-task-card-impact-label {
+  font-weight: 600;
+}
+
+.identity-task-card-impact-value {
+  opacity: $dimmed;
+}
+
+.identity-task-error {
+  margin: $spacing-small 0 0;
+  color: #dc2626;
+  font-size: $font-size-small;
+}
+
+.breadcrumb-current {
+  font-size: $font-size;
+  opacity: $dimmed;
+}
+
+.link-highlight {
+  font-weight: 500;
+  color: $base-color;
+}
+
+@media only screen and (max-width: 700px) {
+  .identity-task-card-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .identity-task-card-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }

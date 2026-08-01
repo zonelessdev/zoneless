@@ -1,0 +1,21 @@
+<div
+  class="account-alert-banner"
+  [class.account-alert-banner-warning]="variant() === 'warning'"
+  [class.account-alert-banner-danger]="variant() === 'danger'"
+  [class.account-alert-banner-info]="variant() === 'info'"
+  role="status"
+>
+  <div class="account-alert-banner-copy">
+    <span class="account-alert-banner-label">{{ label() }}</span>
+    <span class="account-alert-banner-message">{{ message() }}</span>
+  </div>
+  @if (actionLabel(); as labelText) {
+  <button
+    type="button"
+    class="account-alert-banner-action"
+    (click)="OnActionClick()"
+  >
+    {{ labelText }}
+  </button>
+  }
+</div>

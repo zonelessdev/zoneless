@@ -52,7 +52,7 @@ export class ConnectedAccountsListComponent implements OnInit, OnDestroy {
   }> = [
     { id: 'all', label: 'All' },
     { id: 'restricted', label: 'Restricted' },
-    { id: 'requires_review', label: 'Requires review' },
+    { id: 'in_review', label: 'In review' },
     { id: 'rejected', label: 'Rejected' },
     { id: 'enabled', label: 'Enabled' },
   ];

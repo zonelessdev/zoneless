@@ -1,0 +1,87 @@
+@use './base.scss' as *;
+
+.identity-needed-section {
+  margin-top: $spacing-large;
+}
+
+.identity-needed-card {
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  padding: $spacing;
+  margin-bottom: $spacing;
+}
+
+.identity-needed-label {
+  font-size: $font-size;
+  margin-bottom: $spacing-extra-small;
+}
+
+.identity-needed-status {
+  display: flex;
+  align-items: center;
+  gap: $spacing-extra-small;
+  color: #dc2626;
+  font-size: $font-size-small;
+  font-weight: 500;
+}
+
+.identity-needed-status-pending {
+  color: #b45309;
+}
+
+.identity-needed-icon {
+  width: 14px;
+  height: 14px;
+  filter: brightness(0) saturate(100%) invert(27%) sepia(84%) saturate(2878%)
+    hue-rotate(346deg) brightness(92%) contrast(93%);
+}
+
+.identity-needed-status-pending .identity-needed-icon {
+  filter: brightness(0) saturate(100%) invert(42%) sepia(79%) saturate(600%)
+    hue-rotate(10deg) brightness(95%) contrast(90%);
+}
+
+.identity-impact-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-extra-small;
+  font-size: $font-size;
+  line-height: 1.5;
+  margin-bottom: $spacing-small;
+}
+
+.identity-impact-label {
+  opacity: $dimmed;
+}
+
+.identity-impact-value {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.identity-requirement-detail,
+.identity-task-detail {
+  max-width: 720px;
+}
+
+.breadcrumb-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-extra-small;
+  flex-wrap: wrap;
+}
+
+.breadcrumb-sep {
+  opacity: $dimmed-extra;
+  font-size: $font-size-small;
+}
+
+.breadcrumb-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: $text-font;
+  font-size: inherit;
+  color: $base-color;
+}

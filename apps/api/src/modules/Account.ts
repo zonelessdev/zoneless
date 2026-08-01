@@ -38,6 +38,7 @@ import {
   ListResult,
   FilterCondition,
 } from '../utils/ListHelper';
+import { EncryptIdentitySettings } from './identity/IdentitySettingsCrypto';
 
 export class AccountModule {
   private readonly db: Database;
@@ -283,6 +284,35 @@ export class AccountModule {
               : defaults.payouts?.schedule,
           }
         : defaults.payouts,
+      identity:
+        input.identity !== undefined
+          ? EncryptIdentitySettings(
+              input.identity === null
+                ? null
+                : {
+                    ...defaults.identity,
+                    ...input.identity,
+                    didit:
+                      input.identity.didit === null
+                        ? null
+                        : input.identity.didit
+                        ? {
+                            ...defaults.identity?.didit,
+                            ...input.identity.didit,
+                          }
+                        : defaults.identity?.didit,
+                    rules:
+                      input.identity.rules === null
+                        ? null
+                        : input.identity.rules
+                        ? {
+                            ...defaults.identity?.rules,
+                            ...input.identity.rules,
+                          }
+                        : defaults.identity?.rules,
+                  }
+            ) ?? null
+          : defaults.identity,
       // Platform-specific settings
       terms_url: input.terms_url ?? defaults.terms_url,
       privacy_url: input.privacy_url ?? defaults.privacy_url,
@@ -382,8 +412,10 @@ export class AccountModule {
             value: rejectedReasons,
           },
         };
-      case 'requires_review':
+      case 'in_review':
         // pending_verification[0] exists ⇒ array is non-empty
+        // OR person verification is pending (handled client-side for chips;
+        // list filter focuses on soft-review pending_verification).
         return {
           'requirements.pending_verification.0': {
             operator: QueryOperators.exists,

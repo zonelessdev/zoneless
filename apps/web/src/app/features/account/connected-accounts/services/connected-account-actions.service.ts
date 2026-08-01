@@ -22,6 +22,7 @@ import {
   BalanceService,
   ConfigService,
   ExternalWalletService,
+  IdentityService,
   PayoutService,
   TopupService,
   TransferService,
@@ -70,6 +71,7 @@ export class ConnectedAccountActionsService {
   private readonly payoutService = inject(PayoutService);
   private readonly topupService = inject(TopupService);
   private readonly configService = inject(ConfigService);
+  private readonly identityService = inject(IdentityService);
   readonly solanaWalletService = inject(SolanaWalletService);
 
   // ── Create flow ──────────────────────────────────────────────────────────
@@ -138,6 +140,12 @@ export class ConnectedAccountActionsService {
   loginLink: WritableSignal<LoginLink | null> = signal(null);
   loginLinkCopied: WritableSignal<boolean> = signal(false);
   loginLinkError: WritableSignal<string> = signal('');
+
+  verificationLinkOpen: WritableSignal<boolean> = signal(false);
+  verificationLinkLoading: WritableSignal<boolean> = signal(false);
+  verificationLinkUrl: WritableSignal<string | null> = signal(null);
+  verificationLinkCopied: WritableSignal<boolean> = signal(false);
+  verificationLinkError: WritableSignal<string> = signal('');
 
   metadataDialogOpen: WritableSignal<boolean> = signal(false);
   metadataSaving: WritableSignal<boolean> = signal(false);
@@ -759,6 +767,58 @@ export class ConnectedAccountActionsService {
       setTimeout(() => this.loginLinkCopied.set(false), 2000);
     } catch {
       this.loginLinkError.set('Could not copy to clipboard.');
+    }
+  }
+
+  // ── Identity verification link ───────────────────────────────────────────
+
+  async OpenVerificationLink(account: Account): Promise<void> {
+    this.activeAccount.set(account);
+    this.verificationLinkUrl.set(null);
+    this.verificationLinkCopied.set(false);
+    this.verificationLinkError.set('');
+    this.verificationLinkOpen.set(true);
+    this.verificationLinkLoading.set(true);
+    try {
+      const session = await this.identityService.CreateVerificationSession({
+        type: 'document',
+        related_account: account.id,
+      });
+      if (!session.url) {
+        this.verificationLinkError.set(
+          'Verification session was created but no link was returned.'
+        );
+        return;
+      }
+      this.verificationLinkUrl.set(session.url);
+    } catch (err) {
+      this.verificationLinkError.set(
+        err instanceof Error
+          ? err.message
+          : 'Failed to create verification link. Please try again.'
+      );
+    } finally {
+      this.verificationLinkLoading.set(false);
+    }
+  }
+
+  CloseVerificationLink(): void {
+    this.verificationLinkOpen.set(false);
+    this.verificationLinkUrl.set(null);
+    this.verificationLinkCopied.set(false);
+    this.verificationLinkError.set('');
+    this.verificationLinkLoading.set(false);
+  }
+
+  async CopyVerificationLink(): Promise<void> {
+    const url = this.verificationLinkUrl();
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      this.verificationLinkCopied.set(true);
+      setTimeout(() => this.verificationLinkCopied.set(false), 2000);
+    } catch {
+      this.verificationLinkError.set('Could not copy to clipboard.');
     }
   }
 

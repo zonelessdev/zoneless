@@ -213,4 +213,53 @@ export class AccountService {
       },
     ];
   }
+
+  /**
+   * Display title for the Identity settings card.
+   */
+  GetIdentitySettingsTitle(account: Account | null): string {
+    if (!account?.settings?.identity?.provider) {
+      return 'Not configured';
+    }
+    const provider = account.settings.identity.provider;
+    return provider === 'didit' ? 'Didit' : provider;
+  }
+
+  GetIdentitySettingsCardRows(account: Account | null): SettingsCardRow[] {
+    if (!account) return [];
+
+    const didit = account.settings?.identity?.didit;
+    const rules = account.settings?.identity?.rules;
+    const thresholdCents = rules?.payout_volume_threshold_cents;
+
+    let thresholdLabel = 'Disabled';
+    if (thresholdCents != null && thresholdCents >= 0) {
+      thresholdLabel = `$${(thresholdCents / 100).toLocaleString('en-US', {
+        maximumFractionDigits: 2,
+      })}`;
+    }
+
+    return [
+      {
+        label: 'API key',
+        value: didit?.api_key_set ? 'Configured' : 'Not set',
+        type: 'text',
+      },
+      {
+        label: 'Workflow ID',
+        value: didit?.workflow_id?.trim() || '—',
+        type: 'text',
+      },
+      {
+        label: 'Webhook secret',
+        value: didit?.webhook_secret_set ? 'Configured' : 'Not set',
+        type: 'text',
+      },
+      {
+        label: 'Payout volume threshold',
+        value: thresholdLabel,
+        type: 'text',
+      },
+    ];
+  }
 }

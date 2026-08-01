@@ -1,0 +1,45 @@
+@use '../../../styles/base.scss' as *;
+@use '../../../styles/forms.scss' as *;
+
+.identity-settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing;
+}
+
+.identity-intro {
+  margin: 0;
+}
+
+.field-optional {
+  font-size: $font-size-small;
+  font-weight: normal;
+  color: $text-color;
+  opacity: $dimmed-extra;
+  background-color: $darker-background-color;
+  padding: 2px $spacing-small;
+  border-radius: $border-radius-small;
+}
+
+.field-prefix-input {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+
+  .field-prefix {
+    color: $text-color;
+    opacity: $dimmed;
+    font-size: $font-size;
+  }
+
+  .field-value {
+    flex: 1;
+  }
+}
+
+code {
+  font-size: $font-size-small;
+  background-color: $darker-background-color;
+  padding: 1px $spacing-small;
+  border-radius: $border-radius-small;
+}

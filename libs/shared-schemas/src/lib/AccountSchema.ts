@@ -99,11 +99,34 @@ const DashboardSettingsSchema = z
   })
   .partial();
 
+const IdentityDiditSettingsSchema = z
+  .object({
+    api_key: z.string().min(1).max(512).nullable(),
+    workflow_id: z.string().min(1).max(255).nullable(),
+    webhook_secret: z.string().min(1).max(512).nullable(),
+  })
+  .partial();
+
+const IdentityRulesSettingsSchema = z
+  .object({
+    payout_volume_threshold_cents: z.number().int().nonnegative().nullable(),
+  })
+  .partial();
+
+const IdentitySettingsSchema = z
+  .object({
+    provider: z.enum(['didit']).nullable(),
+    didit: IdentityDiditSettingsSchema.nullable(),
+    rules: IdentityRulesSettingsSchema.nullable(),
+  })
+  .partial();
+
 const SettingsSchema = z
   .object({
     branding: BrandingSettingsSchema,
     dashboard: DashboardSettingsSchema,
     payouts: PayoutSettingsSchema,
+    identity: IdentitySettingsSchema.nullable(),
     // Platform-specific settings (only used for platform accounts)
     terms_url: z.string().url().nullable(),
     privacy_url: z.string().url().nullable(),
@@ -244,7 +267,7 @@ export const REJECTED_DISABLED_REASONS = [
 /** Status values accepted by GET /v1/accounts?status= (excluding "all") */
 export const CONNECTED_ACCOUNT_STATUS_FILTERS = [
   'restricted',
-  'requires_review',
+  'in_review',
   'rejected',
   'enabled',
 ] as const;

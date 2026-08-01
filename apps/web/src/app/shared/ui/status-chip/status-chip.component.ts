@@ -1,5 +1,4 @@
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
-import { TitleCasePipe } from '@angular/common';
 
 type ChipType =
   | 'green'
@@ -34,7 +33,6 @@ const STATUS_CHIP_MAP: Record<string, ChipType> = {
   past_due: 'yellow',
   unpaid: 'yellow',
   open: 'yellow',
-  requires_review: 'yellow',
 
   // Red - Failure/Restricted states
   declined: 'red',
@@ -57,7 +55,6 @@ const STATUS_CHIP_MAP: Record<string, ChipType> = {
   // Orange - Warning states
   disputed: 'orange',
   requires_action: 'orange',
-  restricted_soon: 'orange',
 
   // Grey - Neutral states
   refunded: 'grey',
@@ -77,7 +74,6 @@ const STATUS_CHIP_MAP: Record<string, ChipType> = {
   templateUrl: './status-chip.component.html',
   styleUrls: ['./status-chip.component.scss'],
   standalone: true,
-  imports: [TitleCasePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StatusChipComponent {
@@ -89,7 +85,14 @@ export class StatusChipComponent {
   }
 
   GetDisplayText(): string {
-    // Replace underscores with spaces for display
-    return this.status.replace(/_/g, ' ');
+    const key = this.status.toLowerCase();
+    const labels: Record<string, string> = {
+      in_review: 'In review',
+    };
+    if (labels[key]) return labels[key];
+
+    return this.status
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
   }
 }

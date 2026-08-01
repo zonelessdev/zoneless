@@ -1,0 +1,43 @@
+<app-modal
+  [isOpen]="actions.verificationLinkOpen()"
+  title="Request information"
+  closeLabel="Cancel"
+  submitLabel="Done"
+  [loading]="false"
+  [submitDisabled]="actions.verificationLinkLoading()"
+  (submitted)="actions.CloseVerificationLink()"
+  (closed)="actions.CloseVerificationLink()"
+>
+  <div class="request-information-modal">
+    <p class="request-information-description">
+      Send this remediation link to your connected account. They can use it to
+      submit requested information through a hosted verification form.
+    </p>
+
+    @if (actions.verificationLinkLoading()) {
+    <div class="request-information-loading">
+      <app-loader size="medium"></app-loader>
+    </div>
+    } @else if (actions.verificationLinkError()) {
+    <div class="request-information-error">
+      {{ actions.verificationLinkError() }}
+    </div>
+    } @else if (actions.verificationLinkUrl(); as url) {
+    <div class="request-information-field">
+      <input type="text" [value]="url" readonly />
+      <button
+        type="button"
+        class="copy-link-button"
+        title="Copy to clipboard"
+        (click)="OnCopy()"
+      >
+        @if (actions.verificationLinkCopied()) {
+        <img src="assets/icons/check.svg" alt="Copied" />
+        } @else {
+        <img src="assets/icons/content_copy.svg" alt="Copy" />
+        }
+      </button>
+    </div>
+    }
+  </div>
+</app-modal>

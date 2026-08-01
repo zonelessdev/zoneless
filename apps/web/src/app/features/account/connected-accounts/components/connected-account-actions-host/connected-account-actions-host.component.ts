@@ -13,6 +13,7 @@ import { PullFundsModalComponent } from '../pull-funds-modal/pull-funds-modal.co
 import { PayoutModalComponent } from '../payout-modal/payout-modal.component';
 import { LoginLinkModalComponent } from '../login-link-modal/login-link-modal.component';
 import { RejectAccountModalComponent } from '../reject-account-modal/reject-account-modal.component';
+import { RequestInformationModalComponent } from '../request-information-modal/request-information-modal.component';
 
 @Component({
   selector: 'app-connected-account-actions-host',
@@ -27,6 +28,7 @@ import { RejectAccountModalComponent } from '../reject-account-modal/reject-acco
     PayoutModalComponent,
     LoginLinkModalComponent,
     RejectAccountModalComponent,
+    RequestInformationModalComponent,
   ],
   templateUrl: './connected-account-actions-host.component.html',
   styleUrl: './connected-account-actions-host.component.scss',
