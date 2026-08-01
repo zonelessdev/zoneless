@@ -425,7 +425,9 @@ export function IsIdentityBlockingPayouts(
 ): boolean {
   if (!requirements) return false;
 
-  if (GetFormBlockingIdentityRequirements(requirements.currently_due).length > 0) {
+  if (
+    GetFormBlockingIdentityRequirements(requirements.currently_due).length > 0
+  ) {
     return true;
   }
 

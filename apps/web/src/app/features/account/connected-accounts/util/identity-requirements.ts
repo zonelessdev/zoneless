@@ -31,7 +31,9 @@ export function NeedsIdentityDocumentRemediation(
 export function NeedsIdentityDocumentAction(account: Account | null): boolean {
   if (!account) return false;
   const state = GetIdentityDocumentRequirementState(account);
-  return IsIdentityDocumentRemediationState(state) || state === 'eventually_due';
+  return (
+    IsIdentityDocumentRemediationState(state) || state === 'eventually_due'
+  );
 }
 
 function IsIdentityDocumentRemediationState(

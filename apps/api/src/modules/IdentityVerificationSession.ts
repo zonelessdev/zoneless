@@ -440,7 +440,10 @@ export class IdentityVerificationSessionModule {
       update.client_secret = null;
     }
 
-    if (mapped === 'requires_input' && providerStatus.toLowerCase() === 'declined') {
+    if (
+      mapped === 'requires_input' &&
+      providerStatus.toLowerCase() === 'declined'
+    ) {
       update.last_error = {
         code: IDENTITY_ERROR_CODES.verificationFailed,
         reason: 'Identity verification was declined',

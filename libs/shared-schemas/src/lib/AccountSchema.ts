@@ -109,11 +109,7 @@ const IdentityDiditSettingsSchema = z
 
 const IdentityRulesSettingsSchema = z
   .object({
-    payout_volume_threshold_cents: z
-      .number()
-      .int()
-      .nonnegative()
-      .nullable(),
+    payout_volume_threshold_cents: z.number().int().nonnegative().nullable(),
   })
   .partial();
 

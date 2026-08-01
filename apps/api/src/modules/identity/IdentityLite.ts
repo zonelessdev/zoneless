@@ -750,7 +750,9 @@ export class IdentityLiteModule {
    * account is otherwise eligible (not rejected, no hard form dues, has a
    * payout wallet). Soft review signals do not prevent restore.
    */
-  async RestorePayoutsIfEligible(accountId: string): Promise<AccountType | null> {
+  async RestorePayoutsIfEligible(
+    accountId: string
+  ): Promise<AccountType | null> {
     const account = await this.accountModule.GetAccount(accountId);
     if (!account || account.payouts_enabled) {
       return account;

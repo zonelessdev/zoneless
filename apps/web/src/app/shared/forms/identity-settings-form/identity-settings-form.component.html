@@ -4,9 +4,9 @@
     <a href="https://didit.me" target="_blank" rel="noopener noreferrer"
       >Didit</a
     >
-    account so Zoneless can create verification sessions for connected
-    accounts. Credentials stay on your platform account and are never shared
-    with Zoneless cloud.
+    account so Zoneless can create verification sessions for connected accounts.
+    Credentials stay on your platform account and are never shared with Zoneless
+    cloud.
   </p>
 
   <div class="field">
@@ -21,7 +21,9 @@
       type="password"
       autocomplete="new-password"
       [placeholder]="
-        apiKeyConfigured() ? '•••••••• (configured)' : 'Paste your Didit API key'
+        apiKeyConfigured()
+          ? '•••••••• (configured)'
+          : 'Paste your Didit API key'
       "
       name="didit-api-key"
       [class.field-error]="showErrors && apiKeyError()"

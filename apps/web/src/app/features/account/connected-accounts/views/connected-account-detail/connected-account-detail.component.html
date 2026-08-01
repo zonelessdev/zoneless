@@ -1,5 +1,4 @@
-@if (account(); as a) {
-@if (detailPanel() === 'identity_document') {
+@if (account(); as a) { @if (detailPanel() === 'identity_document') {
 <div class="identity-requirement-detail">
   <div class="flex flex-column gap-small">
     <div class="breadcrumb-row">
@@ -31,11 +30,7 @@
           identityDocumentState() === 'pending'
         "
       >
-        <img
-          src="assets/icons/info.svg"
-          alt=""
-          class="identity-needed-icon"
-        />
+        <img src="assets/icons/info.svg" alt="" class="identity-needed-icon" />
         <span>{{ identityDocumentMissingLabel() }}</span>
       </div>
     </div>
@@ -72,10 +67,7 @@
         <app-copy-text [text]="accountEmail" [opacity]="0.5"></app-copy-text>
       </div>
       }
-      <div
-        class="meta-item"
-        [class.meta-item-active]="a.payouts_enabled"
-      >
+      <div class="meta-item" [class.meta-item-active]="a.payouts_enabled">
         <img
           src="assets/icons/account_balance_wallet.svg"
           alt=""
@@ -136,7 +128,9 @@
   <div class="view-left-panel">
     @if (showIdentityAction()) {
     <div class="view-section">
-      <div class="flex align-vert space-between gap-small actions-required-header">
+      <div
+        class="flex align-vert space-between gap-small actions-required-header"
+      >
         <div class="flex align-vert gap-small">
           <h2 class="section-title actions-required-title">Actions required</h2>
           <span class="actions-required-count">1</span>
@@ -566,7 +560,6 @@
   ></app-paginated-list>
   }
 </div>
-} }
-}
+} } }
 
 <app-connected-account-actions-host></app-connected-account-actions-host>

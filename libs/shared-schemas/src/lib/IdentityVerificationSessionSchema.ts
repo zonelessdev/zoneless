@@ -23,9 +23,7 @@ const DocumentOptionsSchema = z
   .object({
     require_live_capture: z.boolean(),
     require_matching_selfie: z.boolean(),
-    allowed_types: z.array(
-      z.enum(['driving_license', 'id_card', 'passport'])
-    ),
+    allowed_types: z.array(z.enum(['driving_license', 'id_card', 'passport'])),
   })
   .partial();
 

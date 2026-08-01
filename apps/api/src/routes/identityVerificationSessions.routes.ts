@@ -159,10 +159,7 @@ router.post(
   '/:id/cancel',
   RequirePlatform(),
   AsyncHandler(async (req: express.Request, res: express.Response) => {
-    const session = await sessionModule.Cancel(
-      req.params.id,
-      req.user.account
-    );
+    const session = await sessionModule.Cancel(req.params.id, req.user.account);
     res.json(session);
   })
 );
@@ -174,10 +171,7 @@ router.post(
   '/:id/redact',
   RequirePlatform(),
   AsyncHandler(async (req: express.Request, res: express.Response) => {
-    const session = await sessionModule.Redact(
-      req.params.id,
-      req.user.account
-    );
+    const session = await sessionModule.Redact(req.params.id, req.user.account);
     res.json(session);
   })
 );

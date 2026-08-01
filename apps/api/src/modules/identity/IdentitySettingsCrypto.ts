@@ -50,7 +50,11 @@ export function EncryptIdentitySettings(
 
   for (const key of SECRET_KEYS) {
     const value = didit[key];
-    if (typeof value === 'string' && value.length > 0 && !IsEncryptedSecret(value)) {
+    if (
+      typeof value === 'string' &&
+      value.length > 0 &&
+      !IsEncryptedSecret(value)
+    ) {
       didit[key] = encryption.EncryptString(value);
     }
   }

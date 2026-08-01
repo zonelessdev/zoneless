@@ -67,9 +67,9 @@ export class DiditProvider implements IdentityVerificationProvider {
         body: text.slice(0, 500),
       });
       throw new AppError(
-        `Failed to create identity verification session with Didit (${response.status}): ${
-          text.slice(0, 300) || response.statusText
-        }`,
+        `Failed to create identity verification session with Didit (${
+          response.status
+        }): ${text.slice(0, 300) || response.statusText}`,
         502,
         'api_error'
       );
@@ -119,9 +119,9 @@ export class DiditProvider implements IdentityVerificationProvider {
         body: text.slice(0, 500),
       });
       throw new AppError(
-        `Failed to retrieve identity verification decision from Didit (${response.status}): ${
-          text.slice(0, 300) || response.statusText
-        }`,
+        `Failed to retrieve identity verification decision from Didit (${
+          response.status
+        }): ${text.slice(0, 300) || response.statusText}`,
         502,
         'api_error'
       );
@@ -150,7 +150,10 @@ export class DiditProvider implements IdentityVerificationProvider {
 
     const now = Math.floor(Date.now() / 1000);
     const ts = parseInt(timestamp, 10);
-    if (!Number.isFinite(ts) || Math.abs(now - ts) > WEBHOOK_TOLERANCE_SECONDS) {
+    if (
+      !Number.isFinite(ts) ||
+      Math.abs(now - ts) > WEBHOOK_TOLERANCE_SECONDS
+    ) {
       return false;
     }
 
@@ -215,7 +218,9 @@ export class DiditProvider implements IdentityVerificationProvider {
       body.status ?? '',
       body.webhook_type ?? '',
     ].join(':');
-    const expected = createHmac('sha256', secret).update(canonical).digest('hex');
+    const expected = createHmac('sha256', secret)
+      .update(canonical)
+      .digest('hex');
     return TimingSafeEqualHex(expected, signatureHeader);
   }
 }
@@ -259,7 +264,11 @@ function ShortenFloats(obj: unknown): unknown {
       return acc;
     }, {});
   }
-  if (typeof obj === 'number' && Number.isFinite(obj) && Math.floor(obj) === obj) {
+  if (
+    typeof obj === 'number' &&
+    Number.isFinite(obj) &&
+    Math.floor(obj) === obj
+  ) {
     return obj;
   }
   return obj;

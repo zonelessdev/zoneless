@@ -54,7 +54,10 @@ export interface IdentityVerificationProvider {
     input: ProviderCreateSessionInput
   ): Promise<ProviderSession>;
 
-  GetDecision(apiKey: string, providerSessionId: string): Promise<ProviderDecision>;
+  GetDecision(
+    apiKey: string,
+    providerSessionId: string
+  ): Promise<ProviderDecision>;
 
   /**
    * Verify an inbound webhook. Returns false when the signature is invalid.

@@ -581,8 +581,7 @@ describe('Identity volume threshold gating', () => {
             ...existing.requirements,
             ...(update as Partial<Account>).requirements,
           },
-          metadata:
-            (update as Partial<Account>).metadata ?? existing.metadata,
+          metadata: (update as Partial<Account>).metadata ?? existing.metadata,
         } as Account);
       } else if (collection === 'Persons') {
         const existing = storedPersons.get(id)!;
