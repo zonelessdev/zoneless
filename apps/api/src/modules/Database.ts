@@ -453,6 +453,7 @@ export class Database {
       'Transfers',
       'UsageCounters',
       'TelemetryConfigs',
+      'VerificationSessions',
       'WebhookEndpoints',
     ];
 

@@ -6,9 +6,22 @@ export function GetAccountStatus(account: Account): string {
   if (IsRejectedAccountReason(account.requirements?.disabled_reason)) {
     return 'rejected';
   }
-  if ((account.requirements?.pending_verification?.length ?? 0) > 0) {
-    return 'requires_review';
+
+  // Document submitted / provider processing — Stripe "In review"
+  if (account.individual?.verification?.status === 'pending') {
+    return 'in_review';
   }
+
+  const currentlyDue = account.requirements?.currently_due ?? [];
+  if (currentlyDue.length > 0) {
+    return 'restricted';
+  }
+
+  // Soft lite-review signals (duplicates, country mismatch, etc.)
+  if ((account.requirements?.pending_verification?.length ?? 0) > 0) {
+    return 'in_review';
+  }
+
   return account.payouts_enabled ? 'enabled' : 'restricted';
 }
 

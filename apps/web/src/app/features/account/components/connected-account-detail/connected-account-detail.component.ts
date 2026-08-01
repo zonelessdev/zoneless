@@ -13,6 +13,7 @@ import { StatusChipComponent } from '../../../../shared';
 import { AccountService } from '../../../../data/services/account.service';
 import { PersonService } from '../../../../data/services/person.service';
 import { GetCountryName } from '../../../../utils';
+import { GetAccountStatus } from '../../connected-accounts/util/connected-account-display';
 
 @Component({
   selector: 'app-connected-account-detail',
@@ -50,7 +51,11 @@ export class ConnectedAccountDetailComponent {
   }
 
   GetStatus(): string {
-    return this.account.payouts_enabled ? 'enabled' : 'restricted';
+    const accountWithPerson: Account = {
+      ...this.account,
+      individual: this.person ?? this.account.individual,
+    };
+    return GetAccountStatus(accountWithPerson);
   }
 
   GetCountry(): string {

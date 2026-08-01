@@ -26,6 +26,7 @@ import {
   SlidePanelComponent,
   PlatformLogoComponent,
 } from '../../shared';
+import { GetFormBlockingIdentityRequirements } from '@zoneless/shared-schemas';
 
 enum OnboardStep {
   PERSON = 1,
@@ -274,8 +275,10 @@ export class OnboardComponent implements OnInit {
         updateData
       );
 
-      // Only hard-invalid currently_due blocks onboarding (pending review does not)
-      const currentlyDue = updated.requirements?.currently_due ?? [];
+      // Only hard-invalid form fields block onboarding (document IDV does not)
+      const currentlyDue = GetFormBlockingIdentityRequirements(
+        updated.requirements?.currently_due ?? []
+      );
       if (currentlyDue.length > 0) {
         this.showPersonErrors.set(true);
         this.personForm.ApplyRequirementErrors(

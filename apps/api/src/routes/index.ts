@@ -34,6 +34,8 @@ import invoicesRouter from './invoices.routes';
 import reportingRouter from './reporting.routes';
 import billingRouter from './billing.routes';
 import telemetryRouter from './telemetry.routes';
+import identityVerificationSessionsRouter from './identityVerificationSessions.routes';
+import identityWebhooksRouter from './identityWebhooks.routes';
 
 const router = express.Router();
 
@@ -43,6 +45,8 @@ router.use('/config', configRouter);
 router.use('/setup', setupRouter);
 // Hosted checkout page bootstrap - the unguessable session ID is the credential
 router.use('/payment_pages', paymentPagesRouter);
+// Inbound identity provider webhooks (signature-verified; no API key)
+router.use('/identity/webhooks', identityWebhooksRouter);
 
 // --- Operator Routes ---
 // Guarded by the operator API key (managed hosting only)
@@ -89,4 +93,8 @@ router.use('/invoiceitems', invoiceItemsRouter);
 router.use('/invoices', invoicesRouter);
 router.use('/reporting', reportingRouter);
 router.use('/telemetry', telemetryRouter);
+router.use(
+  '/identity/verification_sessions',
+  identityVerificationSessionsRouter
+);
 export default router;

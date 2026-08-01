@@ -1,6 +1,99 @@
+@if (identityTaskDetailOpen()) {
+<div class="identity-task-detail">
+  <div class="flex flex-column gap-small">
+    <div class="breadcrumb-row">
+      <button
+        type="button"
+        class="link-highlight breadcrumb-button"
+        (click)="CloseIdentityTaskDetail()"
+      >
+        Settings
+      </button>
+      <span class="breadcrumb-sep">›</span>
+      <span class="breadcrumb-current">{{ identityRepresentativeName() }}</span>
+    </div>
+    <h1>{{ identityPanelTitle() }}</h1>
+    <p class="section-description">
+      {{ identityTaskDescription() }}
+    </p>
+  </div>
+
+  <div class="view-section identity-needed-section">
+    <h2 class="section-title">Information needed</h2>
+    <div class="identity-needed-card">
+      <div class="identity-needed-label">Verification document</div>
+      <div class="identity-needed-status">
+        <img src="assets/icons/info.svg" alt="" class="identity-needed-icon" />
+        <span>{{ identityDocumentMissingLabel() }}</span>
+      </div>
+    </div>
+    <button
+      type="button"
+      class="action-button"
+      [disabled]="identityVerificationStarting()"
+      (click)="StartIdentityVerification()"
+    >
+      {{ identityVerificationStarting() ? 'Starting…' : 'Start' }}
+    </button>
+    @if (identityVerificationError()) {
+    <p class="identity-task-error">{{ identityVerificationError() }}</p>
+    }
+  </div>
+
+  <div class="view-section">
+    <h2 class="section-title">Impacted capabilities</h2>
+    <div class="identity-impact-row">
+      <span class="identity-impact-label">Payouts:</span>
+      <span class="identity-impact-value">{{ identityImpactCopy() }}</span>
+    </div>
+  </div>
+</div>
+} @else {
 <div class="view-section">
   <h1>Settings</h1>
 </div>
+
+@if (showIdentityTask()) {
+<div class="view-section">
+  <div class="settings-section-title">Tasks</div>
+  <div class="identity-task-card">
+    <div class="identity-task-card-top">
+      <div class="identity-task-card-title">{{ identityTaskTitle() }}</div>
+      <div class="identity-task-card-actions">
+        <button
+          type="button"
+          class="text-link"
+          (click)="OpenIdentityTaskDetail()"
+        >
+          View details
+        </button>
+        <button
+          type="button"
+          class="action-button action-button-dainty"
+          [disabled]="identityVerificationStarting()"
+          (click)="StartIdentityVerification()"
+        >
+          {{ identityVerificationStarting() ? 'Starting…' : 'Start' }}
+        </button>
+      </div>
+    </div>
+    <div class="identity-task-card-bottom">
+      <p class="identity-task-card-description">
+        {{ identityTaskDescription() }}
+      </p>
+      <div class="identity-task-card-impact">
+        <span class="identity-task-card-impact-label">Impact</span>
+        <span class="identity-task-card-impact-value">{{
+          identityImpactSentence()
+        }}</span>
+      </div>
+      @if (identityVerificationError()) {
+      <p class="identity-task-error">{{ identityVerificationError() }}</p>
+      }
+    </div>
+  </div>
+</div>
+}
 
 <!-- Business Details Card (platform only) -->
 @if (authService.isPlatform()) {
@@ -11,6 +104,18 @@
     [rows]="accountService.GetBusinessDetailsCardRows(accountService.account())"
     [showEditButton]="true"
     (editClicked)="OnEditBusinessClick()"
+  ></app-settings-card>
+</div>
+
+<div class="view-section">
+  <div class="settings-section-title">Identity verification</div>
+  <app-settings-card
+    [title]="accountService.GetIdentitySettingsTitle(accountService.account())"
+    [rows]="
+      accountService.GetIdentitySettingsCardRows(accountService.account())
+    "
+    [showEditButton]="true"
+    (editClicked)="OnEditIdentityClick()"
   ></app-settings-card>
 </div>
 }
@@ -82,6 +187,7 @@
     <img class="icon" src="assets/icons/logout.svg" alt="Log Out" />
   </button>
 </div>
+}
 
 <!-- Edit Business Details Slide Panel -->
 @if (authService.isPlatform()) {
@@ -101,6 +207,23 @@
     [isOpen]="editBusinessPanelOpen()"
     [showErrors]="editBusinessShowErrors()"
   ></app-business-profile-form>
+</app-slide-panel>
+
+<app-slide-panel
+  [isOpen]="editIdentityPanelOpen()"
+  title="Identity verification"
+  [loading]="editIdentityLoading()"
+  submitLabel="Save"
+  [submitDisabled]="false"
+  (closed)="OnEditIdentityPanelClosed()"
+  (submitted)="OnEditIdentitySubmit()"
+>
+  <app-identity-settings-form
+    #editIdentityForm
+    [account]="accountService.account()"
+    [isOpen]="editIdentityPanelOpen()"
+    [showErrors]="editIdentityShowErrors()"
+  ></app-identity-settings-form>
 </app-slide-panel>
 }
 

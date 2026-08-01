@@ -1,14 +1,15 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  inject,
-  signal,
+  OnInit,
   ViewChild,
   WritableSignal,
-  OnInit,
+  computed,
+  inject,
+  signal,
 } from '@angular/core';
 
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { AuthService, MetaService } from '../../../core';
 import {
@@ -17,6 +18,7 @@ import {
   BalanceService,
   PersonService,
   ExternalWalletService,
+  IdentityService,
   TransactionService,
   WebhookEndpointService,
   TopupService,
@@ -26,10 +28,21 @@ import {
 import {
   BusinessProfileFormComponent,
   ExternalWalletFormComponent,
+  IdentitySettingsFormComponent,
   PersonFormComponent,
   SettingsCardComponent,
   SlidePanelComponent,
 } from '../../../shared';
+import {
+  GetIdentityDocumentImpactCopy,
+  GetIdentityDocumentImpactSentence,
+  GetIdentityDocumentMissingLabel,
+  GetIdentityDocumentPanelTitle,
+  GetIdentityDocumentRequirementState,
+  GetIdentityDocumentTaskDescription,
+  GetIdentityDocumentTaskTitle,
+  NeedsIdentityDocumentRemediation,
+} from '../connected-accounts/util/identity-requirements';
 
 @Component({
   selector: 'app-settings',
@@ -38,6 +51,7 @@ import {
     PersonFormComponent,
     ExternalWalletFormComponent,
     BusinessProfileFormComponent,
+    IdentitySettingsFormComponent,
     SettingsCardComponent,
   ],
   templateUrl: './settings.component.html',
@@ -49,6 +63,8 @@ export class SettingsComponent implements OnInit {
   @ViewChild('editWalletForm') editWalletForm!: ExternalWalletFormComponent;
   @ViewChild('editBusinessForm')
   editBusinessForm!: BusinessProfileFormComponent;
+  @ViewChild('editIdentityForm')
+  editIdentityForm!: IdentitySettingsFormComponent;
 
   readonly personService = inject(PersonService);
   readonly externalWalletService = inject(ExternalWalletService);
@@ -61,7 +77,9 @@ export class SettingsComponent implements OnInit {
   readonly topupService = inject(TopupService);
   readonly configService = inject(ConfigService);
   readonly telemetryService = inject(TelemetryService);
+  private readonly identityService = inject(IdentityService);
   readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly metaService = inject(MetaService);
 
   // Edit person panel state
@@ -80,12 +98,124 @@ export class SettingsComponent implements OnInit {
   editBusinessLoading: WritableSignal<boolean> = signal(false);
   editBusinessShowErrors: WritableSignal<boolean> = signal(false);
 
+  // Edit identity / Didit panel state
+  editIdentityPanelOpen: WritableSignal<boolean> = signal(false);
+  editIdentityLoading: WritableSignal<boolean> = signal(false);
+  editIdentityShowErrors: WritableSignal<boolean> = signal(false);
+
   telemetrySaving: WritableSignal<boolean> = signal(false);
+
+  identityTaskDetailOpen: WritableSignal<boolean> = signal(false);
+  identityVerificationStarting: WritableSignal<boolean> = signal(false);
+  identityVerificationError: WritableSignal<string> = signal('');
+
+  readonly showIdentityTask = computed(
+    () =>
+      !this.authService.isPlatform() &&
+      NeedsIdentityDocumentRemediation(this.accountService.account())
+  );
+
+  readonly identityRepresentativeName = computed(() => {
+    const personName = this.personService.GetFullName(
+      this.personService.person()
+    );
+    if (personName) return personName;
+    const account = this.accountService.account();
+    return account
+      ? this.accountService.GetConnectedAccountDisplayName(account)
+      : 'your account';
+  });
+
+  readonly identityTaskTitle = computed(() =>
+    GetIdentityDocumentTaskTitle(this.identityRepresentativeName())
+  );
+
+  readonly identityPanelTitle = computed(() =>
+    GetIdentityDocumentPanelTitle(this.identityRepresentativeName())
+  );
+
+  readonly identityTaskDescription = computed(() =>
+    GetIdentityDocumentTaskDescription(this.identityRepresentativeName())
+  );
+
+  readonly identityImpactCopy = computed(() => {
+    const account = this.accountService.account();
+    if (!account) return '';
+    return GetIdentityDocumentImpactCopy(account);
+  });
+
+  readonly identityImpactSentence = computed(() => {
+    const account = this.accountService.account();
+    if (!account) return '';
+    return GetIdentityDocumentImpactSentence(account);
+  });
+
+  readonly identityDocumentMissingLabel = computed(() => {
+    const account = this.accountService.account();
+    if (!account) return 'Missing';
+    return GetIdentityDocumentMissingLabel(
+      GetIdentityDocumentRequirementState(account)
+    );
+  });
 
   ngOnInit(): void {
     this.metaService.SetMetaTitle('Settings');
     if (this.authService.isPlatform()) {
       this.telemetryService.GetStatus();
+    }
+    if (
+      this.showIdentityTask() &&
+      this.route.snapshot.queryParamMap.get('task') === 'identity'
+    ) {
+      this.identityTaskDetailOpen.set(true);
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { task: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    }
+  }
+
+  OpenIdentityTaskDetail(): void {
+    this.identityVerificationError.set('');
+    this.identityTaskDetailOpen.set(true);
+  }
+
+  CloseIdentityTaskDetail(): void {
+    this.identityTaskDetailOpen.set(false);
+    this.identityVerificationError.set('');
+  }
+
+  async StartIdentityVerification(): Promise<void> {
+    if (this.identityVerificationStarting()) return;
+
+    const account = this.accountService.account();
+    if (!account) return;
+
+    this.identityVerificationStarting.set(true);
+    this.identityVerificationError.set('');
+
+    try {
+      const session = await this.identityService.CreateVerificationSession({
+        type: 'document',
+        related_account: account.id,
+      });
+      if (!session.url) {
+        this.identityVerificationError.set(
+          'Verification session was created but no link was returned.'
+        );
+        return;
+      }
+      window.open(session.url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      this.identityVerificationError.set(
+        err instanceof Error
+          ? err.message
+          : 'Failed to start identity verification. Please try again.'
+      );
+    } finally {
+      this.identityVerificationStarting.set(false);
     }
   }
 
@@ -137,6 +267,43 @@ export class SettingsComponent implements OnInit {
       console.error('Failed to update business details:', error);
     } finally {
       this.editBusinessLoading.set(false);
+    }
+  }
+
+  // Edit Identity Panel
+  OnEditIdentityClick(): void {
+    this.editIdentityShowErrors.set(false);
+    this.editIdentityPanelOpen.set(true);
+  }
+
+  OnEditIdentityPanelClosed(): void {
+    this.editIdentityPanelOpen.set(false);
+    this.editIdentityShowErrors.set(false);
+  }
+
+  async OnEditIdentitySubmit(): Promise<void> {
+    if (!this.editIdentityForm) return;
+
+    this.editIdentityShowErrors.set(true);
+
+    if (!this.editIdentityForm.ValidateAll()) {
+      return;
+    }
+
+    const account = this.GetAccount();
+    if (!account) return;
+
+    this.editIdentityLoading.set(true);
+
+    try {
+      const updateData = this.editIdentityForm.GetUpdateData();
+      await this.accountService.UpdateAccount(account.id, updateData);
+      this.editIdentityPanelOpen.set(false);
+      this.editIdentityShowErrors.set(false);
+    } catch (error) {
+      console.error('Failed to update identity settings:', error);
+    } finally {
+      this.editIdentityLoading.set(false);
     }
   }
 

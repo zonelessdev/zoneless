@@ -67,6 +67,18 @@ const EVENT_TYPE_LABELS: Record<(typeof EVENT_TYPES)[number], string> = {
   'external_account.created': 'External account created',
   'external_account.updated': 'External account updated',
   'external_account.deleted': 'External account deleted',
+  'identity.verification_session.created':
+    'Identity verification session created',
+  'identity.verification_session.processing':
+    'Identity verification session processing',
+  'identity.verification_session.verified':
+    'Identity verification session verified',
+  'identity.verification_session.requires_input':
+    'Identity verification session requires input',
+  'identity.verification_session.canceled':
+    'Identity verification session canceled',
+  'identity.verification_session.redacted':
+    'Identity verification session redacted',
   'invoice.created': 'Invoice created',
   'invoice.deleted': 'Invoice deleted',
   'invoice.finalized': 'Invoice finalized',

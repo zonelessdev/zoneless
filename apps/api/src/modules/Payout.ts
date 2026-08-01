@@ -20,6 +20,7 @@ import { GenerateId } from '../utils/IdGenerator';
 import { Now } from '../utils/Timestamp';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
+import { Logger } from '../utils/Logger';
 import {
   Payout as PayoutType,
   PayoutFailureCode,
@@ -37,6 +38,7 @@ import {
   BroadcastPayoutsBatchInput,
   IsRejectedAccountReason,
 } from '@zoneless/shared-schemas';
+import { IdentityLiteModule } from './identity/IdentityLite';
 
 /**
  * Extended list options for payouts with additional filters
@@ -849,6 +851,19 @@ export class PayoutModule {
           updatedPayout
         );
       }
+    }
+
+    // Re-evaluate identity requirements (payout volume threshold → IDV)
+    try {
+      const identityLite = new IdentityLiteModule(this.db, this.eventService);
+      await identityLite.EvaluateAndApply(payout.account);
+    } catch (err) {
+      // Payout already settled — soft-fail identity re-eval
+      Logger.warn('Identity re-evaluation after payout.paid failed', {
+        accountId: payout.account,
+        payoutId: payout.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 

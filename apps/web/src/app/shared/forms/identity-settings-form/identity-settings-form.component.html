@@ -1,0 +1,108 @@
+<div class="identity-settings-form">
+  <p class="field-help identity-intro">
+    Connect your
+    <a href="https://didit.me" target="_blank" rel="noopener noreferrer"
+      >Didit</a
+    >
+    account so Zoneless can create verification sessions for connected
+    accounts. Credentials stay on your platform account and are never shared
+    with Zoneless cloud.
+  </p>
+
+  <div class="field">
+    <div class="field-title">Didit API key</div>
+    <p class="field-help">
+      From the Didit Business Console. Leave blank to keep the current key.
+    </p>
+    <input
+      [ngModel]="apiKey()"
+      (ngModelChange)="OnApiKeyChange($event)"
+      class="field-value"
+      type="password"
+      autocomplete="new-password"
+      [placeholder]="
+        apiKeyConfigured() ? '•••••••• (configured)' : 'Paste your Didit API key'
+      "
+      name="didit-api-key"
+      [class.field-error]="showErrors && apiKeyError()"
+    />
+    @if (showErrors && apiKeyError()) {
+    <div class="error">{{ apiKeyError() }}</div>
+    }
+  </div>
+
+  <div class="field">
+    <div class="field-title">Workflow ID</div>
+    <p class="field-help">
+      The published Didit workflow used for KYC verification sessions.
+    </p>
+    <input
+      [ngModel]="workflowId()"
+      (ngModelChange)="OnWorkflowIdChange($event)"
+      class="field-value"
+      type="text"
+      placeholder="550e8400-e29b-41d4-a716-446655440000"
+      name="didit-workflow-id"
+      autocomplete="off"
+      [class.field-error]="showErrors && workflowIdError()"
+    />
+    @if (showErrors && workflowIdError()) {
+    <div class="error">{{ workflowIdError() }}</div>
+    }
+  </div>
+
+  <div class="field">
+    <div class="field-title">
+      Webhook secret <span class="field-optional">Optional</span>
+    </div>
+    <p class="field-help">
+      Shared secret from your Didit webhook destination. Point Didit at
+      <code>/v1/identity/webhooks/didit</code> on this instance.
+    </p>
+    <input
+      [ngModel]="webhookSecret()"
+      (ngModelChange)="OnWebhookSecretChange($event)"
+      class="field-value"
+      type="password"
+      autocomplete="new-password"
+      [placeholder]="
+        webhookSecretConfigured()
+          ? '•••••••• (configured)'
+          : 'Paste your Didit webhook secret'
+      "
+      name="didit-webhook-secret"
+      [class.field-error]="showErrors && webhookSecretError()"
+    />
+    @if (showErrors && webhookSecretError()) {
+    <div class="error">{{ webhookSecretError() }}</div>
+    }
+  </div>
+
+  <div class="field">
+    <div class="field-title">
+      Payout volume threshold
+      <span class="field-optional">Optional</span>
+    </div>
+    <p class="field-help">
+      Require identity verification after a connected account reaches this
+      lifetime paid payout volume (USD). Leave blank to disable.
+    </p>
+    <div class="field-prefix-input">
+      <span class="field-prefix">$</span>
+      <input
+        [ngModel]="payoutVolumeThreshold()"
+        (ngModelChange)="OnPayoutVolumeThresholdChange($event)"
+        class="field-value"
+        type="text"
+        inputmode="decimal"
+        placeholder="1000"
+        name="payout-volume-threshold"
+        autocomplete="off"
+        [class.field-error]="showErrors && payoutVolumeThresholdError()"
+      />
+    </div>
+    @if (showErrors && payoutVolumeThresholdError()) {
+    <div class="error">{{ payoutVolumeThresholdError() }}</div>
+    }
+  </div>
+</div>

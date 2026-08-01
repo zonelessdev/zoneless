@@ -5,6 +5,16 @@
   </div>
   }
 
+  @if (alert(); as banner) {
+  <app-account-alert-banner
+    [label]="banner.label"
+    [message]="banner.message"
+    [variant]="banner.variant"
+    [actionLabel]="banner.actionLabel"
+    (actionClicked)="OnAlertAction()"
+  ></app-account-alert-banner>
+  }
+
   <div class="account-content-wrapper">
     <div class="sidebar-wrapper">
       <app-side-menu [sideMenu]="sideMenu" variant="express"></app-side-menu>

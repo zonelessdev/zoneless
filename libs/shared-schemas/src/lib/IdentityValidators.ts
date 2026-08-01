@@ -22,6 +22,8 @@ export const IDENTITY_REQUIREMENT_FIELDS = {
   addressCountry: 'individual.address.country',
   tosAcceptanceIp: 'tos_acceptance.ip',
   externalAccount: 'external_account',
+  /** Document IDV — promoted by platform identity threshold rules */
+  verificationDocument: 'individual.verification.document',
 } as const;
 
 /** Machine-readable requirement error codes (Stripe-compatible where possible) */
@@ -30,6 +32,8 @@ export const IDENTITY_ERROR_CODES = {
   invalidAddress: 'invalid_address',
   invalidDobAge: 'invalid_dob_age_under_minimum',
   invalidPhone: 'invalid_value',
+  /** Document IDV failed or was declined by the provider */
+  verificationFailed: 'verification_failed',
   /** Non-blocking review signals — distinct from hard-fail codes */
   disposableEmail: 'identity_lite.disposable_email',
   roleEmail: 'identity_lite.role_email',
@@ -404,8 +408,11 @@ export const IDENTITY_REVIEW_ERROR_CODES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Whether account requirements block enabling / keeping payouts.
- * Hard-invalid currently_due and rejected.* block; pending review does not.
+ * Whether account requirements block enabling / keeping payouts for
+ * hard-invalid form fields or rejection. Hosted document IDV
+ * (`individual.verification.document`) is excluded — it soft-pauses
+ * payouts via IdentityLite evaluation instead, and must not block
+ * wallet attach / onboarding.
  */
 export function IsIdentityBlockingPayouts(
   requirements:
@@ -418,11 +425,25 @@ export function IsIdentityBlockingPayouts(
 ): boolean {
   if (!requirements) return false;
 
-  const currentlyDue = requirements.currently_due ?? [];
-  if (currentlyDue.length > 0) return true;
+  if (GetFormBlockingIdentityRequirements(requirements.currently_due).length > 0) {
+    return true;
+  }
 
   const reason = requirements.disabled_reason;
   if (IsRejectedAccountReason(reason)) return true;
 
   return false;
+}
+
+/**
+ * currently_due fields that must be fixed via account/person forms.
+ * Excludes hosted document verification, which is remediable only via
+ * an identity VerificationSession.
+ */
+export function GetFormBlockingIdentityRequirements(
+  currentlyDue: string[] | null | undefined
+): string[] {
+  return (currentlyDue ?? []).filter(
+    (field) => field !== IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+  );
 }

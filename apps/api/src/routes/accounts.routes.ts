@@ -12,7 +12,8 @@ import { BalanceModule } from '../modules/Balance';
 import { ExternalWalletModule } from '../modules/ExternalWallet';
 import { LoginLinkModule, ToLoginLinkResponse } from '../modules/LoginLink';
 import { EventService } from '../modules/EventService';
-import { IdentityLiteModule } from '../modules/IdentityLite';
+import { IdentityLiteModule } from '../modules/identity/IdentityLite';
+import { RedactAccountIdentitySecrets } from '../modules/identity/IdentitySettingsCrypto';
 
 import { ValidateRequest } from '../middleware/ValidateRequest';
 import {
@@ -39,7 +40,7 @@ const personModule = new PersonModule(db, eventService);
 const balanceModule = new BalanceModule(db, eventService);
 const externalWalletModule = new ExternalWalletModule(db);
 const loginLinkModule = new LoginLinkModule(db);
-const identityLiteModule = new IdentityLiteModule(db);
+const identityLiteModule = new IdentityLiteModule(db, eventService);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: Populate account with related resources
@@ -90,7 +91,7 @@ async function PopulateAccountResources(
     };
   }
 
-  return account;
+  return RedactAccountIdentitySecrets(account);
 }
 
 /**

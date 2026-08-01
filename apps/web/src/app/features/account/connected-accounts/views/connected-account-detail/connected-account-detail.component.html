@@ -1,4 +1,62 @@
 @if (account(); as a) {
+@if (detailPanel() === 'identity_document') {
+<div class="identity-requirement-detail">
+  <div class="flex flex-column gap-small">
+    <div class="breadcrumb-row">
+      <a class="link-highlight" routerLink="/account/connected-accounts"
+        >Connected accounts</a
+      >
+      <span class="breadcrumb-sep">›</span>
+      <button
+        type="button"
+        class="link-highlight breadcrumb-button"
+        (click)="CloseIdentityDocumentDetail()"
+      >
+        {{ displayName() }}
+      </button>
+    </div>
+    <h1>{{ identityPanelTitle() }}</h1>
+    <p class="section-description">
+      {{ identityPanelDescription() }}
+    </p>
+  </div>
+
+  <div class="view-section identity-needed-section">
+    <h2 class="section-title">Information needed</h2>
+    <div class="identity-needed-card">
+      <div class="identity-needed-label">Verification document</div>
+      <div
+        class="identity-needed-status"
+        [class.identity-needed-status-pending]="
+          identityDocumentState() === 'pending'
+        "
+      >
+        <img
+          src="assets/icons/info.svg"
+          alt=""
+          class="identity-needed-icon"
+        />
+        <span>{{ identityDocumentMissingLabel() }}</span>
+      </div>
+    </div>
+    <button
+      type="button"
+      class="action-button"
+      (click)="OnRequestInformation()"
+    >
+      Request information
+    </button>
+  </div>
+
+  <div class="view-section">
+    <h2 class="section-title">Impacted capabilities</h2>
+    <div class="identity-impact-row">
+      <span class="identity-impact-label">Payouts:</span>
+      <span class="identity-impact-value">{{ identityImpactCopy() }}</span>
+    </div>
+  </div>
+</div>
+} @else {
 <div class="flex align-vert-start space-between">
   <div class="flex flex-column gap-small">
     <a class="link-highlight" routerLink="/account/connected-accounts"
@@ -14,15 +72,16 @@
         <app-copy-text [text]="accountEmail" [opacity]="0.5"></app-copy-text>
       </div>
       }
-      <div class="meta-item" [class.meta-item-active]="a.payouts_enabled">
+      <div
+        class="meta-item"
+        [class.meta-item-active]="a.payouts_enabled"
+      >
         <img
           src="assets/icons/account_balance_wallet.svg"
           alt=""
           class="meta-icon"
         />
-        <span>{{
-          a.payouts_enabled ? 'Payouts active' : 'Payouts inactive'
-        }}</span>
+        <span>{{ GetPayoutsMetaLabel() }}</span>
       </div>
       <div class="meta-item" [class.meta-item-active]="a.charges_enabled">
         <img src="assets/icons/bolt.svg" alt="" class="meta-icon" />
@@ -75,6 +134,44 @@
 @if (activeTab() === 'overview') {
 <div class="flex gap-extra-large view-panels">
   <div class="view-left-panel">
+    @if (showIdentityAction()) {
+    <div class="view-section">
+      <div class="flex align-vert space-between gap-small actions-required-header">
+        <div class="flex align-vert gap-small">
+          <h2 class="section-title actions-required-title">Actions required</h2>
+          <span class="actions-required-count">1</span>
+        </div>
+        <button
+          type="button"
+          class="action-button action-button-dainty outline"
+          (click)="OnRequestInformation()"
+        >
+          <span>Request information</span>
+          <img class="button-icon-dark" src="assets/icons/link.svg" alt="" />
+        </button>
+      </div>
+      <button
+        type="button"
+        class="action-required-row"
+        (click)="OpenIdentityDocumentDetail()"
+      >
+        <div class="action-required-copy">
+          <div class="action-required-title">
+            {{ identityPanelTitle() }}
+          </div>
+          <div class="action-required-subtitle">
+            {{ identityActionSubtitle() }}
+          </div>
+        </div>
+        <img
+          src="assets/icons/arrow_forward.svg"
+          alt=""
+          class="action-required-chevron"
+        />
+      </button>
+    </div>
+    }
+
     <div class="view-section">
       <div class="flex align-vert space-between gap-small balances-header">
         <h2 class="section-title">Account balances</h2>
@@ -470,5 +567,6 @@
   }
 </div>
 } }
+}
 
 <app-connected-account-actions-host></app-connected-account-actions-host>

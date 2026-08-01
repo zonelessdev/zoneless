@@ -71,7 +71,9 @@ app.use(
 );
 
 // Body parsing
-app.use(express.json({ limit: '10kb' })); // Limit body size
+// Didit identity webhooks can include large decision/document payloads.
+app.use('/v1/identity/webhooks', express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '10kb' })); // Default API body size
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 // Request context (idempotency key, request ID) - must be before routes

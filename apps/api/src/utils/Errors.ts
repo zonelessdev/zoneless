@@ -174,6 +174,11 @@ export const ERRORS = {
     status: 404,
     type: 'resource_missing',
   },
+  VERIFICATION_SESSION_NOT_FOUND: {
+    message: 'Verification session not found',
+    status: 404,
+    type: 'resource_missing',
+  },
 
   // Validation errors
   VALIDATION_ERROR: {
