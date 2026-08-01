@@ -5,6 +5,8 @@ import {
   OnInit,
   OnDestroy,
   ViewChild,
+  WritableSignal,
+  signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
 
@@ -18,8 +20,12 @@ import { ConnectedAccountActionsService } from '../../services/connected-account
 import { AccountService } from '../../../../../data';
 
 import type { Account } from '@zoneless/shared-types';
-import { GetCountryName } from '../../../../../utils';
+import type { ConnectedAccountListStatus } from '@zoneless/shared-schemas';
 import { Subscription } from 'rxjs';
+import {
+  FormatAccountCountry,
+  GetAccountStatus,
+} from '../../util/connected-account-display';
 
 @Component({
   selector: 'app-connected-accounts-list',
@@ -37,6 +43,20 @@ export class ConnectedAccountsListComponent implements OnInit, OnDestroy {
 
   @ViewChild('accountsList') accountsList?: PaginatedListComponent<any>;
 
+  statusTab: WritableSignal<ConnectedAccountListStatus> = signal('all');
+  accountsQueryParams: WritableSignal<Record<string, string>> = signal({});
+
+  readonly statusTabs: Array<{
+    id: ConnectedAccountListStatus;
+    label: string;
+  }> = [
+    { id: 'all', label: 'All' },
+    { id: 'restricted', label: 'Restricted' },
+    { id: 'requires_review', label: 'Requires review' },
+    { id: 'rejected', label: 'Rejected' },
+    { id: 'enabled', label: 'Enabled' },
+  ];
+
   connectedAccountColumns: PaginatedListColumn[] = [
     {
       header: 'Account name',
@@ -51,20 +71,13 @@ export class ConnectedAccountsListComponent implements OnInit, OnDestroy {
       field: 'country',
       type: 'text',
       dimmed: true,
-      formatter: (item: unknown) => {
-        const account = item as Account;
-        if (!account.country) return '—';
-        return GetCountryName(account.country) || account.country;
-      },
+      formatter: (item: unknown) => FormatAccountCountry(item as Account),
     },
     {
       header: 'Account status',
       field: 'payouts_enabled',
       type: 'status',
-      formatter: (item: unknown) => {
-        const account = item as Account;
-        return account.payouts_enabled ? 'enabled' : 'restricted';
-      },
+      formatter: (item: unknown) => GetAccountStatus(item as Account),
     },
     {
       header: 'Connected on',
@@ -109,6 +122,11 @@ export class ConnectedAccountsListComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
+  }
+
+  SetStatusTab(tab: ConnectedAccountListStatus): void {
+    this.accountsQueryParams.set(tab === 'all' ? {} : { status: tab });
+    this.statusTab.set(tab);
   }
 
   OnConnectedAccountClick(item: unknown): void {

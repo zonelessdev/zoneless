@@ -35,6 +35,7 @@ import {
   UpdatePayoutInput,
   BuildPayoutsBatchInput,
   BroadcastPayoutsBatchInput,
+  IsRejectedAccountReason,
 } from '@zoneless/shared-schemas';
 
 /**
@@ -124,6 +125,31 @@ export class PayoutModule {
     if (amount <= 0) {
       throw new AppError(
         'Amount must be greater than 0',
+        400,
+        'invalid_request_error'
+      );
+    }
+
+    const accountRecord = await this.accountModule.GetAccount(account);
+    if (!accountRecord) {
+      throw new AppError(
+        ERRORS.ACCOUNT_NOT_FOUND.message,
+        ERRORS.ACCOUNT_NOT_FOUND.status,
+        ERRORS.ACCOUNT_NOT_FOUND.type
+      );
+    }
+
+    if (IsRejectedAccountReason(accountRecord.requirements?.disabled_reason)) {
+      throw new AppError(
+        'This account has been rejected and cannot create payouts.',
+        400,
+        'invalid_request_error'
+      );
+    }
+
+    if (!accountRecord.payouts_enabled) {
+      throw new AppError(
+        'Payouts are not enabled for this account. Complete onboarding and identity requirements first.',
         400,
         'invalid_request_error'
       );

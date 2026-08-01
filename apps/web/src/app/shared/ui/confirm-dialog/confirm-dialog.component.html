@@ -10,5 +10,7 @@
 >
   @if (description) {
   <p class="dialog-description">{{ description }}</p>
+  } @if (error) {
+  <p class="dialog-error">{{ error }}</p>
   }
 </app-modal>

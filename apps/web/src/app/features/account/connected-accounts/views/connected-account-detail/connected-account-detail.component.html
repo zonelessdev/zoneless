@@ -46,7 +46,7 @@
       <span>{{ idCopied() ? 'Copied' : 'Copy ID' }}</span>
     </button>
     <app-popup-menu
-      [actions]="accountActions"
+      [actions]="GetAccountActions()"
       [item]="a"
       [highlightIcon]="true"
     ></app-popup-menu>
@@ -266,6 +266,62 @@
       } @else {
       <div class="dashed-placeholder">
         <span>No active capabilities</span>
+      </div>
+      }
+    </div>
+
+    <div class="view-section">
+      <div class="flex align-vert-start space-between gap-small">
+        <h2 class="section-title">Identity requirements</h2>
+        @if (NeedsIdentityReview()) {
+        <button
+          type="button"
+          class="action-button action-button-dainty outline"
+          [disabled]="approvingIdentity()"
+          (click)="OnApproveIdentity()"
+        >
+          {{ approvingIdentity() ? 'Dismissing…' : 'Dismiss review' }}
+        </button>
+        }
+      </div>
+      @if (GetIdentityStatusLabel(); as statusLabel) {
+      <div class="mb">
+        <div class="bolded mb-small">Status</div>
+        <div class="dimmed">{{ statusLabel }}</div>
+      </div>
+      } @if (GetCurrentlyDue().length > 0) {
+      <div class="mb">
+        <div class="bolded mb-small">Currently due</div>
+        <ul class="requirements-list dimmed">
+          @for (field of GetCurrentlyDue(); track field) {
+          <li>{{ field }}</li>
+          }
+        </ul>
+      </div>
+      } @if (GetPendingVerification().length > 0) {
+      <div class="mb">
+        <div class="bolded mb-small">Pending review</div>
+        <ul class="requirements-list dimmed">
+          @for (field of GetPendingVerification(); track field) {
+          <li>{{ field }}</li>
+          }
+        </ul>
+      </div>
+      } @if (GetRequirementErrors().length > 0) {
+      <div class="mb">
+        <div class="bolded mb-small">Notes</div>
+        <ul class="requirements-list dimmed">
+          @for (err of GetRequirementErrors(); track err.requirement +
+          err.reason) {
+          <li>{{ err.reason }}</li>
+          }
+        </ul>
+      </div>
+      } @if ( !GetIdentityStatusLabel() && GetCurrentlyDue().length === 0 &&
+      GetPendingVerification().length === 0 && GetRequirementErrors().length ===
+      0 ) {
+      <div class="dashed-placeholder">
+        <span>No outstanding identity requirements</span>
       </div>
       }
     </div>

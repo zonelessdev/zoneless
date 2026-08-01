@@ -9,7 +9,6 @@ import { ExtractChangedFields } from './Event';
 import { GetPlatformAccountId } from './PlatformAccess';
 import { GenerateId } from '../utils/IdGenerator';
 import { Now } from '../utils/Timestamp';
-import { ListHelper, ListOptions, ListResult } from '../utils/ListHelper';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
 import {
@@ -20,6 +19,7 @@ import {
   AccountSettings,
   AccountController,
   AccountBusinessProfile,
+  QueryOperators,
 } from '@zoneless/shared-types';
 import { ValidateUpdate } from './Util';
 import {
@@ -28,7 +28,16 @@ import {
   UpdateAccountSchema,
   UpdateAccountInput,
   RejectAccountInput,
+  REJECTED_DISABLED_REASONS,
+  ConnectedAccountStatusFilter,
+  IsRejectedAccountReason,
 } from '@zoneless/shared-schemas';
+import {
+  ListHelper,
+  ListOptions,
+  ListResult,
+  FilterCondition,
+} from '../utils/ListHelper';
 
 export class AccountModule {
   private readonly db: Database;
@@ -326,13 +335,64 @@ export class AccountModule {
     platformAccountId: string,
     options: Omit<ListOptions, 'account' | 'filters'> & {
       created?: ListOptions['created'];
+      status?: ConnectedAccountStatusFilter;
     } = {}
   ): Promise<ListResult<AccountType>> {
+    const { status, ...listOptions } = options;
     return this.listHelper.List({
       account: platformAccountId,
-      ...options,
-      filters: {},
+      ...listOptions,
+      filters: this.BuildStatusFilters(status),
     });
+  }
+
+  private BuildStatusFilters(
+    status?: ConnectedAccountStatusFilter
+  ): Record<string, unknown | FilterCondition> {
+    if (!status) return {};
+
+    const rejectedReasons = [...REJECTED_DISABLED_REASONS];
+
+    switch (status) {
+      case 'enabled':
+        return {
+          payouts_enabled: true,
+          'requirements.disabled_reason': {
+            operator: QueryOperators['not-in'],
+            value: rejectedReasons,
+          },
+          // Exclude soft identity review so this tab stays mutually exclusive
+          'requirements.pending_verification.0': {
+            operator: QueryOperators.exists,
+            value: false,
+          },
+        };
+      case 'rejected':
+        return {
+          'requirements.disabled_reason': {
+            operator: QueryOperators.in,
+            value: rejectedReasons,
+          },
+        };
+      case 'restricted':
+        return {
+          payouts_enabled: false,
+          'requirements.disabled_reason': {
+            operator: QueryOperators['not-in'],
+            value: rejectedReasons,
+          },
+        };
+      case 'requires_review':
+        // pending_verification[0] exists ⇒ array is non-empty
+        return {
+          'requirements.pending_verification.0': {
+            operator: QueryOperators.exists,
+            value: true,
+          },
+        };
+      default:
+        return {};
+    }
   }
 
   /**
@@ -510,14 +570,9 @@ export class AccountModule {
   }
 
   /**
-   * Reject an account.
-   * Platforms can reject accounts that violate their terms of service.
-   * This prevents the account from accepting payments or receiving payouts.
-   * Emits an 'account.updated' event with the rejection status.
-   *
-   * @param accountId - The ID of the account to reject
-   * @param input - Object containing the rejection reason
-   * @returns The rejected account
+   * Reject a connected account.
+   * Always pauses payments. Pauses payouts when pause_payouts is true (default).
+   * @see https://docs.stripe.com/api/account/reject
    */
   async RejectAccount(
     accountId: string,
@@ -533,10 +588,11 @@ export class AccountModule {
       );
     }
 
-    // Update the account with rejection status
+    const pausePayouts = input.pause_payouts !== false;
+
     const update: Partial<AccountType> = {
       charges_enabled: false,
-      payouts_enabled: false,
+      payouts_enabled: pausePayouts ? false : account.payouts_enabled,
       requirements: {
         ...account.requirements,
         disabled_reason: `rejected.${input.reason}`,
@@ -544,10 +600,58 @@ export class AccountModule {
         eventually_due: [],
         past_due: [],
         pending_verification: [],
+        errors: [],
       },
     };
 
+    if (pausePayouts) {
+      update.capabilities = {
+        ...account.capabilities,
+        usdc_payouts: 'inactive',
+        transfers: 'inactive',
+      };
+    }
+
     return this.UpdateAccountInternal(accountId, update);
+  }
+
+  /**
+   * Unreject a connected account previously rejected by the platform.
+   * Clears rejection and re-enables payments/payouts. Callers should re-run
+   * identity evaluation afterward so hard dues can resurface.
+   */
+  async UnrejectAccount(accountId: string): Promise<AccountType> {
+    const account = await this.GetAccount(accountId);
+
+    if (!account) {
+      throw new AppError(
+        ERRORS.ACCOUNT_NOT_FOUND.message,
+        ERRORS.ACCOUNT_NOT_FOUND.status,
+        ERRORS.ACCOUNT_NOT_FOUND.type
+      );
+    }
+
+    if (!IsRejectedAccountReason(account.requirements?.disabled_reason)) {
+      throw new AppError(
+        'Only accounts rejected by the platform can be unrejected',
+        400,
+        'invalid_request_error'
+      );
+    }
+
+    return this.UpdateAccountInternal(accountId, {
+      charges_enabled: true,
+      payouts_enabled: true,
+      capabilities: {
+        ...account.capabilities,
+        usdc_payouts: 'active',
+        transfers: 'active',
+      },
+      requirements: {
+        ...account.requirements,
+        disabled_reason: null,
+      },
+    });
   }
 
   async DetailsSubmitted(accountId: string): Promise<void> {
@@ -556,24 +660,51 @@ export class AccountModule {
     });
   }
 
-  async PayoutsEnabled(accountId: string): Promise<void> {
-    const account = await this.GetAccount(accountId);
+  async PayoutsEnabled(accountId: string): Promise<AccountType> {
+    const account = await this.RequireAccount(accountId);
+    this.AssertNotRejected(account);
 
-    const update: Partial<AccountType> = {
+    return this.UpdateAccountInternal(accountId, {
       payouts_enabled: true,
       capabilities: {
-        ...account?.capabilities,
+        ...account.capabilities,
         usdc_payouts: 'active',
         transfers: 'active',
       },
-    };
-
-    await this.UpdateAccountInternal(accountId, update);
+    });
   }
 
-  async ChargesEnabled(accountId: string): Promise<void> {
-    await this.UpdateAccountInternal(accountId, {
+  /**
+   * Soft-disable payouts (platform pause or identity soft-block).
+   * Does not reject the account.
+   */
+  async PayoutsDisabled(accountId: string): Promise<AccountType> {
+    const account = await this.RequireAccount(accountId);
+
+    return this.UpdateAccountInternal(accountId, {
+      payouts_enabled: false,
+      capabilities: {
+        ...account.capabilities,
+        usdc_payouts: 'inactive',
+        transfers: 'inactive',
+      },
+    });
+  }
+
+  async ChargesEnabled(accountId: string): Promise<AccountType> {
+    const account = await this.RequireAccount(accountId);
+    this.AssertNotRejected(account);
+
+    return this.UpdateAccountInternal(accountId, {
       charges_enabled: true,
+    });
+  }
+
+  async ChargesDisabled(accountId: string): Promise<AccountType> {
+    await this.RequireAccount(accountId);
+
+    return this.UpdateAccountInternal(accountId, {
+      charges_enabled: false,
     });
   }
 
@@ -603,15 +734,7 @@ export class AccountModule {
     accountId: string,
     requirements: Partial<AccountRequirements>
   ): Promise<void> {
-    const account = await this.GetAccount(accountId);
-
-    if (!account) {
-      throw new AppError(
-        ERRORS.ACCOUNT_NOT_FOUND.message,
-        ERRORS.ACCOUNT_NOT_FOUND.status,
-        ERRORS.ACCOUNT_NOT_FOUND.type
-      );
-    }
+    const account = await this.RequireAccount(accountId);
 
     await this.UpdateAccountInternal(accountId, {
       requirements: {
@@ -619,5 +742,27 @@ export class AccountModule {
         ...requirements,
       },
     });
+  }
+
+  private async RequireAccount(accountId: string): Promise<AccountType> {
+    const account = await this.GetAccount(accountId);
+    if (!account) {
+      throw new AppError(
+        ERRORS.ACCOUNT_NOT_FOUND.message,
+        ERRORS.ACCOUNT_NOT_FOUND.status,
+        ERRORS.ACCOUNT_NOT_FOUND.type
+      );
+    }
+    return account;
+  }
+
+  private AssertNotRejected(account: AccountType): void {
+    if (IsRejectedAccountReason(account.requirements?.disabled_reason)) {
+      throw new AppError(
+        'Cannot enable payments or payouts on a rejected account. Unreject the account first.',
+        400,
+        'invalid_request_error'
+      );
+    }
   }
 }

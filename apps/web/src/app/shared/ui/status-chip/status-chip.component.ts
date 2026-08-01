@@ -34,6 +34,7 @@ const STATUS_CHIP_MAP: Record<string, ChipType> = {
   past_due: 'yellow',
   unpaid: 'yellow',
   open: 'yellow',
+  requires_review: 'yellow',
 
   // Red - Failure/Restricted states
   declined: 'red',

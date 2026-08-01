@@ -524,4 +524,38 @@ export class PersonModule {
   async GetPersonsByAccount(accountId: string): Promise<PersonType[]> {
     return this.db.Find<PersonType>('Persons', 'account', accountId);
   }
+
+  /**
+   * Internal update that bypasses public Zod validation.
+   * Used by IdentityLite to persist requirements and normalized phone.
+   */
+  async UpdatePersonInternal(
+    personId: string,
+    update: Partial<PersonType>
+  ): Promise<PersonType> {
+    if (Object.keys(update).length === 0) {
+      const existing = await this.GetPerson(personId);
+      if (!existing) {
+        throw new AppError(
+          ERRORS.PERSON_NOT_FOUND.message,
+          ERRORS.PERSON_NOT_FOUND.status,
+          ERRORS.PERSON_NOT_FOUND.type
+        );
+      }
+      return existing;
+    }
+
+    await this.db.Update<PersonType>('Persons', personId, update);
+
+    const person = await this.GetPerson(personId);
+    if (!person) {
+      throw new AppError(
+        ERRORS.PERSON_NOT_FOUND.message,
+        ERRORS.PERSON_NOT_FOUND.status,
+        ERRORS.PERSON_NOT_FOUND.type
+      );
+    }
+
+    return person;
+  }
 }

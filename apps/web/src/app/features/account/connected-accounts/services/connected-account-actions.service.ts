@@ -15,6 +15,7 @@ import type {
   PayoutBatchBuildResponse,
 } from '@zoneless/shared-types';
 import type { CreateAccountInput } from '@zoneless/shared-schemas';
+import { IsRejectedAccountReason } from '@zoneless/shared-schemas';
 import {
   AccountService,
   AccountLinkService,
@@ -142,6 +143,19 @@ export class ConnectedAccountActionsService {
   metadataSaving: WritableSignal<boolean> = signal(false);
   metadataDraft: WritableSignal<Record<string, string>> = signal({});
 
+  pausePaymentsOpen: WritableSignal<boolean> = signal(false);
+  pausePayoutsOpen: WritableSignal<boolean> = signal(false);
+  resumePaymentsOpen: WritableSignal<boolean> = signal(false);
+  resumePayoutsOpen: WritableSignal<boolean> = signal(false);
+  rejectOpen: WritableSignal<boolean> = signal(false);
+  unrejectOpen: WritableSignal<boolean> = signal(false);
+  platformActionLoading: WritableSignal<boolean> = signal(false);
+  platformActionError: WritableSignal<string> = signal('');
+
+  rejectReason: WritableSignal<'fraud' | 'terms_of_service' | 'other'> =
+    signal('fraud');
+  rejectPausePayouts: WritableSignal<boolean> = signal(true);
+
   readonly canSubmitAddFunds = computed(() => {
     const amount = this.ParseAmountCents(this.addFundsAmount());
     const available = this.GetAvailableAmount(this.platformBalance());
@@ -165,10 +179,12 @@ export class ConnectedAccountActionsService {
     const signerReady =
       !!this.payoutSignedTransaction() ||
       this.GetPayoutSignerAddress() === this.payoutPlatformWalletAddress();
+    const account = this.activeAccount();
     return (
       amount > 0 &&
       amount <= available &&
       !!this.GetDefaultWallet() &&
+      !!account?.payouts_enabled &&
       signerReady &&
       this.payoutConfirmed() &&
       !this.payoutLoading()
@@ -773,6 +789,207 @@ export class ConnectedAccountActionsService {
       console.error('Failed to update metadata:', err);
     } finally {
       this.metadataSaving.set(false);
+    }
+  }
+
+  // ── Pause / resume payments & payouts ────────────────────────────────────
+
+  OpenPausePayments(account: Account): void {
+    this.BeginPlatformAction(account);
+    this.pausePaymentsOpen.set(true);
+  }
+
+  OpenResumePayments(account: Account): void {
+    this.BeginPlatformAction(account);
+    this.resumePaymentsOpen.set(true);
+  }
+
+  OpenPausePayouts(account: Account): void {
+    this.BeginPlatformAction(account);
+    this.pausePayoutsOpen.set(true);
+  }
+
+  OpenResumePayouts(account: Account): void {
+    this.BeginPlatformAction(account);
+    this.resumePayoutsOpen.set(true);
+  }
+
+  ClosePausePayments(): void {
+    this.pausePaymentsOpen.set(false);
+    this.ClearPlatformActionState();
+  }
+
+  CloseResumePayments(): void {
+    this.resumePaymentsOpen.set(false);
+    this.ClearPlatformActionState();
+  }
+
+  ClosePausePayouts(): void {
+    this.pausePayoutsOpen.set(false);
+    this.ClearPlatformActionState();
+  }
+
+  CloseResumePayouts(): void {
+    this.resumePayoutsOpen.set(false);
+    this.ClearPlatformActionState();
+  }
+
+  async ConfirmPausePayments(): Promise<void> {
+    await this.RunChargesToggle(false, () => this.ClosePausePayments());
+  }
+
+  async ConfirmResumePayments(): Promise<void> {
+    await this.RunChargesToggle(true, () => this.CloseResumePayments());
+  }
+
+  async ConfirmPausePayouts(): Promise<void> {
+    await this.RunPayoutsToggle(false, () => this.ClosePausePayouts());
+  }
+
+  async ConfirmResumePayouts(): Promise<void> {
+    await this.RunPayoutsToggle(true, () => this.CloseResumePayouts());
+  }
+
+  // ── Reject / unreject ────────────────────────────────────────────────────
+
+  OpenReject(account: Account): void {
+    this.BeginPlatformAction(account);
+    this.rejectReason.set('fraud');
+    this.rejectPausePayouts.set(true);
+    this.rejectOpen.set(true);
+  }
+
+  CloseReject(): void {
+    this.rejectOpen.set(false);
+    this.ClearPlatformActionState();
+  }
+
+  OpenUnreject(account: Account): void {
+    this.BeginPlatformAction(account);
+    this.unrejectOpen.set(true);
+  }
+
+  CloseUnreject(): void {
+    this.unrejectOpen.set(false);
+    this.ClearPlatformActionState();
+  }
+
+  async ConfirmReject(): Promise<void> {
+    const account = this.activeAccount();
+    if (!account || this.platformActionLoading()) return;
+
+    this.platformActionLoading.set(true);
+    this.platformActionError.set('');
+    try {
+      const updated = await this.accountService.RejectAccount(account.id, {
+        reason: this.rejectReason(),
+        pause_payouts: this.rejectPausePayouts(),
+      });
+      this.EmitUpdated(updated);
+      this.CloseReject();
+    } catch (err) {
+      this.platformActionError.set(
+        err instanceof Error ? err.message : 'Failed to reject account.'
+      );
+    } finally {
+      this.platformActionLoading.set(false);
+    }
+  }
+
+  async ConfirmUnreject(): Promise<void> {
+    const account = this.activeAccount();
+    if (!account || this.platformActionLoading()) return;
+
+    this.platformActionLoading.set(true);
+    this.platformActionError.set('');
+    try {
+      const updated = await this.accountService.UnrejectAccount(account.id);
+      this.EmitUpdated(updated);
+      this.CloseUnreject();
+    } catch (err) {
+      this.platformActionError.set(
+        err instanceof Error ? err.message : 'Failed to unreject account.'
+      );
+    } finally {
+      this.platformActionLoading.set(false);
+    }
+  }
+
+  IsAccountRejected(account: Account | null = this.activeAccount()): boolean {
+    return IsRejectedAccountReason(account?.requirements?.disabled_reason);
+  }
+
+  private BeginPlatformAction(account: Account): void {
+    this.activeAccount.set(account);
+    this.platformActionError.set('');
+    this.platformActionLoading.set(false);
+  }
+
+  private ClearPlatformActionState(): void {
+    this.platformActionError.set('');
+    this.platformActionLoading.set(false);
+  }
+
+  private EmitUpdated(account: Account): void {
+    this.activeAccount.set(account);
+    this.events$.next({ type: 'updated', account });
+  }
+
+  private async RunChargesToggle(
+    enabled: boolean,
+    close: () => void
+  ): Promise<void> {
+    const account = this.activeAccount();
+    if (!account || this.platformActionLoading()) return;
+
+    this.platformActionLoading.set(true);
+    this.platformActionError.set('');
+    try {
+      const updated = await this.accountService.SetChargesEnabled(
+        account.id,
+        enabled
+      );
+      this.EmitUpdated(updated);
+      close();
+    } catch (err) {
+      this.platformActionError.set(
+        err instanceof Error
+          ? err.message
+          : enabled
+          ? 'Failed to resume payments.'
+          : 'Failed to pause payments.'
+      );
+    } finally {
+      this.platformActionLoading.set(false);
+    }
+  }
+
+  private async RunPayoutsToggle(
+    enabled: boolean,
+    close: () => void
+  ): Promise<void> {
+    const account = this.activeAccount();
+    if (!account || this.platformActionLoading()) return;
+
+    this.platformActionLoading.set(true);
+    this.platformActionError.set('');
+    try {
+      const updated = await this.accountService.SetPayoutsEnabled(
+        account.id,
+        enabled
+      );
+      this.EmitUpdated(updated);
+      close();
+    } catch (err) {
+      this.platformActionError.set(
+        err instanceof Error
+          ? err.message
+          : enabled
+          ? 'Failed to resume payouts.'
+          : 'Failed to pause payouts.'
+      );
+    } finally {
+      this.platformActionLoading.set(false);
     }
   }
 

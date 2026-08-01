@@ -32,6 +32,34 @@
   }
 }
 
+.popup-menu-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-small;
+}
+
+.popup-menu-external-icon {
+  width: 14px;
+  height: 14px;
+  opacity: $dimmed-extra;
+  flex-shrink: 0;
+}
+
+.popup-menu-divider {
+  height: 1px;
+  background-color: $darkest-background-color;
+  margin: $spacing-small 0;
+}
+
+.popup-menu-section {
+  padding: $spacing-extra-small $spacing $spacing-small;
+  font-size: $font-size-small;
+  font-weight: 600;
+  color: $text-color;
+  opacity: $dimmed;
+}
+
 .popup-menu-item-title {
   font-size: $font-size;
   font-weight: 500;
@@ -53,10 +81,6 @@
   &:hover {
     background-color: transparent;
   }
-}
-
-.popup-menu-item-hidden {
-  display: none;
 }
 
 .popup-menu-item-destructive {

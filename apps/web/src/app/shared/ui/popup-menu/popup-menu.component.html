@@ -10,7 +10,7 @@
     (keydown.enter)="ToggleActionsMenu($event)"
     (keydown.space)="ToggleActionsMenu($event)"
   />
-  @if (menuOpen()) {
+  @if (menuOpen()) { @let visibleActions = GetVisibleActions();
   <div
     class="popup-menu"
     role="menu"
@@ -18,21 +18,33 @@
     (click)="$event.stopPropagation()"
     (keydown.escape)="menuOpen.set(false)"
   >
-    @for (action of actions; track action.title) { @let isDisabled =
-    action.disabled ? action.disabled(item) : false; @let isHidden =
-    action.hidden ? action.hidden(item) : false;
+    @for (action of visibleActions; track action.title; let i = $index) { @let
+    isDisabled = action.disabled ? action.disabled(item) : false; @if
+    (ShouldShowSection(action, i, visibleActions) && i > 0) {
+    <div class="popup-menu-divider"></div>
+    } @if (ShouldShowSection(action, i, visibleActions)) {
+    <div class="popup-menu-section">{{ action.section }}</div>
+    }
     <div
       class="popup-menu-item"
       role="menuitem"
       tabindex="0"
       [class.popup-menu-item-disabled]="isDisabled"
-      [class.popup-menu-item-hidden]="isHidden"
       [class.popup-menu-item-destructive]="action.destructive"
       (click)="OnActionClick($event, action, item, isDisabled)"
       (keydown.enter)="OnActionClick($event, action, item, isDisabled)"
       (keydown.space)="OnActionClick($event, action, item, isDisabled)"
     >
-      <div class="popup-menu-item-title">{{ action.title }}</div>
+      <div class="popup-menu-item-row">
+        <div class="popup-menu-item-title">{{ action.title }}</div>
+        @if (action.external) {
+        <img
+          class="popup-menu-external-icon"
+          src="assets/icons/arrow_forward.svg"
+          alt=""
+        />
+        }
+      </div>
       @if (action.description) {
       <div class="popup-menu-item-description">
         {{ action.description }}

@@ -1,0 +1,26 @@
+@use '../../../../../styles/base.scss' as *;
+@use '../../../../../styles/forms.scss' as *;
+
+.reject-modal {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing;
+}
+
+.reject-copy {
+  margin: 0;
+  font-size: $font-size;
+  color: $text-color;
+  line-height: 1.5;
+  opacity: $dimmed;
+}
+
+.option-row {
+  gap: $spacing-small;
+  margin-top: $spacing-extra-small;
+}
+
+.reject-error {
+  color: #dc2626;
+  font-size: $font-size-small;
+}

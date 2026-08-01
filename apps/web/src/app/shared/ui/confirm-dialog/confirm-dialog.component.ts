@@ -31,6 +31,8 @@ export class ConfirmDialogComponent {
   @Input() destructive = false;
   /** Show a loader on the confirm button and block dismissal */
   @Input() loading = false;
+  /** Optional error message shown below the description */
+  @Input() error = '';
 
   @Output() confirmed = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();

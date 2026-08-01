@@ -3,13 +3,14 @@ import { z } from 'zod';
 /**
  * Schema for address object (nested in Person).
  * All fields are optional, but can be null when provided.
+ * Deeper postal/name sanity checks run in IdentityLite (requirements), not Zod.
  */
-const AddressSchema = z.object({
+export const PersonAddressSchema = z.object({
   line1: z.string().max(200).nullable(),
   line2: z.string().max(200).nullable().optional(),
   city: z.string().max(100).nullable(),
-  state: z.string().nullable().optional(),
-  postal_code: z.string().nullable(),
+  state: z.string().max(100).nullable().optional(),
+  postal_code: z.string().max(20).nullable(),
   country: z
     .string()
     .length(2, 'Country must be a 2-character ISO 3166-1 alpha-2 code')
@@ -19,12 +20,16 @@ const AddressSchema = z.object({
 /**
  * Schema for date of birth object.
  * All fields required when dob is provided, but can be null.
+ * Age range is enforced by IdentityLite (requirements), not Zod.
  */
-const DobSchema = z.object({
-  day: z.number().min(1).max(31).nullable(),
-  month: z.number().min(1).max(12).nullable(),
-  year: z.number().min(1900).max(new Date().getFullYear()).nullable(),
+export const PersonDobSchema = z.object({
+  day: z.number().int().min(1).max(31).nullable(),
+  month: z.number().int().min(1).max(12).nullable(),
+  year: z.number().int().min(1900).max(new Date().getFullYear()).nullable(),
 });
+
+/** Phone may be null; E.164 normalization happens in IdentityLite. */
+export const PersonPhoneSchema = z.string().max(30).nullable();
 
 /**
  * Schema for relationship object describing the person's relationship to the account.
@@ -65,12 +70,12 @@ const VerificationSchema = z.object({
  */
 export const CreatePersonSchema = z
   .object({
-    address: AddressSchema.optional(),
-    dob: DobSchema.optional(),
+    address: PersonAddressSchema.optional(),
+    dob: PersonDobSchema.optional(),
     email: z.string().email('Email must be valid').max(800).optional(),
     first_name: z.string().max(100).optional(),
     last_name: z.string().max(100).optional(),
-    phone: z.string().nullable().optional(),
+    phone: PersonPhoneSchema.optional(),
     relationship: RelationshipSchema.optional(),
     ssn_last_4: z.string().length(4).optional(),
     id_number: z.string().optional(),
@@ -90,12 +95,12 @@ export type CreatePersonInput = z.infer<typeof CreatePersonSchema>;
  */
 export const UpdatePersonSchema = z
   .object({
-    address: AddressSchema.optional(),
-    dob: DobSchema.optional(),
+    address: PersonAddressSchema.optional(),
+    dob: PersonDobSchema.optional(),
     email: z.string().email('Email must be valid').max(800).optional(),
     first_name: z.string().max(100).optional(),
     last_name: z.string().max(100).optional(),
-    phone: z.string().nullable().optional(),
+    phone: PersonPhoneSchema.optional(),
     relationship: RelationshipSchema.optional(),
     ssn_last_4: z.string().length(4).optional(),
     id_number: z.string().optional(),

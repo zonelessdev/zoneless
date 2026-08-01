@@ -1,0 +1,53 @@
+<app-modal
+  [isOpen]="actions.rejectOpen()"
+  title="Reject account"
+  closeLabel="Cancel"
+  submitLabel="Reject account"
+  [loading]="actions.platformActionLoading()"
+  [destructive]="true"
+  (submitted)="actions.ConfirmReject()"
+  (closed)="actions.CloseReject()"
+>
+  <div class="reject-modal">
+    <p class="reject-copy">
+      Payments will be paused on the account. You can unreject the account later
+      if needed.
+    </p>
+    <p class="reject-copy">
+      Rejecting the account will
+      <strong>automatically pause payments on the account.</strong>
+    </p>
+
+    <div class="field">
+      <div class="field-title">Reason for rejection</div>
+      <div class="field-help">
+        This helps improve Zoneless's fraud detection systems.
+      </div>
+      <select
+        class="text-input"
+        [value]="actions.rejectReason()"
+        (change)="OnReasonChange($event)"
+        [disabled]="actions.platformActionLoading()"
+      >
+        <option value="fraud">Fraud</option>
+        <option value="terms_of_service">Violates services agreement</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+
+    <label class="custom-checkbox field-check option-row">
+      <input
+        type="checkbox"
+        [checked]="actions.rejectPausePayouts()"
+        (change)="OnPausePayoutsChange($event)"
+        [disabled]="actions.platformActionLoading()"
+      />
+      <span class="checkmark"></span>
+      <span>Pause payouts</span>
+    </label>
+
+    @if (actions.platformActionError()) {
+    <div class="reject-error">{{ actions.platformActionError() }}</div>
+    }
+  </div>
+</app-modal>

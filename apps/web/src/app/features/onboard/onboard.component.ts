@@ -268,7 +268,28 @@ export class OnboardComponent implements OnInit {
       }
 
       const updateData = this.personForm.GetUpdateData();
-      await this.personService.UpdatePerson(account.id, person.id, updateData);
+      const updated = await this.personService.UpdatePerson(
+        account.id,
+        person.id,
+        updateData
+      );
+
+      // Only hard-invalid currently_due blocks onboarding (pending review does not)
+      const currentlyDue = updated.requirements?.currently_due ?? [];
+      if (currentlyDue.length > 0) {
+        this.showPersonErrors.set(true);
+        this.personForm.ApplyRequirementErrors(
+          (updated.requirements?.errors ?? []).filter((e) =>
+            currentlyDue.includes(e.requirement)
+          )
+        );
+        throw new Error(
+          updated.requirements?.errors?.find((e) =>
+            currentlyDue.includes(e.requirement)
+          )?.reason ||
+            'Please fix the highlighted identity details before continuing'
+        );
+      }
     } finally {
       this.nextLoading.set(false);
     }

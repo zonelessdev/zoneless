@@ -1,7 +1,14 @@
 import type { Account, ExternalWallet } from '@zoneless/shared-types';
+import { IsRejectedAccountReason } from '@zoneless/shared-schemas';
 import { GetCountryName } from '../../../../utils';
 
 export function GetAccountStatus(account: Account): string {
+  if (IsRejectedAccountReason(account.requirements?.disabled_reason)) {
+    return 'rejected';
+  }
+  if ((account.requirements?.pending_verification?.length ?? 0) > 0) {
+    return 'requires_review';
+  }
   return account.payouts_enabled ? 'enabled' : 'restricted';
 }
 

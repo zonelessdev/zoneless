@@ -17,6 +17,7 @@ import { db } from '../modules/Database';
 import { PersonModule } from '../modules/Person';
 import { AccountModule } from '../modules/Account';
 import { EventService } from '../modules/EventService';
+import { IdentityLiteModule } from '../modules/IdentityLite';
 
 import { ValidateRequest } from '../middleware/ValidateRequest';
 import {
@@ -37,6 +38,7 @@ const router = express.Router();
 const eventService = new EventService(db);
 const accountModule = new AccountModule(db, eventService);
 const personModule = new PersonModule(db, eventService);
+const identityLiteModule = new IdentityLiteModule(db);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /v1/accounts/:id/persons - Create a person
@@ -239,9 +241,22 @@ router.post(
     // Mark account as having details submitted
     await accountModule.DetailsSubmitted(accountId);
 
+    const identityFieldsChanged =
+      existingPerson.email !== person.email ||
+      existingPerson.phone !== person.phone ||
+      existingPerson.address?.country !== person.address?.country;
+
+    // Run lite identity checks → populate Account/Person requirements
+    await identityLiteModule.EvaluateAndApply(accountId, person, {
+      clearReviewDismiss: identityFieldsChanged,
+    });
+
+    // Re-fetch person so response includes normalized phone + requirements
+    const updatedPerson = await personModule.GetPerson(personId);
+
     Logger.info('Person updated successfully', { personId, accountId });
 
-    res.json(person);
+    res.json(updatedPerson ?? person);
   })
 );
 
