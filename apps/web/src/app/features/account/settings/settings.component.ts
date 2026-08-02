@@ -98,7 +98,7 @@ export class SettingsComponent implements OnInit {
   editBusinessLoading: WritableSignal<boolean> = signal(false);
   editBusinessShowErrors: WritableSignal<boolean> = signal(false);
 
-  // Edit identity / Didit panel state
+  // Edit identity panel state
   editIdentityPanelOpen: WritableSignal<boolean> = signal(false);
   editIdentityLoading: WritableSignal<boolean> = signal(false);
   editIdentityShowErrors: WritableSignal<boolean> = signal(false);

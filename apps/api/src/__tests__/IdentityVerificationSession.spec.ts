@@ -651,6 +651,155 @@ describe('Identity volume threshold gating', () => {
       IDENTITY_REQUIREMENT_FIELDS.verificationDocument
     );
   });
+
+  it('skips document IDV when Didit is not configured', async () => {
+    const platform = storedAccounts.get(platformId)!;
+    platform.settings = {
+      identity: {
+        provider: 'didit',
+        didit: { workflow_id: null, api_key: null },
+        rules: { payout_volume_threshold_cents: 0 },
+      },
+    };
+    storedAccounts.set(platformId, platform);
+    mockDb.Aggregate.mockResolvedValue([{ gross: 0 }]);
+
+    const evaluation = await module.EvaluateAndApply(connectedId);
+
+    expect(evaluation.eventuallyDue).not.toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+    expect(evaluation.currentlyDue).not.toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+  });
+
+  it('applies country override $0 for PK immediately', async () => {
+    const platform = storedAccounts.get(platformId)!;
+    platform.settings = {
+      identity: EncryptIdentitySettings({
+        provider: 'didit',
+        didit: { api_key: 'k', workflow_id: 'wf', webhook_secret: 's' },
+        rules: {
+          payout_volume_threshold_cents: 10_000,
+          country_thresholds: [
+            { countries: ['PK', 'ID'], payout_volume_threshold_cents: 0 },
+            { countries: ['IN'], payout_volume_threshold_cents: 5_000 },
+          ],
+        },
+      }),
+    };
+    storedAccounts.set(platformId, platform);
+
+    const connected = storedAccounts.get(connectedId)!;
+    connected.country = 'PK';
+    storedAccounts.set(connectedId, connected);
+    mockDb.Aggregate.mockResolvedValue([{ gross: 0 }]);
+
+    const evaluation = await module.EvaluateAndApply(connectedId);
+
+    expect(evaluation.blocking).toBe(true);
+    expect(evaluation.currentlyDue).toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+  });
+
+  it('uses India override $50 below and at threshold', async () => {
+    const platform = storedAccounts.get(platformId)!;
+    platform.settings = {
+      identity: EncryptIdentitySettings({
+        provider: 'didit',
+        didit: { api_key: 'k', workflow_id: 'wf', webhook_secret: 's' },
+        rules: {
+          payout_volume_threshold_cents: 10_000,
+          country_thresholds: [
+            { countries: ['PK', 'ID'], payout_volume_threshold_cents: 0 },
+            { countries: ['IN'], payout_volume_threshold_cents: 5_000 },
+          ],
+        },
+      }),
+    };
+    storedAccounts.set(platformId, platform);
+
+    const connected = storedAccounts.get(connectedId)!;
+    connected.country = 'IN';
+    storedAccounts.set(connectedId, connected);
+
+    mockDb.Aggregate.mockResolvedValue([{ gross: 4_999 }]);
+    let evaluation = await module.EvaluateAndApply(connectedId);
+    expect(evaluation.blocking).toBe(false);
+    expect(evaluation.eventuallyDue).toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+
+    mockDb.Aggregate.mockResolvedValue([{ gross: 5_000 }]);
+    evaluation = await module.EvaluateAndApply(connectedId);
+    expect(evaluation.blocking).toBe(true);
+    expect(evaluation.currentlyDue).toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+  });
+
+  it('falls back to default $100 for unmatched countries', async () => {
+    const platform = storedAccounts.get(platformId)!;
+    platform.settings = {
+      identity: EncryptIdentitySettings({
+        provider: 'didit',
+        didit: { api_key: 'k', workflow_id: 'wf', webhook_secret: 's' },
+        rules: {
+          payout_volume_threshold_cents: 10_000,
+          country_thresholds: [
+            { countries: ['PK', 'ID'], payout_volume_threshold_cents: 0 },
+            { countries: ['IN'], payout_volume_threshold_cents: 5_000 },
+          ],
+        },
+      }),
+    };
+    storedAccounts.set(platformId, platform);
+
+    const connected = storedAccounts.get(connectedId)!;
+    connected.country = 'US';
+    storedAccounts.set(connectedId, connected);
+
+    mockDb.Aggregate.mockResolvedValue([{ gross: 9_999 }]);
+    let evaluation = await module.EvaluateAndApply(connectedId);
+    expect(evaluation.blocking).toBe(false);
+    expect(evaluation.eventuallyDue).toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+
+    mockDb.Aggregate.mockResolvedValue([{ gross: 10_000 }]);
+    evaluation = await module.EvaluateAndApply(connectedId);
+    expect(evaluation.blocking).toBe(true);
+    expect(evaluation.currentlyDue).toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+  });
+
+  it('skips document IDV when no threshold rules are set', async () => {
+    const platform = storedAccounts.get(platformId)!;
+    platform.settings = {
+      identity: EncryptIdentitySettings({
+        provider: 'didit',
+        didit: { api_key: 'k', workflow_id: 'wf', webhook_secret: 's' },
+        rules: {
+          payout_volume_threshold_cents: null,
+          country_thresholds: [],
+        },
+      }),
+    };
+    storedAccounts.set(platformId, platform);
+    mockDb.Aggregate.mockResolvedValue([{ gross: 1_000_000 }]);
+
+    const evaluation = await module.EvaluateAndApply(connectedId);
+
+    expect(evaluation.currentlyDue).not.toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+    expect(evaluation.eventuallyDue).not.toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+  });
 });
 
 describe('AccountModule identity settings merge', () => {

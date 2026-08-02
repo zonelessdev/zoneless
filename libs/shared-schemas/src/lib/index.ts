@@ -9,6 +9,7 @@ export * from './EventSchema';
 export * from './ExpandableSchema';
 export * from './ExternalWalletSchema';
 export * from './IdentityValidators';
+export * from './IdentityThresholdRules';
 export * from './IdentityVerificationSessionSchema';
 export * from './InvoiceItemSchema';
 export * from './InvoiceSchema';

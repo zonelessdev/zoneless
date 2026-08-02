@@ -20,9 +20,8 @@ import { AsyncHandler } from '../utils/AsyncHandler';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
 import { VerifyToken } from '../utils/Token';
-import { GetJwtSecret } from '../modules/AppConfig';
+import { GetJwtSecret, GetAppConfig } from '../modules/AppConfig';
 import { SolanaExplorerUrl } from '../modules/chains/Solana';
-import { GetAppConfig } from '../modules/AppConfig';
 
 const router = express.Router();
 

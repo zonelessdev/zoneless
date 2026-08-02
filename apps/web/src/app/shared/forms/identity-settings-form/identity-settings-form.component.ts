@@ -13,19 +13,29 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Account } from '@zoneless/shared-types';
 import { UpdateAccountInput } from '@zoneless/shared-schemas';
+import { CopyTextComponent } from '../../ui';
+import { ISO_CODES } from '../../../utils';
+import { GetDiditWebhookUrl } from './didit-webhook-url';
 
 export interface IdentitySettingsFormData {
   apiKey: string;
   workflowId: string;
   webhookSecret: string;
-  /** Dollars string for the payout volume threshold (converted to cents on save) */
+  /** Dollars string for the default payout volume threshold */
   payoutVolumeThreshold: string;
+  countryThresholds: IdentityCountryThresholdFormRow[];
+}
+
+export interface IdentityCountryThresholdFormRow {
+  country: string;
+  /** Dollars string (converted to cents on save) */
+  threshold: string;
 }
 
 @Component({
   selector: 'app-identity-settings-form',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, CopyTextComponent],
   templateUrl: './identity-settings-form.component.html',
   styleUrls: ['./identity-settings-form.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,6 +47,12 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
 
   @Output() formChange = new EventEmitter<IdentitySettingsFormData>();
   @Output() validationChange = new EventEmitter<boolean>();
+
+  readonly ISO_CODES = [...ISO_CODES].sort((a, b) =>
+    a.country.localeCompare(b.country)
+  );
+
+  readonly diditWebhookUrl = GetDiditWebhookUrl();
 
   apiKey: WritableSignal<string> = signal('');
   apiKeyError: WritableSignal<string> = signal('');
@@ -51,6 +67,11 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
 
   payoutVolumeThreshold: WritableSignal<string> = signal('');
   payoutVolumeThresholdError: WritableSignal<string> = signal('');
+
+  countryThresholds: WritableSignal<IdentityCountryThresholdFormRow[]> = signal(
+    []
+  );
+  countryThresholdsError: WritableSignal<string> = signal('');
 
   ngOnInit(): void {
     this.InitializeForm();
@@ -67,24 +88,38 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
 
   InitializeForm(): void {
     const identity = this.account?.settings?.identity;
-    const didit = identity?.didit;
+    const providerSettings = identity?.didit;
     const rules = identity?.rules;
 
     this.apiKey.set('');
     this.webhookSecret.set('');
-    this.apiKeyConfigured.set(!!didit?.api_key_set);
-    this.webhookSecretConfigured.set(!!didit?.webhook_secret_set);
-    this.workflowId.set(didit?.workflow_id?.trim() || '');
+    this.apiKeyConfigured.set(!!providerSettings?.api_key_set);
+    this.webhookSecretConfigured.set(!!providerSettings?.webhook_secret_set);
+    this.workflowId.set(providerSettings?.workflow_id?.trim() || '');
 
     const cents = rules?.payout_volume_threshold_cents;
     this.payoutVolumeThreshold.set(
       cents != null && cents >= 0 ? String(cents / 100) : ''
     );
 
+    // One UI row per country (API may group countries that share a threshold)
+    const rows: IdentityCountryThresholdFormRow[] = [];
+    for (const row of rules?.country_thresholds ?? []) {
+      const threshold =
+        row.payout_volume_threshold_cents != null
+          ? String(row.payout_volume_threshold_cents / 100)
+          : '';
+      for (const code of row.countries ?? []) {
+        rows.push({ country: code, threshold });
+      }
+    }
+    this.countryThresholds.set(rows);
+
     this.apiKeyError.set('');
     this.workflowIdError.set('');
     this.webhookSecretError.set('');
     this.payoutVolumeThresholdError.set('');
+    this.countryThresholdsError.set('');
 
     this.EmitFormChange();
   }
@@ -92,12 +127,14 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
   OnApiKeyChange(value: string): void {
     this.apiKey.set(value);
     this.ValidateApiKey();
+    this.ValidateThresholdRequiresProvider();
     this.EmitFormChange();
   }
 
   OnWorkflowIdChange(value: string): void {
     this.workflowId.set(value);
     this.ValidateWorkflowId();
+    this.ValidateThresholdRequiresProvider();
     this.EmitFormChange();
   }
 
@@ -110,7 +147,57 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
   OnPayoutVolumeThresholdChange(value: string): void {
     this.payoutVolumeThreshold.set(value);
     this.ValidatePayoutVolumeThreshold();
+    this.ValidateThresholdRequiresProvider();
     this.EmitFormChange();
+  }
+
+  AddCountryThresholdRow(): void {
+    this.countryThresholds.set([
+      ...this.countryThresholds(),
+      { country: '', threshold: '' },
+    ]);
+    this.ValidateCountryThresholds();
+    this.ValidateThresholdRequiresProvider();
+    this.EmitFormChange();
+  }
+
+  RemoveCountryThresholdRow(index: number): void {
+    this.countryThresholds.set(
+      this.countryThresholds().filter((_, i) => i !== index)
+    );
+    this.ValidateCountryThresholds();
+    this.ValidateThresholdRequiresProvider();
+    this.EmitFormChange();
+  }
+
+  OnCountryChange(index: number, code: string): void {
+    const rows = this.countryThresholds().map((row, i) =>
+      i === index ? { ...row, country: code } : row
+    );
+    this.countryThresholds.set(rows);
+    this.ValidateCountryThresholds();
+    this.ValidateThresholdRequiresProvider();
+    this.EmitFormChange();
+  }
+
+  OnCountryThresholdChange(index: number, value: string): void {
+    const rows = this.countryThresholds().map((row, i) =>
+      i === index ? { ...row, threshold: value } : row
+    );
+    this.countryThresholds.set(rows);
+    this.ValidateCountryThresholds();
+    this.ValidateThresholdRequiresProvider();
+    this.EmitFormChange();
+  }
+
+  AvailableCountriesForRow(index: number): typeof this.ISO_CODES {
+    const usedElsewhere = new Set(
+      this.countryThresholds()
+        .filter((_, i) => i !== index)
+        .map((row) => row.country)
+        .filter(Boolean)
+    );
+    return this.ISO_CODES.filter((c) => !usedElsewhere.has(c.code));
   }
 
   ValidateAll(): boolean {
@@ -118,6 +205,8 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
     this.ValidateWorkflowId();
     this.ValidateWebhookSecret();
     this.ValidatePayoutVolumeThreshold();
+    this.ValidateCountryThresholds();
+    this.ValidateThresholdRequiresProvider();
     const valid = this.IsValid();
     this.validationChange.emit(valid);
     return valid;
@@ -128,7 +217,8 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
       !this.apiKeyError() &&
       !this.workflowIdError() &&
       !this.webhookSecretError() &&
-      !this.payoutVolumeThresholdError()
+      !this.payoutVolumeThresholdError() &&
+      !this.countryThresholdsError()
     );
   }
 
@@ -138,6 +228,7 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
       workflowId: this.workflowId(),
       webhookSecret: this.webhookSecret(),
       payoutVolumeThreshold: this.payoutVolumeThreshold(),
+      countryThresholds: this.countryThresholds(),
     };
   }
 
@@ -146,7 +237,7 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
    * write-only credentials are preserved.
    */
   GetUpdateData(): UpdateAccountInput {
-    const didit: {
+    const providerCredentials: {
       api_key?: string;
       workflow_id: string | null;
       webhook_secret?: string;
@@ -156,12 +247,12 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
 
     const apiKey = this.apiKey().trim();
     if (apiKey) {
-      didit.api_key = apiKey;
+      providerCredentials.api_key = apiKey;
     }
 
     const webhookSecret = this.webhookSecret().trim();
     if (webhookSecret) {
-      didit.webhook_secret = webhookSecret;
+      providerCredentials.webhook_secret = webhookSecret;
     }
 
     const thresholdDollars = this.payoutVolumeThreshold().trim();
@@ -172,17 +263,48 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
       );
     }
 
+    // Group countries that share the same threshold cents
+    const byThreshold = new Map<number, string[]>();
+    for (const row of this.countryThresholds()) {
+      if (!row.country.trim() || !row.threshold.trim()) continue;
+      const cents = Math.round(parseFloat(row.threshold) * 100);
+      if (!Number.isFinite(cents)) continue;
+      const list = byThreshold.get(cents) ?? [];
+      list.push(row.country.trim().toUpperCase());
+      byThreshold.set(cents, list);
+    }
+    const countryThresholds = [...byThreshold.entries()].map(
+      ([cents, countries]) => ({
+        countries,
+        payout_volume_threshold_cents: cents,
+      })
+    );
+
     return {
       settings: {
         identity: {
           provider: 'didit',
-          didit,
+          didit: providerCredentials,
           rules: {
             payout_volume_threshold_cents: payoutVolumeThresholdCents,
+            country_thresholds: countryThresholds,
           },
         },
       },
     };
+  }
+
+  private HasProviderConfigured(): boolean {
+    const hasKey = !!this.apiKey().trim() || this.apiKeyConfigured();
+    const hasWorkflow = !!this.workflowId().trim();
+    return hasKey && hasWorkflow;
+  }
+
+  private HasAnyThreshold(): boolean {
+    if (this.payoutVolumeThreshold().trim()) return true;
+    return this.countryThresholds().some(
+      (row) => row.country.trim() || row.threshold.trim()
+    );
   }
 
   private ValidateApiKey(): void {
@@ -203,7 +325,6 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
   }
 
   private ValidateWebhookSecret(): void {
-    // Optional until webhooks are used; no hard require
     this.webhookSecretError.set('');
   }
 
@@ -219,6 +340,57 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
       return;
     }
     this.payoutVolumeThresholdError.set('');
+  }
+
+  private ValidateCountryThresholds(): void {
+    const rows = this.countryThresholds();
+    const seen = new Set<string>();
+
+    for (const row of rows) {
+      if (!row.country.trim() && !row.threshold.trim()) {
+        continue;
+      }
+      if (!row.country.trim()) {
+        this.countryThresholdsError.set('Select a country for each override');
+        return;
+      }
+      if (!row.threshold.trim()) {
+        this.countryThresholdsError.set('Each override needs a threshold');
+        return;
+      }
+      const value = parseFloat(row.threshold);
+      if (!Number.isFinite(value) || value < 0) {
+        this.countryThresholdsError.set(
+          'Override thresholds must be $0 or more'
+        );
+        return;
+      }
+      if (seen.has(row.country)) {
+        this.countryThresholdsError.set(
+          `Country ${row.country} appears more than once`
+        );
+        return;
+      }
+      seen.add(row.country);
+    }
+
+    this.countryThresholdsError.set('');
+  }
+
+  private ValidateThresholdRequiresProvider(): void {
+    if (!this.HasAnyThreshold()) return;
+    if (this.HasProviderConfigured()) return;
+
+    if (!this.apiKey().trim() && !this.apiKeyConfigured()) {
+      this.apiKeyError.set(
+        'API key is required when volume thresholds are set'
+      );
+    }
+    if (!this.workflowId().trim()) {
+      this.workflowIdError.set(
+        'Workflow ID is required when volume thresholds are set'
+      );
+    }
   }
 
   private EmitFormChange(): void {

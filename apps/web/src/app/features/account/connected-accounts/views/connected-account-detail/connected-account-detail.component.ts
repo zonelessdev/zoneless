@@ -55,6 +55,7 @@ import {
   GetIdentityDocumentRequirementState,
   GetIdentityDocumentTaskDescription,
   NeedsIdentityDocumentAction,
+  ResolveAccountPayoutVolumeThresholdCents,
 } from '../../util/identity-requirements';
 
 type DetailTab = 'overview' | 'payments';
@@ -144,11 +145,14 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
     GetIdentityDocumentMissingLabel(this.identityDocumentState())
   );
 
-  readonly payoutVolumeThresholdCents = computed(
-    () =>
-      this.accountService.account()?.settings?.identity?.rules
-        ?.payout_volume_threshold_cents ?? null
-  );
+  readonly payoutVolumeThresholdCents = computed(() => {
+    const account = this.account();
+    if (!account) return null;
+    return ResolveAccountPayoutVolumeThresholdCents(
+      account,
+      this.accountService.account()
+    );
+  });
 
   readonly identityActionSubtitle = computed(() => {
     const account = this.account();

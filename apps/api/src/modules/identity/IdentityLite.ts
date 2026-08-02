@@ -57,8 +57,10 @@ import {
   IsRoleEmail,
   GetFormBlockingIdentityRequirements,
   NormalizeIpAddress,
+  ResolvePayoutVolumeThresholdCents,
 } from '@zoneless/shared-schemas';
 import { GetLifetimePaidPayoutVolumeCents } from './IdentityPayoutVolume';
+import { IsIdentityProviderConfigured } from './ResolveIdentityProvider';
 
 export interface IdentityLiteEvaluation {
   currentlyDue: string[];
@@ -439,9 +441,15 @@ export class IdentityLiteModule {
         ? account
         : await this.accountModule.GetAccount(platformId);
 
-    const threshold =
-      platform?.settings?.identity?.rules?.payout_volume_threshold_cents ??
-      null;
+    // Do not foreshadow / promote document IDV without a usable provider
+    if (!IsIdentityProviderConfigured(platform)) {
+      return;
+    }
+
+    const threshold = ResolvePayoutVolumeThresholdCents(
+      platform?.settings?.identity?.rules,
+      account.country
+    );
 
     if (threshold === null || threshold === undefined) {
       return;

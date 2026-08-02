@@ -1,5 +1,9 @@
 import type { Account } from '@zoneless/shared-types';
-import { IDENTITY_REQUIREMENT_FIELDS } from '@zoneless/shared-schemas';
+import {
+  FormatPayoutVolumeThresholdCents,
+  IDENTITY_REQUIREMENT_FIELDS,
+  ResolvePayoutVolumeThresholdCents,
+} from '@zoneless/shared-schemas';
 
 export const VERIFICATION_DOCUMENT_FIELD =
   IDENTITY_REQUIREMENT_FIELDS.verificationDocument;
@@ -71,15 +75,16 @@ export function GetIdentityDocumentRequirementState(
 }
 
 /**
- * Format a payout volume threshold in cents as a USD display string.
+ * Resolved payout-volume threshold for a connected account from platform rules.
  */
-function FormatPayoutVolumeThreshold(
-  thresholdCents: number | null | undefined
-): string | null {
-  if (thresholdCents == null || thresholdCents < 0) return null;
-  return `$${(thresholdCents / 100).toLocaleString('en-US', {
-    maximumFractionDigits: 2,
-  })}`;
+export function ResolveAccountPayoutVolumeThresholdCents(
+  connectedAccount: Account,
+  platformAccount: Account | null | undefined
+): number | null {
+  return ResolvePayoutVolumeThresholdCents(
+    platformAccount?.settings?.identity?.rules,
+    connectedAccount.country
+  );
 }
 
 /**
@@ -106,7 +111,7 @@ export function GetIdentityDocumentActionSubtitle(
   thresholdCents?: number | null
 ): string {
   const state = GetIdentityDocumentRequirementState(account);
-  const thresholdLabel = FormatPayoutVolumeThreshold(thresholdCents);
+  const thresholdLabel = FormatPayoutVolumeThresholdCents(thresholdCents);
 
   if (state === 'pending') {
     return 'Verification in progress • Impacts payouts';
@@ -131,7 +136,7 @@ export function GetIdentityDocumentImpactCopy(
   thresholdCents?: number | null
 ): string {
   const state = GetIdentityDocumentRequirementState(account);
-  const thresholdLabel = FormatPayoutVolumeThreshold(thresholdCents);
+  const thresholdLabel = FormatPayoutVolumeThresholdCents(thresholdCents);
 
   if (state === 'currently_due' || state === 'pending') {
     return account.payouts_enabled
