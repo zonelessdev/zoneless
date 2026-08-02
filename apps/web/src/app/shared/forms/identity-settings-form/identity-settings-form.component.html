@@ -58,9 +58,13 @@
       Webhook secret <span class="field-optional">Optional</span>
     </div>
     <p class="field-help">
-      Shared secret from your Didit webhook destination. Point Didit at
-      <code>/v1/identity/webhooks/didit</code> on this instance.
+      Shared secret from your Didit webhook destination. Point Didit at:
     </p>
+    <app-copy-text
+      class="webhook-url-copy"
+      [text]="diditWebhookUrl"
+      tooltipText="Copy webhook URL"
+    ></app-copy-text>
     <input
       [ngModel]="webhookSecret()"
       (ngModelChange)="OnWebhookSecretChange($event)"
@@ -82,12 +86,13 @@
 
   <div class="field">
     <div class="field-title">
-      Payout volume threshold
+      Default payout volume threshold
       <span class="field-optional">Optional</span>
     </div>
     <p class="field-help">
       Require identity verification after a connected account reaches this
-      lifetime paid payout volume (USD). Leave blank to disable.
+      lifetime paid payout volume (USD), unless a country override applies.
+      Leave blank to disable the default.
     </p>
     <div class="field-prefix-input">
       <span class="field-prefix">$</span>
@@ -105,6 +110,63 @@
     </div>
     @if (showErrors && payoutVolumeThresholdError()) {
     <div class="error">{{ payoutVolumeThresholdError() }}</div>
+    }
+  </div>
+
+  <div class="field">
+    <div class="field-title">
+      Country thresholds <span class="field-optional">Optional</span>
+    </div>
+    <p class="field-help">
+      Override the default payout threshold for specific countries.
+    </p>
+
+    @for (row of countryThresholds(); track $index; let i = $index) {
+    <div class="country-threshold-row">
+      <select
+        class="field-value country-threshold-select"
+        [ngModel]="row.country"
+        (ngModelChange)="OnCountryChange(i, $event)"
+        [name]="'country-threshold-country-' + i"
+      >
+        <option value="">Select country</option>
+        @for (iso of AvailableCountriesForRow(i); track iso.code) {
+        <option [value]="iso.code">{{ iso.emoji }} {{ iso.country }}</option>
+        }
+      </select>
+      <div class="field-prefix-input country-threshold-amount">
+        <span class="field-prefix">$</span>
+        <input
+          [ngModel]="row.threshold"
+          (ngModelChange)="OnCountryThresholdChange(i, $event)"
+          class="field-value"
+          type="text"
+          inputmode="decimal"
+          placeholder="0"
+          [name]="'country-threshold-amount-' + i"
+          autocomplete="off"
+        />
+      </div>
+      <button
+        type="button"
+        class="text-link"
+        (click)="RemoveCountryThresholdRow(i)"
+      >
+        Remove
+      </button>
+    </div>
+    }
+
+    <button
+      type="button"
+      class="action-button action-button-dainty outline"
+      (click)="AddCountryThresholdRow()"
+    >
+      Add country override
+    </button>
+
+    @if (showErrors && countryThresholdsError()) {
+    <div class="error">{{ countryThresholdsError() }}</div>
     }
   </div>
 </div>

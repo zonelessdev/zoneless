@@ -31,6 +31,7 @@ import {
   REJECTED_DISABLED_REASONS,
   ConnectedAccountStatusFilter,
   IsRejectedAccountReason,
+  HasPayoutVolumeThresholdRules,
 } from '@zoneless/shared-schemas';
 import {
   ListHelper,
@@ -39,6 +40,7 @@ import {
   FilterCondition,
 } from '../utils/ListHelper';
 import { EncryptIdentitySettings } from './identity/IdentitySettingsCrypto';
+import { IsIdentityProviderConfigured } from './identity/ResolveIdentityProvider';
 
 export class AccountModule {
   private readonly db: Database;
@@ -319,6 +321,42 @@ export class AccountModule {
     };
   }
 
+  /**
+   * Threshold rules require a configured identity provider so accounts are not
+   * stuck with unverifiable document requirements.
+   */
+  private AssertIdentityThresholdsAllowed(
+    mergedAccount: AccountType,
+    previousAccount: AccountType | null | undefined
+  ): void {
+    const rules = mergedAccount.settings?.identity?.rules;
+    if (!HasPayoutVolumeThresholdRules(rules)) {
+      return;
+    }
+
+    const candidate: AccountType = {
+      ...mergedAccount,
+      settings: {
+        ...mergedAccount.settings,
+        identity: {
+          ...mergedAccount.settings?.identity,
+          didit: {
+            ...previousAccount?.settings?.identity?.didit,
+            ...mergedAccount.settings?.identity?.didit,
+          },
+        },
+      },
+    };
+
+    if (!IsIdentityProviderConfigured(candidate)) {
+      throw new AppError(
+        'Configure an identity provider API key and workflow ID before setting volume thresholds.',
+        400,
+        'invalid_request_error'
+      );
+    }
+  }
+
   async GetAccount(accountId: string): Promise<AccountType | null> {
     return this.db.Get<AccountType>('Accounts', accountId);
   }
@@ -497,6 +535,13 @@ export class AccountModule {
       result.settings = this.MergeSettings(
         account?.settings || {},
         input.settings
+      );
+      this.AssertIdentityThresholdsAllowed(
+        {
+          ...(account || {}),
+          settings: result.settings,
+        } as AccountType,
+        account
       );
     }
 

@@ -107,11 +107,42 @@ const IdentityDiditSettingsSchema = z
   })
   .partial();
 
+const IdentityCountryThresholdSchema = z.object({
+  countries: z
+    .array(
+      z
+        .string()
+        .length(2, 'Country must be a 2-character ISO 3166-1 alpha-2 code')
+        .transform((c) => c.toUpperCase())
+    )
+    .min(1, 'At least one country is required'),
+  payout_volume_threshold_cents: z.number().int().nonnegative(),
+});
+
 const IdentityRulesSettingsSchema = z
   .object({
     payout_volume_threshold_cents: z.number().int().nonnegative().nullable(),
+    country_thresholds: z.array(IdentityCountryThresholdSchema).nullable(),
   })
-  .partial();
+  .partial()
+  .superRefine((rules, ctx) => {
+    const rows = rules.country_thresholds;
+    if (!rows?.length) return;
+
+    const seen = new Set<string>();
+    for (let i = 0; i < rows.length; i++) {
+      for (const code of rows[i].countries) {
+        if (seen.has(code)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Country ${code} appears in more than one threshold override`,
+            path: ['country_thresholds', i, 'countries'],
+          });
+        }
+        seen.add(code);
+      }
+    }
+  });
 
 const IdentitySettingsSchema = z
   .object({

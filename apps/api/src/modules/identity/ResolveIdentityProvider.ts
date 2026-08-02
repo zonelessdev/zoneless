@@ -18,7 +18,8 @@ export interface ResolvedIdentityProvider {
 }
 
 /**
- * Resolve BYO Didit credentials from a platform account's settings.identity.
+ * Resolve BYO identity-provider credentials from a platform account's
+ * settings.identity (currently Didit).
  */
 export function ResolveIdentityProvider(
   platformAccount: AccountType
@@ -40,7 +41,7 @@ export function ResolveIdentityProvider(
 
   if (!apiKey || !workflowId) {
     throw new AppError(
-      'Identity verification is not configured. Set settings.identity.didit.api_key and workflow_id on the platform account.',
+      'Identity verification is not configured. Set settings.identity provider credentials (api_key and workflow_id) on the platform account.',
       400,
       'invalid_request_error'
     );
@@ -52,4 +53,18 @@ export function ResolveIdentityProvider(
     workflowId,
     webhookSecret,
   };
+}
+
+/**
+ * True when the platform has identity-provider credentials needed to run IDV.
+ */
+export function IsIdentityProviderConfigured(
+  platformAccount: AccountType | null | undefined
+): boolean {
+  if (!platformAccount) return false;
+  const identity = platformAccount.settings?.identity;
+  if ((identity?.provider ?? 'didit') !== 'didit') return false;
+  const apiKey = DecryptIdentitySecret(identity?.didit?.api_key);
+  const workflowId = identity?.didit?.workflow_id?.trim();
+  return !!(apiKey && workflowId);
 }

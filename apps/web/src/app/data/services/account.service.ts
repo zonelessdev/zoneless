@@ -3,6 +3,7 @@ import { ApiService } from '../../core/services/api.service';
 import { Account, LoginLink } from '@zoneless/shared-types';
 import {
   CreateAccountInput,
+  FormatPayoutVolumeThresholdCents,
   UpdateAccountInput,
 } from '@zoneless/shared-schemas';
 import { SettingsCardRow } from '../../shared';
@@ -228,36 +229,40 @@ export class AccountService {
   GetIdentitySettingsCardRows(account: Account | null): SettingsCardRow[] {
     if (!account) return [];
 
-    const didit = account.settings?.identity?.didit;
+    const providerSettings = account.settings?.identity?.didit;
     const rules = account.settings?.identity?.rules;
-    const thresholdCents = rules?.payout_volume_threshold_cents;
-
-    let thresholdLabel = 'Disabled';
-    if (thresholdCents != null && thresholdCents >= 0) {
-      thresholdLabel = `$${(thresholdCents / 100).toLocaleString('en-US', {
-        maximumFractionDigits: 2,
-      })}`;
-    }
+    const thresholdLabel =
+      FormatPayoutVolumeThresholdCents(rules?.payout_volume_threshold_cents) ??
+      'Disabled';
+    const overrideCount = rules?.country_thresholds?.length ?? 0;
 
     return [
       {
         label: 'API key',
-        value: didit?.api_key_set ? 'Configured' : 'Not set',
+        value: providerSettings?.api_key_set ? 'Configured' : 'Not set',
         type: 'text',
       },
       {
         label: 'Workflow ID',
-        value: didit?.workflow_id?.trim() || '—',
+        value: providerSettings?.workflow_id?.trim() || '—',
         type: 'text',
       },
       {
         label: 'Webhook secret',
-        value: didit?.webhook_secret_set ? 'Configured' : 'Not set',
+        value: providerSettings?.webhook_secret_set ? 'Configured' : 'Not set',
         type: 'text',
       },
       {
-        label: 'Payout volume threshold',
+        label: 'Default payout volume threshold',
         value: thresholdLabel,
+        type: 'text',
+      },
+      {
+        label: 'Country overrides',
+        value:
+          overrideCount > 0
+            ? `${overrideCount} override${overrideCount === 1 ? '' : 's'}`
+            : 'None',
         type: 'text',
       },
     ];

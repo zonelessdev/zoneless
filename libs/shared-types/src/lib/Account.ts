@@ -461,11 +461,25 @@ export interface AccountIdentityDiditSettings {
 
 export interface AccountIdentityRulesSettings {
   /**
-   * Lifetime paid payout volume (cents) that promotes
-   * `individual.verification.document` to currently_due.
-   * null / omitted = threshold disabled.
+   * Default lifetime paid payout volume (cents) that promotes
+   * `individual.verification.document` to currently_due when no country
+   * override matches. null / omitted = no default threshold.
    */
   payout_volume_threshold_cents?: number | null;
+
+  /**
+   * Per-country payout volume thresholds. First matching row for
+   * `account.country` wins over the default.
+   */
+  country_thresholds?: AccountIdentityCountryThreshold[] | null;
+}
+
+export interface AccountIdentityCountryThreshold {
+  /** ISO 3166-1 alpha-2 country codes this override applies to */
+  countries: string[];
+
+  /** Lifetime paid payout volume (cents) that promotes document IDV */
+  payout_volume_threshold_cents: number;
 }
 
 export interface AccountBrandingSettings {
