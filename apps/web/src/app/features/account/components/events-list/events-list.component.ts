@@ -1,8 +1,10 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  OnChanges,
   OnInit,
   Input,
+  SimpleChanges,
   signal,
   WritableSignal,
 } from '@angular/core';
@@ -21,7 +23,7 @@ import { Event } from '@zoneless/shared-types';
   styleUrl: './events-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class EventsListComponent implements OnInit {
+export class EventsListComponent implements OnInit, OnChanges {
   @Input() itemId = '';
 
   eventColumns: WritableSignal<PaginatedListColumn[]> = signal([]);
@@ -29,6 +31,12 @@ export class EventsListComponent implements OnInit {
 
   ngOnInit(): void {
     this.InitEventList(this.itemId);
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['itemId'] && !changes['itemId'].firstChange) {
+      this.InitEventList(this.itemId);
+    }
   }
 
   InitEventList(itemId: string): void {

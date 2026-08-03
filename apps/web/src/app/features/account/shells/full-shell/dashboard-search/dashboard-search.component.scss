@@ -1,0 +1,158 @@
+@use '../../../../../styles/base.scss' as *;
+
+:host {
+  display: block;
+  flex: 1;
+  max-width: 420px;
+  min-width: 0;
+}
+
+.dashboard-search {
+  position: relative;
+  width: 100%;
+}
+
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: $spacing-small;
+  width: 100%;
+  height: 36px;
+  padding: 0 $spacing;
+  background-color: $mid-background-color;
+  border: 1px solid transparent;
+  border-radius: $border-radius-small;
+  box-sizing: border-box;
+  transition: background-color $transition-fast, border-color $transition-fast,
+    box-shadow $transition-fast;
+}
+
+.dashboard-search.is-open .search-field {
+  background-color: $background-color;
+  border-color: $darkest-background-color;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  box-shadow: 0 8px 24px rgba(30, 41, 59, 0.12),
+    0 2px 6px rgba(30, 41, 59, 0.08);
+}
+
+.search-icon {
+  width: 14px;
+  height: 14px;
+  opacity: $dimmed-extra;
+  flex-shrink: 0;
+}
+
+.search-field input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: $text-font;
+  font-size: $font-size;
+  color: $text-color;
+  min-width: 0;
+}
+
+.search-field input::placeholder {
+  color: $text-color;
+  opacity: $dimmed-extra;
+}
+
+.search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  width: 100%;
+  background-color: $background-color;
+  border: 1px solid $darkest-background-color;
+  border-top: none;
+  border-radius: 0 0 $border-radius-small $border-radius-small;
+  box-shadow: 0 8px 24px rgba(30, 41, 59, 0.12),
+    0 2px 6px rgba(30, 41, 59, 0.08);
+  padding: $spacing-small 0 $spacing-extra-small;
+  animation: searchDropdownFadeIn $transition-fast ease-out;
+  box-sizing: border-box;
+}
+
+.search-section-header {
+  padding: $spacing-extra-small $spacing $spacing-small;
+  font-size: $font-size-small;
+  font-weight: 600;
+  color: $text-color;
+  opacity: $dimmed;
+}
+
+.search-results {
+  display: flex;
+  flex-direction: column;
+}
+
+.search-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing;
+  padding: $spacing-small $spacing;
+  color: $text-color !important;
+  font-size: $font-size;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover,
+  &.is-active {
+    background-color: $dark-background-color;
+  }
+}
+
+.search-result-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: $text-color;
+  font-weight: $text-weight;
+}
+
+.search-result-match-value {
+  flex-shrink: 0;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: $text-color;
+  font-size: $font-size;
+}
+
+.search-match {
+  background-color: rgba(0, 85, 255, 0.12);
+  border-radius: 2px;
+  padding: 1px 4px;
+}
+
+.search-empty {
+  padding: $spacing-small $spacing $spacing;
+  font-size: $font-size-small;
+  color: $text-color;
+  opacity: $dimmed;
+}
+
+@keyframes searchDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media only screen and (max-width: 1000px) {
+  :host {
+    max-width: none;
+  }
+}

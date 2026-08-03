@@ -407,4 +407,82 @@ describe('AccountModule', () => {
       });
     });
   });
+
+  describe('SearchAccounts', () => {
+    it('should return an empty list for a blank query', async () => {
+      const result = await accountModule.SearchAccounts(
+        'acct_z_platform',
+        '  '
+      );
+
+      expect(result).toEqual({
+        object: 'list',
+        data: [],
+        has_more: false,
+        url: '/v1/accounts/search',
+      });
+      expect(mockDb.Aggregate).not.toHaveBeenCalled();
+    });
+
+    it('should search accounts and persons then return matching accounts', async () => {
+      const matched = {
+        id: 'acct_z_connected',
+        created: 1700000000,
+        email: 'kurniawan.anto7@gmail.com',
+        platform_account: 'acct_z_platform',
+      } as Account;
+
+      mockDb.Aggregate = jest
+        .fn()
+        .mockResolvedValueOnce([{ id: 'acct_z_connected' }])
+        .mockResolvedValueOnce([{ account: 'acct_z_connected' }]);
+      mockDb.Get = jest.fn().mockResolvedValue(matched);
+
+      const result = await accountModule.SearchAccounts(
+        'acct_z_platform',
+        'kurniawan.anto7@gmail.com'
+      );
+
+      expect(mockDb.Aggregate).toHaveBeenCalledTimes(2);
+      expect(mockDb.Aggregate).toHaveBeenNthCalledWith(
+        1,
+        'Accounts',
+        expect.any(Array)
+      );
+      expect(mockDb.Aggregate).toHaveBeenNthCalledWith(
+        2,
+        'Persons',
+        expect.any(Array)
+      );
+      expect(result.data).toEqual([matched]);
+      expect(result.has_more).toBe(false);
+      expect(result.url).toBe('/v1/accounts/search');
+    });
+
+    it('should skip person search when account matches already fill the limit', async () => {
+      mockDb.Aggregate = jest
+        .fn()
+        .mockResolvedValueOnce([{ id: 'acct_z_1' }, { id: 'acct_z_2' }]);
+      mockDb.Get = jest
+        .fn()
+        .mockResolvedValueOnce({
+          id: 'acct_z_1',
+          created: 2,
+        } as Account)
+        .mockResolvedValueOnce({
+          id: 'acct_z_2',
+          created: 1,
+        } as Account);
+
+      const result = await accountModule.SearchAccounts(
+        'acct_z_platform',
+        'anto',
+        { limit: 1 }
+      );
+
+      expect(mockDb.Aggregate).toHaveBeenCalledTimes(1);
+      expect(result.data).toHaveLength(1);
+      expect(result.has_more).toBe(true);
+    });
+  });
 });

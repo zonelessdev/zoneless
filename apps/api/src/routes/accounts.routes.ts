@@ -258,6 +258,40 @@ router.get(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GET /v1/accounts/search - Search connected accounts
+// Zoneless extension for the platform dashboard search bar
+// ─────────────────────────────────────────────────────────────────────────────
+router.get(
+  '/search',
+  RequirePlatform(),
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const platformAccountId = req.user.account;
+    const query = ((req.query.query as string | undefined) ?? '').trim();
+    const limit = req.query.limit
+      ? parseInt(req.query.limit as string, 10)
+      : 10;
+
+    Logger.info('Searching accounts', {
+      platformAccountId,
+      query,
+      limit,
+    });
+
+    const result = await accountModule.SearchAccounts(
+      platformAccountId,
+      query,
+      { limit }
+    );
+
+    result.data = await Promise.all(
+      result.data.map((account) => PopulateAccountResources(account, false))
+    );
+
+    res.json(result);
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /v1/accounts/:id - Retrieve a specific account
 // @see https://docs.stripe.com/api/accounts/retrieve
 // ─────────────────────────────────────────────────────────────────────────────
