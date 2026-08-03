@@ -388,7 +388,8 @@ export class Database {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async Aggregate<T>(collection: string, pipeline: any[]): Promise<T[]> {
     const model = this.GetModel(collection);
-    return model.aggregate(pipeline).exec();
+    const docs = await model.aggregate(pipeline).exec();
+    return docs.map((doc) => this.StripMongoFields(doc as T));
   }
 
   /**

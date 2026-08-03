@@ -1,0 +1,59 @@
+<div class="dashboard-search" [class.is-open]="open()">
+  <div class="search-field">
+    <img
+      class="search-icon"
+      src="assets/icons/search.svg"
+      alt=""
+      aria-hidden="true"
+    />
+    <input
+      type="search"
+      placeholder="Search"
+      aria-label="Search"
+      autocomplete="off"
+      [ngModel]="query()"
+      (ngModelChange)="OnQueryChange($event)"
+      (focus)="OnFocus()"
+      (keydown)="OnKeyDown($event)"
+    />
+  </div>
+
+  @if (open()) {
+  <div class="search-dropdown" role="listbox" aria-label="Search results">
+    <div class="search-section">
+      <div class="search-section-header">Connected accounts</div>
+
+      @if (loading() && results().length === 0) {
+      <div class="search-empty">Searching…</div>
+      } @else if (results().length === 0) {
+      <div class="search-empty">No connected accounts found</div>
+      } @else {
+      <div class="search-results">
+        @for (account of results(); track account.id; let i = $index) {
+        <a
+          class="search-result"
+          role="option"
+          [attr.aria-selected]="activeIndex() === i"
+          [class.is-active]="activeIndex() === i"
+          [routerLink]="['/account/connected-accounts', account.id]"
+          (click)="OnResultClick()"
+          (mouseenter)="activeIndex.set(i)"
+        >
+          <span
+            class="search-result-name"
+            [class.search-match]="MatchesQuery(GetDisplayName(account))"
+            >{{ GetDisplayName(account) }}</span
+          >
+          <span
+            class="search-result-match-value"
+            [class.search-match]="MatchesQuery(GetMatchValue(account))"
+            >{{ GetMatchValue(account) }}</span
+          >
+        </a>
+        }
+      </div>
+      }
+    </div>
+  </div>
+  }
+</div>

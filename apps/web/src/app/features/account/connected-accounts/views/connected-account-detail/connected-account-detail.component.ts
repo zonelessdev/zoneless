@@ -352,6 +352,7 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
   }
 
   private sub?: Subscription;
+  private actionsSub?: Subscription;
 
   @ViewChild('overviewTransfers')
   overviewTransfersList?: PaginatedListComponent<any>;
@@ -363,11 +364,14 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
   paymentsPayoutsList?: PaginatedListComponent<any>;
 
   async ngOnInit(): Promise<void> {
-    const id = this.route.snapshot.paramMap.get('accountId');
-    if (!id) return;
-    await this.LoadAccount(id);
-    this.metaService.SetMetaTitle(this.displayName());
-    this.sub = this.actions.events$.subscribe((event) => {
+    this.sub = this.route.paramMap.subscribe((params) => {
+      const id = params.get('accountId');
+      if (!id) return;
+      void this.OnAccountIdChange(id);
+    });
+    this.actionsSub = this.actions.events$.subscribe((event) => {
+      const id = this.account()?.id;
+      if (!id) return;
       if (
         (event.type === 'funds_added' ||
           event.type === 'funds_pulled' ||
@@ -385,7 +389,23 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
+    this.actionsSub?.unsubscribe();
     clearTimeout(this.idCopiedTimer);
+  }
+
+  private async OnAccountIdChange(id: string): Promise<void> {
+    if (this.account()?.id === id) return;
+
+    this.account.set(null);
+    this.activeTab.set('overview');
+    this.detailPanel.set('main');
+    this.moneyMovementTab.set('payouts');
+    this.paymentsTab.set('transfers');
+    this.idCopied.set(false);
+    clearTimeout(this.idCopiedTimer);
+
+    await this.LoadAccount(id);
+    this.metaService.SetMetaTitle(this.displayName());
   }
 
   private async LoadAccount(id: string): Promise<void> {

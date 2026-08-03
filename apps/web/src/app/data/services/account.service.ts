@@ -1,6 +1,6 @@
 import { Injectable, signal, WritableSignal, inject } from '@angular/core';
 import { ApiService } from '../../core/services/api.service';
-import { Account, LoginLink } from '@zoneless/shared-types';
+import { Account, ListResponse, LoginLink } from '@zoneless/shared-types';
 import {
   CreateAccountInput,
   FormatPayoutVolumeThresholdCents,
@@ -151,6 +151,19 @@ export class AccountService {
   }
 
   /**
+   * Search connected accounts by email, name, or account id.
+   */
+  async SearchConnectedAccounts(
+    query: string,
+    limit = 8
+  ): Promise<ListResponse<Account>> {
+    return this.api.Call<ListResponse<Account>>('GET', 'accounts/search', {
+      query,
+      limit: String(limit),
+    });
+  }
+
+  /**
    * Create a login link for a connected account and open their dashboard in a new tab.
    */
   async CreateLoginLink(accountId: string): Promise<LoginLink> {
@@ -179,6 +192,23 @@ export class AccountService {
     }
 
     return account.email ?? individual?.email ?? account.id;
+  }
+
+  /**
+   * Secondary label shown in search results.
+   * Prefers the field that matches the query (email, then id), else email/id.
+   */
+  GetConnectedAccountSearchMatch(account: Account, query = ''): string {
+    const email =
+      account.email?.trim() || account.individual?.email?.trim() || '';
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (normalizedQuery) {
+      if (email.toLowerCase().includes(normalizedQuery)) return email;
+      if (account.id.toLowerCase().includes(normalizedQuery)) return account.id;
+    }
+
+    return email || account.id;
   }
 
   /**
