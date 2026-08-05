@@ -13,6 +13,7 @@
  * - POST /v1/operator/platforms/:id/enable   Re-enable a disabled platform
  * - POST /v1/operator/platforms/:id/disable  Disable a platform
  * - POST /v1/operator/platforms/:id/login_link  Mint a dashboard login link
+ * - POST /v1/operator/platforms/:id/agent_key  Rotate an agent API key
  * - GET  /v1/operator/platforms/:id/usage    Daily API usage counters
  *
  * @module operator.routes
@@ -33,6 +34,8 @@ import { SignToken } from '../utils/Token';
 import { db } from '../modules/Database';
 import { SetupModule, ValidateSetupRequest } from '../modules/Setup';
 import { AccountModule } from '../modules/Account';
+import { ApiKeyModule } from '../modules/ApiKey';
+import { EventService } from '../modules/EventService';
 import { UsageModule } from '../modules/Usage';
 import { IsPlatformAccount } from '../modules/PlatformAccess';
 import { GetAppConfig, GetJwtSecret } from '../modules/AppConfig';
@@ -42,6 +45,7 @@ const router = express.Router();
 const setupModule = new SetupModule(db);
 const accountModule = new AccountModule(db);
 const usageModule = new UsageModule(db);
+const apiKeyModule = new ApiKeyModule(db, new EventService(db));
 
 // Login links minted by the operator use the same session lifetime as setup
 const LOGIN_TOKEN_DURATION = '7d';
@@ -203,6 +207,55 @@ router.post(
       object: 'operator_login_link',
       url: `${dashboardUrl}/platform-login?token=${loginToken}`,
       expires_at: Math.floor(Date.now() / 1000) + LOGIN_TOKEN_DURATION_SECONDS,
+    });
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /v1/operator/platforms/:id/agent_key - Rotate an agent key
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/platforms/:id/agent_key',
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const platform = await GetPlatformOrThrow(req.params.id);
+    const slot = typeof req.body.slot === 'string' ? req.body.slot.trim() : '';
+    if (!/^[a-f0-9]{64}$/.test(slot)) {
+      throw new AppError(
+        'A valid agent key slot is required.',
+        400,
+        'invalid_request_error'
+      );
+    }
+
+    const existingKeys = await apiKeyModule.ListApiKeys({
+      account: platform.id,
+      limit: 100,
+    });
+    const previousAgentKeys = existingKeys.data.filter(
+      (apiKey) =>
+        apiKey.status === 'active' && apiKey.metadata?.['agent_slot'] === slot
+    );
+    for (const apiKey of previousAgentKeys) {
+      await apiKeyModule.RevokeApiKey(apiKey.id);
+    }
+
+    const result = await apiKeyModule.CreateApiKey(
+      platform.id,
+      'Zoneless Agent Store',
+      {
+        agent_slot: slot,
+        credential_type: 'agent_store',
+      },
+      GetAppConfig().livemode
+    );
+
+    Logger.info('Operator rotated agent key', {
+      platformAccountId: platform.id,
+      revokedKeyCount: previousAgentKeys.length,
+    });
+    res.status(201).json({
+      ...result.api_key,
+      plaintext_token: result.plaintext_token,
     });
   })
 );
