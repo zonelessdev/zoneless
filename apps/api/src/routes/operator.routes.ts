@@ -7,8 +7,10 @@
  * when the instance runs in operator mode (OPERATOR_API_KEY set).
  *
  * Routes:
+ * - GET  /v1/operator/summary                Instance-wide volume/usage KPIs
+ * - GET  /v1/operator/events                 Recent cross-platform events
  * - POST /v1/operator/platforms              Provision a new platform
- * - GET  /v1/operator/platforms              List platforms
+ * - GET  /v1/operator/platforms              List platforms (optional stats)
  * - GET  /v1/operator/platforms/:id          Get a platform
  * - POST /v1/operator/platforms/:id/enable   Re-enable a disabled platform
  * - POST /v1/operator/platforms/:id/disable  Disable a platform
@@ -37,6 +39,7 @@ import { AccountModule } from '../modules/Account';
 import { ApiKeyModule } from '../modules/ApiKey';
 import { EventService } from '../modules/EventService';
 import { UsageModule } from '../modules/Usage';
+import { OperatorStatsModule } from '../modules/OperatorStats';
 import { IsPlatformAccount } from '../modules/PlatformAccess';
 import { GetAppConfig, GetJwtSecret } from '../modules/AppConfig';
 import { ValidateOperatorKey } from '../middleware/OperatorMiddleware';
@@ -45,6 +48,7 @@ const router = express.Router();
 const setupModule = new SetupModule(db);
 const accountModule = new AccountModule(db);
 const usageModule = new UsageModule(db);
+const operatorStatsModule = new OperatorStatsModule(db);
 const apiKeyModule = new ApiKeyModule(db, new EventService(db));
 
 // Login links minted by the operator use the same session lifetime as setup
@@ -88,6 +92,78 @@ async function GetPlatformOrThrow(accountId: string): Promise<AccountType> {
   return account;
 }
 
+function ParseDays(raw: unknown, fallback = 30): number {
+  return Math.min(
+    Math.max(parseInt(String(raw ?? ''), 10) || fallback, 1),
+    365
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /v1/operator/summary - Instance-wide volume / usage KPIs
+// ─────────────────────────────────────────────────────────────────────────────
+router.get(
+  '/summary',
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const days = ParseDays(req.query.days);
+    const summary = await operatorStatsModule.GetSummary(days);
+    res.json(summary);
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /v1/operator/events - Recent cross-platform events
+// ─────────────────────────────────────────────────────────────────────────────
+router.get(
+  '/events',
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const limit = Math.min(
+      Math.max(parseInt(String(req.query.limit ?? ''), 10) || 50, 1),
+      100
+    );
+    const startingAfter = req.query.starting_after as string | undefined;
+    const endingBefore = req.query.ending_before as string | undefined;
+    if (startingAfter && endingBefore) {
+      throw new AppError(
+        'You cannot parameterize both starting_after and ending_before.',
+        400,
+        'invalid_request_error'
+      );
+    }
+    const types = req.query.types
+      ? Array.isArray(req.query.types)
+        ? (req.query.types as string[])
+        : String(req.query.types)
+            .split(',')
+            .map((type) => type.trim())
+            .filter(Boolean)
+      : undefined;
+
+    try {
+      const result = await operatorStatsModule.ListRecentEvents({
+        limit,
+        types,
+        startingAfter,
+        endingBefore,
+      });
+      res.json({
+        object: 'list',
+        data: result.data,
+        has_more: result.has_more,
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      if (
+        message === 'Invalid starting_after ID' ||
+        message === 'Invalid ending_before ID'
+      ) {
+        throw new AppError(message, 400, 'invalid_request_error');
+      }
+      throw error;
+    }
+  })
+);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /v1/operator/platforms - Provision a new platform account
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,15 +191,42 @@ router.post(
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /v1/operator/platforms - List all platform accounts
+// Optional: include=stats&days=30 for per-platform volume/usage/activity
 // ─────────────────────────────────────────────────────────────────────────────
 router.get(
   '/platforms',
   AsyncHandler(async (req: express.Request, res: express.Response) => {
     const platforms = await accountModule.GetPlatformAccounts();
+    const includeStats = String(req.query.include || '')
+      .split(',')
+      .map((part) => part.trim())
+      .includes('stats');
+
+    if (!includeStats) {
+      res.json({
+        object: 'list',
+        data: platforms.map(ToOperatorPlatform),
+      });
+      return;
+    }
+
+    const days = ParseDays(req.query.days);
+    const statsMap = await operatorStatsModule.GetPlatformStatsMap(days);
+    const emptyStats = {
+      connected_accounts: 0,
+      payment_volume: 0,
+      payout_volume: 0,
+      payment_count: 0,
+      api_requests: 0,
+      last_activity: null as number | null,
+    };
 
     res.json({
       object: 'list',
-      data: platforms.map(ToOperatorPlatform),
+      data: platforms.map((platform) => ({
+        ...ToOperatorPlatform(platform),
+        stats: statsMap.get(platform.id) ?? emptyStats,
+      })),
     });
   })
 );

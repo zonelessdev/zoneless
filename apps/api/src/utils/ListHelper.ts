@@ -12,8 +12,8 @@ import { Database } from '../modules/Database';
 import { QueryParameters, QueryOperators } from '@zoneless/shared-types';
 
 export interface ListOptions {
-  /** Account ID to filter by */
-  account: string;
+  /** Account ID to filter by. Omit for unscoped lists (e.g. operator-wide). */
+  account?: string;
   /** Maximum number of items to return (1-100, default 10) */
   limit?: number;
   /** Cursor for pagination - returns items after this ID */
@@ -108,13 +108,15 @@ export class ListHelper<T extends { id: string; created: number }> {
           direction: this.config.orderDirection,
         },
       ],
-      parameters: [
-        {
-          key: this.config.accountField!,
-          operator: QueryOperators['=='],
-          value: account,
-        },
-      ],
+      parameters: account
+        ? [
+            {
+              key: this.config.accountField!,
+              operator: QueryOperators['=='],
+              value: account,
+            },
+          ]
+        : [],
       // Fetch one extra to determine has_more
       limit: effectiveLimit + 1,
     };
