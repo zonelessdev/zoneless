@@ -91,9 +91,7 @@ export async function RunStoreInit(
       ok: true,
       product: {
         name: command.productName,
-        ...(command.description
-          ? { description: command.description }
-          : {}),
+        ...(command.description ? { description: command.description } : {}),
       },
     };
   }
@@ -109,9 +107,7 @@ export async function RunStoreInit(
     const product = await client.CreateProduct(
       {
         name: command.productName,
-        ...(command.description
-          ? { description: command.description }
-          : {}),
+        ...(command.description ? { description: command.description } : {}),
       },
       `${idempotencyPrefix}:product`
     );

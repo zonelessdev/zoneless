@@ -86,14 +86,11 @@ export class ZonelessClient {
 
     let response: Response;
     try {
-      response = await this.fetchRequest(
-        `${this.apiRoot}${resourcePath}`,
-        {
-          method,
-          headers,
-          body: options.body ? JSON.stringify(options.body) : undefined,
-        }
-      );
+      response = await this.fetchRequest(`${this.apiRoot}${resourcePath}`, {
+        method,
+        headers,
+        body: options.body ? JSON.stringify(options.body) : undefined,
+      });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Unknown network error';
