@@ -2,7 +2,7 @@
  * @fileOverview Billing run routes
  *
  * Triggers subscription cycle collection. Intended for Cloud Scheduler /
- * host cron. Auth: operator key (all platforms) or platform API key (scoped).
+ * host cron. Auth: operator key (all platforms) or platform API key.
  */
 
 import * as express from 'express';
@@ -44,7 +44,7 @@ router.post(
 );
 
 /**
- * POST /v1/billing/run_for_platform — platform API key (scoped).
+ * POST /v1/billing/run_for_platform — platform API key.
  */
 router.post(
   '/run_for_platform',
