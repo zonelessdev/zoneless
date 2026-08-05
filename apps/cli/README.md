@@ -17,6 +17,10 @@ keys and the wallet secret in the operating-system credential store, and
 installs the `zoneless-store` Agent Skill in the current project. Secrets are
 never printed or sent to the approval page.
 
+`agent setup` provisions managed Zoneless Cloud platforms. Self-hosted
+deployments use their own setup flow, then provide the resulting API URL and API
+key to the CLI.
+
 In an interactive terminal, press Enter when prompted to open the authorization
 page in the default browser. With `--json` or non-interactive execution, the CLI
 prints the verification URL without opening a browser so an agent can present it
@@ -74,18 +78,3 @@ export ZONELESS_API_URL=https://your-api.example/v1
 export ZONELESS_API_KEY=zk_...
 npx @zoneless/cli@latest doctor --json
 ```
-
-## Local emulators
-
-Point setup at the Firebase Functions emulator and local Angular app:
-
-```bash
-export ZONELESS_AUTH_URL=http://127.0.0.1:5101/zoneless-app/us-central1/Actions
-export ZONELESS_ACTIVATION_URL=http://localhost:5100/activate
-npx @zoneless/cli@latest agent setup \
-  --platform-name "Local agent store" \
-  --profile-prefix local
-```
-
-The prefix stores these as `local-live` and `local-test`, leaving any hosted
-profiles untouched.

@@ -1,11 +1,11 @@
 {
   "name": "@zoneless/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Provision and manage an agent-operated Zoneless store",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/zonelessdev/zoneless.git",
+    "url": "git+https://github.com/zonelessdev/zoneless.git",
     "directory": "apps/cli"
   },
   "homepage": "https://zoneless.com/docs/agent-quickstart",
@@ -13,8 +13,13 @@
     "access": "public"
   },
   "bin": {
-    "zoneless": "./src/main.js"
+    "zoneless": "src/main.js"
   },
+  "files": [
+    "README.md",
+    "skills",
+    "src"
+  ],
   "engines": {
     "node": ">=20"
   },
