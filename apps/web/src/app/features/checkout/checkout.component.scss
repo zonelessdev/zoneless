@@ -178,6 +178,90 @@
   flex-direction: column;
 }
 
+.mobile-wallet-handoff {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.mobile-wallet-handoff-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $spacing;
+  border-radius: 50%;
+  background-color: $darker-background-color;
+
+  img {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+.mobile-wallet-handoff-title {
+  margin: 0;
+  font-family: $title-font;
+  font-size: $font-size-large;
+  font-weight: $title-weight;
+  color: $checkout-heading;
+}
+
+.mobile-wallet-handoff-copy {
+  max-width: 360px;
+  margin: $spacing-small 0 $spacing-large;
+  color: $checkout-label;
+  font-size: $font-size;
+  line-height: 1.5;
+}
+
+.mobile-wallet-options {
+  width: 100%;
+}
+
+.mobile-wallet-option {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 $spacing;
+  border-bottom: 1px solid $checkout-muted-border;
+  color: $checkout-heading;
+  font-family: $title-font;
+  font-size: $font-size;
+  font-weight: $medium-weight;
+  text-decoration: none;
+  transition: background-color $transition-fast;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: $darker-background-color;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $base-color;
+    outline-offset: -2px;
+  }
+
+  img {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.mobile-wallet-handoff-help {
+  margin: $spacing 0 0;
+  color: $checkout-label;
+  font-size: $font-size-small;
+  line-height: 1.5;
+}
+
 .form-section {
   margin-bottom: $spacing-medium;
 }

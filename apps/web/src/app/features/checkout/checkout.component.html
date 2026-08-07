@@ -137,6 +137,39 @@
         </div>
         }
       </div>
+      } @else { @if (NeedsMobileWalletHandoff()) {
+      <section
+        class="mobile-wallet-handoff"
+        aria-labelledby="mobile-wallet-title"
+      >
+        <div class="mobile-wallet-handoff-icon">
+          <img src="/assets/icons/account_balance_wallet.svg" alt="" />
+        </div>
+        <h1 id="mobile-wallet-title" class="mobile-wallet-handoff-title">
+          Open in a wallet
+        </h1>
+        <p class="mobile-wallet-handoff-copy">
+          Choose a Solana wallet to continue this checkout securely in its
+          mobile browser.
+        </p>
+        <div class="checkout-method-box mobile-wallet-options">
+          @for (walletOption of MobileWalletOptions(); track walletOption.name)
+          {
+          <a
+            class="mobile-wallet-option"
+            [href]="walletOption.url"
+            [attr.aria-label]="'Open checkout in ' + walletOption.name"
+          >
+            <span>{{ walletOption.name }}</span>
+            <img src="/assets/icons/arrow_forward.svg" alt="" />
+          </a>
+          }
+        </div>
+        <p class="mobile-wallet-handoff-help">
+          After your wallet opens, review the checkout details and approve the
+          USDC payment.
+        </p>
+      </section>
       } @else {
       <div class="form-section">
         <div class="checkout-section-label">Contact details</div>
@@ -431,7 +464,7 @@
         <a>Privacy</a>
         }.
       </div>
-      }
+      } }
 
       <div class="checkout-payment-footer">
         <span>Powered by <b>Zoneless</b></span>
