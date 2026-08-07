@@ -50,6 +50,10 @@ export class SolanaWalletService {
     this.account.set(null);
   }
 
+  HasWallet(): boolean {
+    return this.wallet() !== null;
+  }
+
   GetAddress(): string {
     const connectedAccount = this.account();
     if (!connectedAccount) return '';

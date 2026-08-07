@@ -38,6 +38,11 @@ import {
   FormatUsdcAmount,
   GetCheckoutSubmitLabel,
 } from './util/checkout-format';
+import {
+  BuildMobileWalletOptions,
+  IsMobileBrowser,
+  MobileWalletOption,
+} from './util/mobile-wallet';
 
 type PaymentPhase = 'idle' | 'awaiting_wallet' | 'processing' | 'complete';
 
@@ -251,6 +256,22 @@ export class CheckoutComponent implements OnInit {
 
   IsComplete(): boolean {
     return this.paymentPhase() === 'complete';
+  }
+
+  NeedsMobileWalletHandoff(): boolean {
+    if (typeof navigator === 'undefined') return false;
+    return (
+      IsMobileBrowser(navigator.userAgent, navigator.maxTouchPoints) &&
+      !this.solanaWalletService.HasWallet()
+    );
+  }
+
+  MobileWalletOptions(): MobileWalletOption[] {
+    if (typeof window === 'undefined') return [];
+    return BuildMobileWalletOptions(
+      window.location.href,
+      window.location.origin
+    );
   }
 
   async Pay(): Promise<void> {
