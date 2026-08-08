@@ -5,10 +5,12 @@ import { AppComponent } from './app/app.component';
 async function RegisterMobileWalletAdapter(): Promise<void> {
   if (!/Android/i.test(navigator.userAgent)) return;
 
+  const { getWallets } = await import('@wallet-standard/app');
+  if (getWallets().get().length > 0) return;
+
   const {
     createDefaultAuthorizationCache,
     createDefaultChainSelector,
-    createDefaultWalletNotFoundHandler,
     registerMwa,
   } = await import('@solana-mobile/wallet-standard-mobile');
 
@@ -21,7 +23,7 @@ async function RegisterMobileWalletAdapter(): Promise<void> {
     authorizationCache: createDefaultAuthorizationCache(),
     chains: ['solana:devnet', 'solana:mainnet'],
     chainSelector: createDefaultChainSelector(),
-    onWalletNotFound: createDefaultWalletNotFoundHandler(),
+    onWalletNotFound: () => Promise.resolve(),
   });
 }
 

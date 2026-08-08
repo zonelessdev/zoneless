@@ -10,6 +10,8 @@ type DisconnectFeature = {
   disconnect: () => Promise<void>;
 };
 
+const MOBILE_WALLET_ADAPTER_NAME = 'Mobile Wallet Adapter';
+
 @Injectable({ providedIn: 'root' })
 export class SolanaWalletService {
   private readonly walletStore = getWallets();
@@ -23,7 +25,13 @@ export class SolanaWalletService {
     this.wallet.set(discoveredWallet);
 
     this.walletStore.on('register', (nextWallet) => {
-      if (!this.wallet()) this.wallet.set(nextWallet);
+      const selectedWallet = this.wallet();
+      if (
+        !selectedWallet ||
+        selectedWallet.name === MOBILE_WALLET_ADAPTER_NAME
+      ) {
+        this.wallet.set(nextWallet);
+      }
     });
   }
 
@@ -52,6 +60,35 @@ export class SolanaWalletService {
 
   HasWallet(): boolean {
     return this.wallet() !== null;
+  }
+
+  IsMobileWalletAdapter(): boolean {
+    return this.wallet()?.name === MOBILE_WALLET_ADAPTER_NAME;
+  }
+
+  IsMobileWalletNotFoundError(error: unknown): boolean {
+    if (!this.IsMobileWalletAdapter()) return false;
+
+    let currentError: unknown = error;
+    for (let depth = 0; depth < 4; depth += 1) {
+      if (!currentError || typeof currentError !== 'object') return false;
+      const errorWithCause = currentError as {
+        code?: unknown;
+        message?: unknown;
+        cause?: unknown;
+      };
+      if (errorWithCause.code === 'ERROR_WALLET_NOT_FOUND') return true;
+      if (
+        typeof errorWithCause.message === 'string' &&
+        /can't find a wallet|no installed wallet|wallet not found|supports the mobile wallet protocol/i.test(
+          errorWithCause.message
+        )
+      ) {
+        return true;
+      }
+      currentError = errorWithCause.cause;
+    }
+    return false;
   }
 
   GetAddress(): string {
