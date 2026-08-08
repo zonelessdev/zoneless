@@ -1,14 +1,20 @@
 /** @jest-environment node */
 
 import { Keypair, SystemProgram, Transaction } from '@solana/web3.js';
-import type { Wallet, WalletAccount } from '@wallet-standard/base';
 import bs58 from 'bs58';
 import { SolanaWalletService } from './wallet.service';
+
+const mockTransact = jest.fn();
+
+jest.mock('@solana-mobile/mobile-wallet-adapter-protocol', () => ({
+  transact: (...args: unknown[]) => mockTransact(...args),
+}));
 
 describe('SolanaWalletService local key signing', () => {
   let service: SolanaWalletService;
 
   beforeEach(() => {
+    mockTransact.mockReset();
     service = new SolanaWalletService();
   });
 
@@ -27,9 +33,6 @@ describe('SolanaWalletService local key signing', () => {
   });
 
   it('identifies Mobile Wallet Adapter errors through wrapped causes', () => {
-    service.wallet.set({
-      name: 'Mobile Wallet Adapter',
-    } as Wallet);
     const walletError = Object.assign(new Error('Wallet unavailable'), {
       code: 'ERROR_WALLET_NOT_FOUND',
     });
@@ -41,31 +44,49 @@ describe('SolanaWalletService local key signing', () => {
     ).toBe(true);
   });
 
-  it('passes the minimum context slot to mobile wallet broadcasts', async () => {
-    const signAndSendTransaction = jest.fn().mockResolvedValue([
-      {
-        signature: new Uint8Array([1, 2, 3]),
-      },
-    ]);
-    service.wallet.set({
-      features: {
-        'solana:signAndSendTransaction': { signAndSendTransaction },
-      },
-    } as unknown as Wallet);
-    service.account.set({ address: 'payer-wallet' } as WalletAccount);
+  it('authorizes and broadcasts within one mobile wallet session', async () => {
+    const payer = Keypair.generate();
+    const signature = new Uint8Array([1, 2, 3]);
+    const authorize = jest.fn().mockResolvedValue({
+      accounts: [
+        {
+          address: Buffer.from(payer.publicKey.toBytes()).toString('base64'),
+        },
+      ],
+    });
+    const signAndSendTransactions = jest.fn().mockResolvedValue({
+      signatures: [Buffer.from(signature).toString('base64')],
+    });
+    mockTransact.mockImplementation(async (callback) =>
+      callback({ authorize, signAndSendTransactions })
+    );
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: { location: { origin: 'https://buy.zoneless.com' } },
+    });
 
-    await service.SignAndSendUnsignedTransaction(
-      Buffer.from('transaction').toString('base64'),
-      'solana:devnet',
-      90
+    const result = await service.TransactWithMobileWallet(
+      'solana:mainnet',
+      (session) => {
+        expect(session.payerWallet).toBe(payer.publicKey.toBase58());
+        return session.SignAndSendUnsignedTransaction('transaction', 90);
+      }
     );
 
-    expect(signAndSendTransaction).toHaveBeenCalledWith(
-      expect.objectContaining({
-        chain: 'solana:devnet',
-        options: { minContextSlot: 90 },
-      })
-    );
+    expect(result).toEqual(signature);
+    expect(authorize).toHaveBeenCalledWith({
+      chain: 'solana:mainnet',
+      identity: {
+        name: 'Zoneless',
+        uri: 'https://buy.zoneless.com',
+        icon: 'assets/favicon/favicon-32x32.png',
+      },
+    });
+    expect(signAndSendTransactions).toHaveBeenCalledWith({
+      payloads: ['transaction'],
+      options: { min_context_slot: 90 },
+    });
+    delete (globalThis as { window?: unknown }).window;
   });
 
   it('signs a payout transaction with the matching private key', async () => {

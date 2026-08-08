@@ -10,7 +10,11 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import bs58 from 'bs58';
 
-import { MetaService, SolanaWalletService } from '../../core';
+import {
+  MetaService,
+  MobileWalletSession,
+  SolanaWalletService,
+} from '../../core';
 import {
   CheckoutPaymentTransaction,
   CheckoutSessionService,
@@ -47,14 +51,7 @@ import {
   MobileWalletOption,
 } from './util/mobile-wallet';
 
-type PaymentPhase =
-  | 'idle'
-  | 'connecting'
-  | 'preparing'
-  | 'ready_to_sign'
-  | 'awaiting_wallet'
-  | 'processing'
-  | 'complete';
+type PaymentPhase = 'idle' | 'awaiting_wallet' | 'processing' | 'complete';
 
 type AddressFormValue = {
   name: string;
@@ -129,10 +126,6 @@ export class CheckoutComponent implements OnInit {
   confirmationExpanded: WritableSignal<boolean> = signal(false);
   billingAddressExpanded: WritableSignal<boolean> = signal(false);
   shippingAddressExpanded: WritableSignal<boolean> = signal(false);
-  private readonly preparedPayment: WritableSignal<CheckoutPaymentTransaction | null> =
-    signal(null);
-  private preparedCustomerDetailsKey = '';
-  private mobileInitAuthorityDone = false;
 
   readonly countryOptions = [...ISO_CODES].sort((a, b) =>
     a.country.localeCompare(b.country)
@@ -278,12 +271,7 @@ export class CheckoutComponent implements OnInit {
 
   IsBusy(): boolean {
     const phase = this.paymentPhase();
-    return (
-      phase === 'connecting' ||
-      phase === 'preparing' ||
-      phase === 'awaiting_wallet' ||
-      phase === 'processing'
-    );
+    return phase === 'awaiting_wallet' || phase === 'processing';
   }
 
   IsComplete(): boolean {
@@ -294,7 +282,8 @@ export class CheckoutComponent implements OnInit {
     if (typeof navigator === 'undefined') return false;
     return (
       IsMobileBrowser(navigator.userAgent, navigator.maxTouchPoints) &&
-      (!this.solanaWalletService.HasWallet() ||
+      ((!this.solanaWalletService.HasWallet() &&
+        !this.solanaWalletService.SupportsMobileWalletAdapter()) ||
         this.mobileWalletHandoffRequested())
     );
   }
@@ -311,10 +300,6 @@ export class CheckoutComponent implements OnInit {
     const session = this.checkoutSession();
     if (!session) return;
 
-    if (this.paymentPhase() === 'ready_to_sign') {
-      await this.ConfirmMobileWalletPayment(session);
-      return;
-    }
     if (this.paymentPhase() !== 'idle') return;
 
     const validationError = this.ValidateCollectedDetails();
@@ -326,8 +311,14 @@ export class CheckoutComponent implements OnInit {
     this.paymentError.set(null);
     this.mobileWalletHandoffRequested.set(false);
 
-    if (this.solanaWalletService.IsMobileWalletAdapter()) {
-      await this.BeginMobileWalletPayment(session);
+    if (this.solanaWalletService.SupportsMobileWalletAdapter()) {
+      this.paymentPhase.set('awaiting_wallet');
+      try {
+        const completedSession = await this.PayWithMobileWallet(session);
+        this.CompletePayment(completedSession);
+      } catch (error) {
+        this.HandlePaymentError(error, 'idle');
+      }
       return;
     }
 
@@ -348,121 +339,17 @@ export class CheckoutComponent implements OnInit {
     }
   }
 
-  private async BeginMobileWalletPayment(
+  private PayWithMobileWallet(
     session: CheckoutSession
-  ): Promise<void> {
-    try {
-      if (!this.solanaWalletService.GetAddress()) {
-        this.paymentPhase.set('connecting');
-        await this.solanaWalletService.Connect();
-      }
-      const payerWallet = this.solanaWalletService.GetAddress();
-      if (!payerWallet) {
-        throw new Error('Connect a wallet to pay');
-      }
-      await this.PrepareMobileWalletPayment(session, payerWallet);
-    } catch (error) {
-      this.HandlePaymentError(error, 'idle');
-    }
-  }
-
-  private async PrepareMobileWalletPayment(
-    session: CheckoutSession,
-    payerWallet: string
-  ): Promise<void> {
-    this.paymentPhase.set('preparing');
-    const customerDetails = this.BuildCustomerDetailsPayload();
-    const prepared = await this.PreparePayment(
-      session,
-      payerWallet,
-      customerDetails
-    );
-
-    const completedSession = await this.ConfirmAlreadySubscribed(
-      session,
-      prepared
-    );
-    if (completedSession) {
-      this.CompletePayment(completedSession);
-      return;
-    }
-
-    if (
-      prepared.subscription_step === 'init_authority' &&
-      this.mobileInitAuthorityDone
-    ) {
-      throw new Error(
-        'Subscription authority init did not land. Please try again.'
-      );
-    }
-
-    this.preparedPayment.set(prepared);
-    this.preparedCustomerDetailsKey = JSON.stringify(customerDetails);
-    this.paymentPhase.set('ready_to_sign');
-  }
-
-  private async ConfirmMobileWalletPayment(
-    session: CheckoutSession
-  ): Promise<void> {
-    const prepared = this.preparedPayment();
-    const payerWallet = this.solanaWalletService.GetAddress();
-    if (!prepared || !payerWallet) {
-      this.ResetPreparedPayment();
-      return;
-    }
-
-    const validationError = this.ValidateCollectedDetails();
-    if (validationError) {
-      this.paymentError.set(validationError);
-      this.ResetPreparedPayment();
-      return;
-    }
-
-    const customerDetailsKey = JSON.stringify(
-      this.BuildCustomerDetailsPayload()
-    );
-    if (customerDetailsKey !== this.preparedCustomerDetailsKey) {
-      try {
-        await this.PrepareMobileWalletPayment(session, payerWallet);
-      } catch (error) {
-        this.HandlePaymentError(error, 'idle');
-      }
-      return;
-    }
-
+  ): Promise<CheckoutSession> {
     const chain = session.livemode ? 'solana:mainnet' : 'solana:devnet';
-    this.paymentPhase.set('awaiting_wallet');
-    this.paymentError.set(null);
-
-    try {
-      const completedSession = await this.SignAndConfirmPrepared(
-        session,
-        prepared,
-        chain
-      );
-      this.preparedPayment.set(null);
-
-      if (prepared.subscription_step === 'init_authority') {
-        this.mobileInitAuthorityDone = true;
-        await this.PrepareMobileWalletPayment(session, payerWallet);
-        return;
-      }
-
-      this.CompletePayment(completedSession);
-    } catch (error) {
-      if (this.IsRetryableBroadcastError(error)) {
-        try {
-          await this.PrepareMobileWalletPayment(session, payerWallet);
-          this.paymentError.set(
-            'The payment approval expired. Confirm the refreshed payment.'
-          );
-        } catch (prepareError) {
-          this.HandlePaymentError(prepareError, 'idle');
-        }
-        return;
-      }
-      this.HandlePaymentError(error, 'ready_to_sign');
-    }
+    return this.solanaWalletService.TransactWithMobileWallet(
+      chain,
+      (mobileWallet) =>
+        this.PayWithWallet(session, mobileWallet.payerWallet, (prepared) =>
+          this.SignAndConfirmMobilePrepared(session, prepared, mobileWallet)
+        )
+    );
   }
 
   ConfirmationMessage(): string {
@@ -575,9 +462,16 @@ export class CheckoutComponent implements OnInit {
 
   private async PayWithWallet(
     session: CheckoutSession,
-    payerWallet: string
+    payerWallet: string,
+    signAndConfirm?: (
+      prepared: CheckoutPaymentTransaction
+    ) => Promise<CheckoutSession>
   ): Promise<CheckoutSession> {
     const chain = session.livemode ? 'solana:mainnet' : 'solana:devnet';
+    const signPrepared =
+      signAndConfirm ??
+      ((prepared: CheckoutPaymentTransaction) =>
+        this.SignAndConfirmPrepared(session, prepared, chain));
     // First-time subscribers need init_authority then subscribe (2 wallet
     // approvals). Allow a couple of blockhash retries on top of that.
     const maxAttempts = this.IsSubscription() ? 5 : 2;
@@ -605,12 +499,12 @@ export class CheckoutComponent implements OnInit {
               'Subscription authority init did not land. Please try again.'
             );
           }
-          await this.SignAndConfirmPrepared(session, prepared, chain);
+          await signPrepared(prepared);
           initAuthorityDone = true;
           continue;
         }
 
-        return await this.SignAndConfirmPrepared(session, prepared, chain);
+        return await signPrepared(prepared);
       } catch (error) {
         lastError = error;
         if (this.IsRetryableBroadcastError(error)) {
@@ -752,34 +646,50 @@ export class CheckoutComponent implements OnInit {
     prepared: CheckoutPaymentTransaction,
     chain: 'solana:mainnet' | 'solana:devnet'
   ): Promise<CheckoutSession> {
-    const useMobileWalletBroadcast =
-      this.solanaWalletService.IsMobileWalletAdapter();
-
-    if (prepared.fee_sponsored && !useMobileWalletBroadcast) {
+    if (prepared.fee_sponsored) {
       const signedTxBytes =
         await this.solanaWalletService.SignUnsignedTransaction(
           prepared.unsigned_transaction,
           chain
         );
-      this.paymentPhase.set('processing');
-      return this.checkoutSessionService.ConfirmPayment(session.url_slug, {
+      return this.ConfirmPreparedPayment(session, prepared, {
         signed_transaction:
           this.solanaWalletService.BytesToBase64(signedTxBytes),
-        ...(prepared.subscription_step
-          ? { subscription_step: prepared.subscription_step }
-          : {}),
       });
     }
 
     const signatureBytes =
       await this.solanaWalletService.SignAndSendUnsignedTransaction(
         prepared.unsigned_transaction,
-        chain,
-        useMobileWalletBroadcast ? prepared.min_context_slot : undefined
+        chain
       );
+    return this.ConfirmPreparedPayment(session, prepared, {
+      signature: bs58.encode(signatureBytes),
+    });
+  }
+
+  private async SignAndConfirmMobilePrepared(
+    session: CheckoutSession,
+    prepared: CheckoutPaymentTransaction,
+    mobileWallet: MobileWalletSession
+  ): Promise<CheckoutSession> {
+    const signatureBytes = await mobileWallet.SignAndSendUnsignedTransaction(
+      prepared.unsigned_transaction,
+      prepared.min_context_slot
+    );
+    return this.ConfirmPreparedPayment(session, prepared, {
+      signature: bs58.encode(signatureBytes),
+    });
+  }
+
+  private ConfirmPreparedPayment(
+    session: CheckoutSession,
+    prepared: CheckoutPaymentTransaction,
+    confirmation: { signature: string } | { signed_transaction: string }
+  ): Promise<CheckoutSession> {
     this.paymentPhase.set('processing');
     return this.checkoutSessionService.ConfirmPayment(session.url_slug, {
-      signature: bs58.encode(signatureBytes),
+      ...confirmation,
       ...(prepared.subscription_step
         ? { subscription_step: prepared.subscription_step }
         : {}),
@@ -799,8 +709,6 @@ export class CheckoutComponent implements OnInit {
   }
 
   private CompletePayment(completedSession: CheckoutSession): void {
-    this.preparedPayment.set(null);
-    this.preparedCustomerDetailsKey = '';
     this.checkoutSession.set(completedSession);
     this.paymentPhase.set('complete');
     this.HandleAfterCompletion(completedSession);
@@ -813,17 +721,11 @@ export class CheckoutComponent implements OnInit {
     if (this.solanaWalletService.IsMobileWalletNotFoundError(error)) {
       this.mobileWalletHandoffRequested.set(true);
       this.paymentError.set(null);
-      this.ResetPreparedPayment();
+      this.paymentPhase.set('idle');
       return;
     }
     this.paymentError.set(this.ErrorMessage(error));
     this.paymentPhase.set(fallbackPhase);
-  }
-
-  private ResetPreparedPayment(): void {
-    this.preparedPayment.set(null);
-    this.preparedCustomerDetailsKey = '';
-    this.paymentPhase.set('idle');
   }
 
   private HandleAfterCompletion(session: CheckoutSession): void {
@@ -868,9 +770,6 @@ export class CheckoutComponent implements OnInit {
   }
 
   SubmitLabel(): string {
-    if (this.paymentPhase() === 'ready_to_sign') {
-      return this.IsSubscription() ? 'Confirm subscription' : 'Confirm payment';
-    }
     return GetCheckoutSubmitLabel(
       this.checkoutSession()?.submit_type,
       this.IsSubscription()
@@ -879,10 +778,6 @@ export class CheckoutComponent implements OnInit {
 
   BusyLabel(): string {
     switch (this.paymentPhase()) {
-      case 'connecting':
-        return 'Connect in wallet';
-      case 'preparing':
-        return 'Preparing payment';
       case 'awaiting_wallet':
         return 'Confirm in wallet';
       default:
@@ -904,9 +799,6 @@ export class CheckoutComponent implements OnInit {
 
   MethodHelpText(): string {
     const amount = this.FormatAmount(this.checkoutSession()?.amount_total);
-    if (this.paymentPhase() === 'ready_to_sign') {
-      return `Your ${amount} USDC transaction is ready. Confirm to open your wallet.`;
-    }
     if (this.IsSubscription()) {
       const cadence = this.RecurringIntervalLabel();
       return cadence
