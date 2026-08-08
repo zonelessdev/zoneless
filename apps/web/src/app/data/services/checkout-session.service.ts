@@ -17,6 +17,7 @@ export interface CheckoutPaymentTransaction {
   estimated_fee_lamports: number;
   blockhash: string;
   last_valid_block_height: number;
+  min_context_slot: number;
   fee_sponsored?: boolean;
   already_subscribed?: boolean;
   subscription_delegation_pda?: string;

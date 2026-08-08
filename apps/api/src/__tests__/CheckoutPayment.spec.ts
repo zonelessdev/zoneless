@@ -156,6 +156,7 @@ describe('CheckoutPaymentModule', () => {
         estimated_fee_lamports: 5000,
         blockhash: 'blockhash_1',
         last_valid_block_height: 100,
+        min_context_slot: 90,
       }),
       BuildInitSubscriptionAuthorityTransaction: jest
         .fn()
@@ -165,6 +166,7 @@ describe('CheckoutPaymentModule', () => {
         estimated_fee_lamports: 5000,
         blockhash: 'blockhash_1',
         last_valid_block_height: 100,
+        min_context_slot: 90,
       }),
       VerifyCheckoutPayment: jest.fn(),
       VerifySubscribeTransaction: jest.fn(),
@@ -278,6 +280,7 @@ describe('CheckoutPaymentModule', () => {
           checkout_session: session.id,
           amount_total: 1000,
           unsigned_transaction: 'unsigned_tx_base64',
+          min_context_slot: 90,
         })
       );
     });
@@ -361,6 +364,7 @@ describe('CheckoutPaymentModule', () => {
         estimated_fee_lamports: 5000,
         blockhash: 'blockhash_1',
         last_valid_block_height: 100,
+        min_context_slot: 90,
       });
 
       jest
