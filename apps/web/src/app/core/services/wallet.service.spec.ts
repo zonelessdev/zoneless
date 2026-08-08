@@ -1,6 +1,7 @@
 /** @jest-environment node */
 
 import { Keypair, SystemProgram, Transaction } from '@solana/web3.js';
+import type { Wallet } from '@wallet-standard/base';
 import bs58 from 'bs58';
 import { SolanaWalletService } from './wallet.service';
 
@@ -23,6 +24,21 @@ describe('SolanaWalletService local key signing', () => {
     await expect(service.GetSecretKeyAddress('not a key')).rejects.toThrow(
       'Invalid base58 Solana private key'
     );
+  });
+
+  it('identifies Mobile Wallet Adapter errors through wrapped causes', () => {
+    service.wallet.set({
+      name: 'Mobile Wallet Adapter',
+    } as Wallet);
+    const walletError = Object.assign(new Error('Wallet unavailable'), {
+      code: 'ERROR_WALLET_NOT_FOUND',
+    });
+
+    expect(
+      service.IsMobileWalletNotFoundError(
+        new Error('Could not connect', { cause: walletError })
+      )
+    ).toBe(true);
   });
 
   it('signs a payout transaction with the matching private key', async () => {
