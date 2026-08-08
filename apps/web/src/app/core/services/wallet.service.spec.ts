@@ -1,7 +1,7 @@
 /** @jest-environment node */
 
 import { Keypair, SystemProgram, Transaction } from '@solana/web3.js';
-import type { Wallet } from '@wallet-standard/base';
+import type { Wallet, WalletAccount } from '@wallet-standard/base';
 import bs58 from 'bs58';
 import { SolanaWalletService } from './wallet.service';
 
@@ -36,9 +36,36 @@ describe('SolanaWalletService local key signing', () => {
 
     expect(
       service.IsMobileWalletNotFoundError(
-        new Error('Could not connect', { cause: walletError })
+        Object.assign(new Error('Could not connect'), { cause: walletError })
       )
     ).toBe(true);
+  });
+
+  it('passes the minimum context slot to mobile wallet broadcasts', async () => {
+    const signAndSendTransaction = jest.fn().mockResolvedValue([
+      {
+        signature: new Uint8Array([1, 2, 3]),
+      },
+    ]);
+    service.wallet.set({
+      features: {
+        'solana:signAndSendTransaction': { signAndSendTransaction },
+      },
+    } as unknown as Wallet);
+    service.account.set({ address: 'payer-wallet' } as WalletAccount);
+
+    await service.SignAndSendUnsignedTransaction(
+      Buffer.from('transaction').toString('base64'),
+      'solana:devnet',
+      90
+    );
+
+    expect(signAndSendTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chain: 'solana:devnet',
+        options: { minContextSlot: 90 },
+      })
+    );
   });
 
   it('signs a payout transaction with the matching private key', async () => {

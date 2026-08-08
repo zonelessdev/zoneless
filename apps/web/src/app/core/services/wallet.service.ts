@@ -99,7 +99,8 @@ export class SolanaWalletService {
 
   async SignAndSendUnsignedTransaction(
     unsignedTxBase64: string,
-    chain: 'solana:devnet' | 'solana:mainnet' = 'solana:devnet'
+    chain: 'solana:devnet' | 'solana:mainnet' = 'solana:devnet',
+    minContextSlot?: number
   ): Promise<Uint8Array> {
     const selectedWallet = this.wallet();
     const connectedAccount = this.account();
@@ -112,6 +113,7 @@ export class SolanaWalletService {
             account: WalletAccount;
             transaction: Uint8Array;
             chain?: string;
+            options?: { minContextSlot?: number };
           }) => Promise<readonly { signature: Uint8Array }[]>;
         }
       | undefined;
@@ -123,6 +125,7 @@ export class SolanaWalletService {
       account: connectedAccount,
       transaction: transactionBytes,
       chain,
+      ...(minContextSlot === undefined ? {} : { options: { minContextSlot } }),
     });
     return result[0].signature;
   }

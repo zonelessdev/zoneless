@@ -749,14 +749,13 @@ export class CheckoutComponent implements OnInit {
 
   private async SignAndConfirmPrepared(
     session: CheckoutSession,
-    prepared: {
-      unsigned_transaction: string;
-      fee_sponsored?: boolean;
-      subscription_step?: 'init_authority' | 'subscribe';
-    },
+    prepared: CheckoutPaymentTransaction,
     chain: 'solana:mainnet' | 'solana:devnet'
   ): Promise<CheckoutSession> {
-    if (prepared.fee_sponsored) {
+    const useMobileWalletBroadcast =
+      this.solanaWalletService.IsMobileWalletAdapter();
+
+    if (prepared.fee_sponsored && !useMobileWalletBroadcast) {
       const signedTxBytes =
         await this.solanaWalletService.SignUnsignedTransaction(
           prepared.unsigned_transaction,
@@ -775,7 +774,8 @@ export class CheckoutComponent implements OnInit {
     const signatureBytes =
       await this.solanaWalletService.SignAndSendUnsignedTransaction(
         prepared.unsigned_transaction,
-        chain
+        chain,
+        useMobileWalletBroadcast ? prepared.min_context_slot : undefined
       );
     this.paymentPhase.set('processing');
     return this.checkoutSessionService.ConfirmPayment(session.url_slug, {

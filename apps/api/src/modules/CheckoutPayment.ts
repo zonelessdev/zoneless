@@ -47,8 +47,9 @@ export interface PreparedCheckoutPayment {
   estimated_fee_lamports: number;
   blockhash: string;
   last_valid_block_height: number;
+  min_context_slot: number;
   /**
-   * True when TRANSACTION_FEE_PAYER_KEY is set and the API will cosign/broadcast.
+   * True when TRANSACTION_FEE_PAYER_KEY pre-signs and pays transaction costs.
    */
   fee_sponsored?: boolean;
   /**
@@ -352,6 +353,7 @@ export class CheckoutPaymentModule {
         estimated_fee_lamports: 0,
         blockhash: '',
         last_valid_block_height: 0,
+        min_context_slot: 0,
         already_subscribed: true,
         subscription_delegation_pda: existingPda,
       };

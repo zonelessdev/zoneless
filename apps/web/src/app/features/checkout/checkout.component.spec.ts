@@ -45,6 +45,7 @@ describe('CheckoutComponent mobile wallet handoff', () => {
     estimated_fee_lamports: 5000,
     blockhash: 'blockhash',
     last_valid_block_height: 100,
+    min_context_slot: 90,
   } satisfies CheckoutPaymentTransaction;
   const completedSession = {
     ...checkoutSession,
@@ -129,10 +130,30 @@ describe('CheckoutComponent mobile wallet handoff', () => {
 
     expect(walletService.SignAndSendUnsignedTransaction).toHaveBeenCalledWith(
       preparedPayment.unsigned_transaction,
-      'solana:devnet'
+      'solana:devnet',
+      preparedPayment.min_context_slot
     );
     expect(checkoutSessionService.ConfirmPayment).toHaveBeenCalledTimes(1);
     expect(component.paymentPhase()).toBe('complete');
+  });
+
+  it('uses wallet broadcast for sponsored MWA transactions', async () => {
+    walletService.IsMobileWalletAdapter.mockReturnValue(true);
+    walletService.GetAddress.mockReturnValue('payer-wallet');
+    checkoutSessionService.PreparePayment.mockResolvedValue({
+      ...preparedPayment,
+      fee_sponsored: true,
+    });
+
+    await component.Pay();
+    await component.Pay();
+
+    expect(walletService.SignUnsignedTransaction).not.toHaveBeenCalled();
+    expect(walletService.SignAndSendUnsignedTransaction).toHaveBeenCalledWith(
+      preparedPayment.unsigned_transaction,
+      'solana:devnet',
+      preparedPayment.min_context_slot
+    );
   });
 
   it('shows wallet-browser choices when MWA cannot find a wallet', async () => {

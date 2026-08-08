@@ -36,12 +36,14 @@ export class Solana {
     estimated_fee_lamports: 5000,
     blockhash: 'blockhash123',
     last_valid_block_height: 100000,
+    min_context_slot: 99990,
   });
   BuildSubscribeTransaction = jest.fn().mockResolvedValue({
     unsigned_transaction: 'base64subscribe',
     estimated_fee_lamports: 5000,
     blockhash: 'blockhash123',
     last_valid_block_height: 100000,
+    min_context_slot: 99990,
   });
   BuildInitSubscriptionAuthorityTransaction = jest.fn().mockResolvedValue(null);
   WaitForSubscriptionAuthority = jest.fn().mockResolvedValue(undefined);

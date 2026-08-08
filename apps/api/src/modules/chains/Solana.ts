@@ -97,6 +97,7 @@ export interface UnsignedSolanaTransaction {
   estimated_fee_lamports: number;
   blockhash: string;
   last_valid_block_height: number;
+  min_context_slot: number;
 }
 
 /** Represents a single recipient in a batch USDC transfer */
@@ -1358,8 +1359,11 @@ export class Solana {
     feePayer: PublicKey,
     options?: { feeSponsored?: boolean }
   ): Promise<UnsignedSolanaTransaction> {
-    const { blockhash, lastValidBlockHeight } = await this.WithRetry(() =>
-      this.connection.getLatestBlockhash('confirmed')
+    const {
+      context,
+      value: { blockhash, lastValidBlockHeight },
+    } = await this.WithRetry(() =>
+      this.connection.getLatestBlockhashAndContext('confirmed')
     );
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = feePayer;
@@ -1387,6 +1391,7 @@ export class Solana {
       estimated_fee_lamports: fee.value || 0,
       blockhash,
       last_valid_block_height: lastValidBlockHeight,
+      min_context_slot: context.slot,
     };
   }
 
