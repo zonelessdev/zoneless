@@ -15,11 +15,11 @@ import {
   type ExitCode,
 } from './Types';
 
-const helpText = `Zoneless agent store CLI
+const helpText = `Zoneless agent CLI
 
 Usage:
-  zoneless agent setup --platform-name <name> [--json]
-  zoneless agent install-skill [--json]
+  zoneless agent setup --platform-name <name> [--skill <skill>] [--json]
+  zoneless agent install-skill [--skill <skill>] [--json]
   zoneless auth status [--profile <name>] [--json]
   zoneless wallet backup --output <path> [--profile <name>]
   zoneless doctor [--profile <name>] [--json]
@@ -31,6 +31,7 @@ Options:
   --activation-url <url>     Human approval page override
   --profile-prefix <name>    Prefix stored live/test profile names
   --new-platform             Create another isolated platform
+  --skill <skill>            Agent skill: store (default) or marketplace
   --description <text>       Product description
   --dry-run                  Validate without creating resources
   --idempotency-key <key>    Reuse the same operation keys on retry
@@ -67,7 +68,7 @@ export async function RunCli(
 
     const profileStore = new ProfileStore(environment, secretStore);
     if (command.name === 'agent-install-skill') {
-      const result = await InstallAgentSkill();
+      const result = await InstallAgentSkill(process.cwd(), command.skillId);
       WriteResult(command.json, result, io);
       return exitCodes.success;
     }
@@ -97,7 +98,7 @@ export async function RunCli(
       return exitCodes.success;
     }
     if (command.name === 'agent-setup') {
-      const skill = await InstallAgentSkill();
+      const skill = await InstallAgentSkill(process.cwd(), command.skillId);
       const reusableSetup = command.newPlatform
         ? null
         : await profileStore.GetReusableSetup(command.profilePrefix);
@@ -125,6 +126,7 @@ export async function RunCli(
               },
             },
             reused: true,
+            skill: skill.skill,
             skill_path: skill.path,
             wallet_public_key: reusableSetup.test.walletPublicKey,
             workspace_id: reusableSetup.test.workspaceId,
@@ -159,7 +161,11 @@ export async function RunCli(
         (prompt) =>
           PresentAuthorizationPrompt(command.json, prompt, io, openBrowser)
       );
-      WriteResult(command.json, { ...result, skill_path: skill.path }, io);
+      WriteResult(
+        command.json,
+        { ...result, skill: skill.skill, skill_path: skill.path },
+        io
+      );
       return exitCodes.success;
     }
     if (command.name === 'wallet-backup') {
@@ -245,7 +251,7 @@ function NormalizeError(error: unknown): CliError {
 function FormatHumanResult(result: object): string {
   const resultRecord = result as Record<string, unknown>;
   if (resultRecord['object'] === 'skill_install') {
-    return `Installed the zoneless-store skill at ${resultRecord['path']}.\n`;
+    return `Installed the zoneless-${resultRecord['skill']} skill at ${resultRecord['path']}.\n`;
   }
   if (resultRecord['object'] === 'auth_status') {
     return `${JSON.stringify(resultRecord, null, 2)}\n`;

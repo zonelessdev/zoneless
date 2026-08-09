@@ -1,38 +1,87 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { CliError } from './Errors';
-import { exitCodes } from './Types';
+import { CliError, InvalidInput } from './Errors';
+import { exitCodes, type AgentSkillId } from './Types';
+
+const defaultAgentSkillId: AgentSkillId = 'store';
+const skillDirectories: Record<AgentSkillId, string> = {
+  marketplace: 'zoneless-marketplace',
+  store: 'zoneless-store',
+};
+
+export interface SkillSourceLocations {
+  packagedSkillsDirectory: string;
+  sourceTreeSkillsDirectory: string;
+}
 
 export interface SkillInstallResult {
   object: 'skill_install';
   ok: true;
   path: string;
+  skill: AgentSkillId;
 }
 
 export async function InstallAgentSkill(
-  projectDirectory = process.cwd()
+  projectDirectory = process.cwd(),
+  skillIdValue: string = defaultAgentSkillId,
+  sourceLocations: SkillSourceLocations = DefaultSourceLocations()
 ): Promise<SkillInstallResult> {
-  const sourcePath = await ResolveSkillSource();
+  const skillId = ValidateAgentSkillId(skillIdValue);
+  const skillDirectory = skillDirectories[skillId];
+  const sourcePath = await ResolveSkillSource(skillDirectory, sourceLocations);
   const destinationPath = path.join(
     projectDirectory,
     '.agents',
     'skills',
-    'zoneless-store',
+    skillDirectory,
     'SKILL.md'
   );
   await fs.mkdir(path.dirname(destinationPath), { recursive: true });
-  await fs.copyFile(sourcePath, destinationPath);
+  if (path.resolve(sourcePath) !== path.resolve(destinationPath)) {
+    await fs.copyFile(sourcePath, destinationPath);
+  }
   return {
     object: 'skill_install',
     ok: true,
     path: destinationPath,
+    skill: skillId,
   };
 }
 
-async function ResolveSkillSource(): Promise<string> {
+export function ValidateAgentSkillId(
+  skillIdValue: string | undefined
+): AgentSkillId {
+  const skillId = skillIdValue ?? defaultAgentSkillId;
+  if (!Object.prototype.hasOwnProperty.call(skillDirectories, skillId)) {
+    throw InvalidInput(
+      `--skill must be one of: ${Object.keys(skillDirectories).join(', ')}.`
+    );
+  }
+  return skillId as AgentSkillId;
+}
+
+function DefaultSourceLocations(): SkillSourceLocations {
+  return {
+    packagedSkillsDirectory: path.resolve(__dirname, '../../skills'),
+    sourceTreeSkillsDirectory: path.resolve(process.cwd(), '.agents', 'skills'),
+  };
+}
+
+async function ResolveSkillSource(
+  skillDirectory: string,
+  sourceLocations: SkillSourceLocations
+): Promise<string> {
   const candidates = [
-    path.resolve(__dirname, '../../skills/zoneless-store/SKILL.md'),
-    path.resolve(process.cwd(), '.agents/skills/zoneless-store/SKILL.md'),
+    path.join(
+      sourceLocations.packagedSkillsDirectory,
+      skillDirectory,
+      'SKILL.md'
+    ),
+    path.join(
+      sourceLocations.sourceTreeSkillsDirectory,
+      skillDirectory,
+      'SKILL.md'
+    ),
   ];
   for (const candidate of candidates) {
     try {
@@ -43,7 +92,7 @@ async function ResolveSkillSource(): Promise<string> {
     }
   }
   throw new CliError(
-    'The packaged zoneless-store skill could not be found.',
+    `The packaged ${skillDirectory} skill could not be found.`,
     'skill_not_found',
     exitCodes.apiError
   );

@@ -18,6 +18,11 @@
             "glob": "SKILL.md",
             "input": ".agents/skills/zoneless-store",
             "output": "skills/zoneless-store"
+          },
+          {
+            "glob": "SKILL.md",
+            "input": ".agents/skills/zoneless-marketplace",
+            "output": "skills/zoneless-marketplace"
           }
         ]
       }

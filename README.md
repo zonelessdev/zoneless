@@ -75,11 +75,15 @@ const account = await client.accounts.create({
   email: 'seller@example.com',
 });
 
-await client.payouts.create({
-  amount: 10000,
-  currency: 'usdc',
-  destination: account.id,
-});
+await client.payouts.create(
+  {
+    amount: 10000,
+    currency: 'usdc',
+  },
+  {
+    zonelessAccount: account.id,
+  }
+);
 ```
 
 The payout is sent as USDC on Solana instead of through a bank. See the [migration guide](https://zoneless.com/docs/migrate-from-stripe) for setup instructions and a complete example.

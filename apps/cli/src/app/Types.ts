@@ -50,6 +50,8 @@ export interface HelpCommand {
   name: 'help';
 }
 
+export type AgentSkillId = 'marketplace' | 'store';
+
 export interface AgentSetupCommand {
   activationUrl?: string;
   authUrl?: string;
@@ -58,11 +60,13 @@ export interface AgentSetupCommand {
   newPlatform: boolean;
   platformName: string;
   profilePrefix?: string;
+  skillId: AgentSkillId;
 }
 
 export interface AgentInstallSkillCommand {
   json: boolean;
   name: 'agent-install-skill';
+  skillId: AgentSkillId;
 }
 
 export interface AuthStatusCommand {
