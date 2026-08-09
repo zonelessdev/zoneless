@@ -388,7 +388,8 @@ export class CheckoutPaymentModule {
    * Subscription, and collects the first period (unless trialing).
    *
    * Fee-sponsored confirms may pass `signed_transaction` instead of
-   * `signature`: the API cosigns with TRANSACTION_FEE_PAYER_KEY and broadcasts.
+   * `signature`: the API validates the existing fee payer and customer
+   * signatures before broadcasting.
    *
    * For subscription first-time wallets, pass `subscription_step: 'init_authority'`
    * after the init tx; the session stays open so the client can prepare subscribe.
@@ -439,7 +440,7 @@ export class CheckoutPaymentModule {
     ) {
       try {
         const broadcast =
-          await this.solana.CosignAndBroadcastCheckoutTransaction(
+          await this.solana.ValidateAndBroadcastCheckoutTransaction(
             options.signed_transaction
           );
         resolvedSignature = broadcast.signature;

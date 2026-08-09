@@ -106,7 +106,7 @@ describe('CheckoutPaymentModule', () => {
       | 'VerifyCheckoutPayment'
       | 'VerifySubscribeTransaction'
       | 'CollectSubscriptionPayment'
-      | 'CosignAndBroadcastCheckoutTransaction'
+      | 'ValidateAndBroadcastCheckoutTransaction'
       | 'FindExistingSubscriptionDelegation'
       | 'WaitForSubscriptionAuthority'
       | 'GetUSDCMintAddress'
@@ -174,8 +174,8 @@ describe('CheckoutPaymentModule', () => {
         signature: 'collect_sig',
         alreadyCollected: false,
       }),
-      CosignAndBroadcastCheckoutTransaction: jest.fn().mockResolvedValue({
-        signature: 'cosign_sig',
+      ValidateAndBroadcastCheckoutTransaction: jest.fn().mockResolvedValue({
+        signature: 'relay_sig',
       }),
       FindExistingSubscriptionDelegation: jest.fn().mockResolvedValue(null),
       WaitForSubscriptionAuthority: jest.fn().mockResolvedValue(undefined),
@@ -458,9 +458,8 @@ describe('CheckoutPaymentModule', () => {
         verified: true,
         payer_address: 'PayerWallet111',
         amount_cents: 1000,
-        failure_reason: null,
       });
-      mockSolana.CosignAndBroadcastCheckoutTransaction.mockResolvedValueOnce({
+      mockSolana.ValidateAndBroadcastCheckoutTransaction.mockResolvedValueOnce({
         signature: 'sig_abc',
       });
 
@@ -469,7 +468,7 @@ describe('CheckoutPaymentModule', () => {
       });
 
       expect(
-        mockSolana.CosignAndBroadcastCheckoutTransaction
+        mockSolana.ValidateAndBroadcastCheckoutTransaction
       ).toHaveBeenCalledWith('signed_tx_base64');
       expect(eventService.Emit.mock.calls.map((call) => call[0])).toEqual([
         'payment_intent.processing',
