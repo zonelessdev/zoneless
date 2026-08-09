@@ -10,10 +10,7 @@ import { Observable, of } from 'rxjs';
 export class DashboardPreloadingStrategy implements PreloadingStrategy {
   private readonly router = inject(Router);
 
-  preload(
-    route: Route,
-    load: () => Observable<unknown>
-  ): Observable<unknown> {
+  preload(route: Route, load: () => Observable<unknown>): Observable<unknown> {
     if (route.data?.['preload'] === false) {
       return of(null);
     }
