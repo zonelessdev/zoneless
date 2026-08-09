@@ -17,6 +17,7 @@ export const routes: Routes = [
   },
   {
     path: 'setup',
+    data: { preload: false },
     loadComponent: () =>
       import('./features/setup/setup.component').then(
         (mod) => mod.SetupComponent
@@ -24,6 +25,7 @@ export const routes: Routes = [
   },
   {
     path: 'onboard',
+    data: { preload: false },
     loadComponent: () =>
       import('./features/onboard/onboard.component').then(
         (mod) => mod.OnboardComponent
@@ -31,6 +33,7 @@ export const routes: Routes = [
   },
   {
     path: 'login',
+    data: { preload: false },
     loadComponent: () =>
       import('./features/login/login.component').then(
         (mod) => mod.LoginComponent
@@ -38,6 +41,7 @@ export const routes: Routes = [
   },
   {
     path: 'platform-login',
+    data: { preload: false },
     loadComponent: () =>
       import('./features/platform-login/platform-login.component').then(
         (mod) => mod.PlatformLoginComponent
@@ -45,6 +49,7 @@ export const routes: Routes = [
   },
   {
     path: 'session-expired',
+    data: { preload: false },
     loadComponent: () =>
       import('./features/session-expired/session-expired.component').then(
         (mod) => mod.SessionExpiredComponent
@@ -52,6 +57,7 @@ export const routes: Routes = [
   },
   {
     path: 'c/:checkoutSessionId',
+    data: { preload: false },
     loadComponent: () =>
       import('./features/checkout/checkout.component').then(
         (m) => m.CheckoutComponent
@@ -59,6 +65,7 @@ export const routes: Routes = [
   },
   {
     path: 'b/:paymentLinkId',
+    data: { preload: false },
     loadComponent: () =>
       import('./features/payment-link/payment-link.component').then(
         (m) => m.PaymentLinkComponent
@@ -71,6 +78,7 @@ export const routes: Routes = [
   },
   {
     path: '**',
+    data: { preload: false },
     loadComponent: () =>
       import('./features/not-found/not-found.component').then(
         (m) => m.NotFoundComponent
