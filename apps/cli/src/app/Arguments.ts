@@ -1,4 +1,5 @@
 import { InvalidInput } from './Errors';
+import { ValidateAgentSkillId } from './SkillInstaller';
 import type { ParsedCommand, StoreInitCommand } from './Types';
 
 const storeValueOptions = new Set([
@@ -11,12 +12,14 @@ const storeValueOptions = new Set([
 const storeBooleanOptions = new Set(['--dry-run', '--json']);
 const doctorValueOptions = new Set(['--profile']);
 const jsonBooleanOptions = new Set(['--json']);
+const installSkillValueOptions = new Set(['--skill']);
 const walletBackupValueOptions = new Set(['--output', '--profile']);
 const setupValueOptions = new Set([
   '--activation-url',
   '--auth-url',
   '--platform-name',
   '--profile-prefix',
+  '--skill',
 ]);
 const setupBooleanOptions = new Set(['--json', '--new-platform']);
 
@@ -57,13 +60,16 @@ export function ParseArguments(argumentsList: string[]): ParsedCommand {
     const commandArguments = argumentsList.slice(2);
     ValidateOptions(
       commandArguments,
-      new Set(),
+      installSkillValueOptions,
       jsonBooleanOptions,
       'agent install-skill'
     );
     return {
       name: 'agent-install-skill',
       json: commandArguments.includes('--json'),
+      skillId: ValidateAgentSkillId(
+        ReadOptionalOption(commandArguments, '--skill')
+      ),
     };
   }
 
@@ -141,6 +147,7 @@ function ParseAgentSetup(argumentsList: string[]): ParsedCommand {
     newPlatform: argumentsList.includes('--new-platform'),
     platformName,
     profilePrefix,
+    skillId: ValidateAgentSkillId(ReadOptionalOption(argumentsList, '--skill')),
   };
 }
 

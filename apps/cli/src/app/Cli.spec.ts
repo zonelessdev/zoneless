@@ -1,3 +1,6 @@
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { ParseArguments } from './Arguments';
 import { PresentAuthorizationPrompt, RunCli } from './Cli';
 import type { FetchLike } from './Client';
@@ -51,6 +54,7 @@ describe('Zoneless CLI', () => {
       newPlatform: false,
       platformName: 'Agent Store',
       profilePrefix: undefined,
+      skillId: 'store',
     });
     expect(ParseArguments(['doctor', '--profile', 'live'])).toEqual({
       json: false,
@@ -69,7 +73,77 @@ describe('Zoneless CLI', () => {
       name: 'agent-setup',
       newPlatform: true,
       platformName: 'Second Store',
+      skillId: 'store',
     });
+  });
+
+  it('parses and validates explicit agent skills', () => {
+    expect(
+      ParseArguments([
+        'agent',
+        'setup',
+        '--platform-name',
+        'Marketplace',
+        '--skill',
+        'marketplace',
+      ])
+    ).toMatchObject({
+      name: 'agent-setup',
+      skillId: 'marketplace',
+    });
+    expect(
+      ParseArguments([
+        'agent',
+        'install-skill',
+        '--skill',
+        'marketplace',
+        '--json',
+      ])
+    ).toEqual({
+      json: true,
+      name: 'agent-install-skill',
+      skillId: 'marketplace',
+    });
+    expect(() =>
+      ParseArguments(['agent', 'install-skill', '--skill', '../marketplace'])
+    ).toThrow(/marketplace, store/);
+  });
+
+  it('returns the selected installed skill path as JSON', async () => {
+    const projectDirectory = await fs.realpath(
+      await fs.mkdtemp(path.join(os.tmpdir(), 'zoneless-cli-'))
+    );
+    const originalDirectory = process.cwd();
+    const skillPath = path.join(
+      projectDirectory,
+      '.agents',
+      'skills',
+      'zoneless-marketplace',
+      'SKILL.md'
+    );
+    await fs.mkdir(path.dirname(skillPath), { recursive: true });
+    await fs.writeFile(skillPath, '# Marketplace test skill\n');
+    process.chdir(projectDirectory);
+    const { io, stdout } = CreateIo();
+
+    try {
+      const exitCode = await RunCli(
+        ['agent', 'install-skill', '--skill', 'marketplace', '--json'],
+        {},
+        io
+      );
+
+      expect(exitCode).toBe(exitCodes.success);
+      expect(JSON.parse(stdout.join(''))).toEqual({
+        object: 'skill_install',
+        ok: true,
+        path: skillPath,
+        skill: 'marketplace',
+      });
+    } finally {
+      process.chdir(originalDirectory);
+      await fs.rm(projectDirectory, { force: true, recursive: true });
+    }
   });
 
   it('creates a product, price, and payment link with distinct keys', async () => {

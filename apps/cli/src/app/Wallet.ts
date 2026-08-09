@@ -2,9 +2,17 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stderr } from 'node:process';
+import bs58 from 'bs58';
 import { InvalidInput } from './Errors';
 import type { ProfileStore } from './ProfileStore';
 import { GetWalletAccount, type SecretStore } from './SecretStore';
+
+export interface WalletBackupFile {
+  publicKey: string;
+  secretKeyBase58: string;
+  secretKeyBase64: string;
+  version: 2;
+}
 
 export async function BackupWallet(
   outputPath: string,
@@ -44,15 +52,27 @@ export async function BackupWallet(
   await fs.writeFile(
     resolvedPath,
     `${JSON.stringify(
-      {
-        publicKey: selected.profile.walletPublicKey,
-        secretKeyBase64: secretKey,
-        version: 1,
-      },
+      CreateWalletBackup(selected.profile.walletPublicKey, secretKey),
       null,
       2
     )}\n`,
     { flag: 'wx', mode: 0o600 }
   );
   return { object: 'wallet_backup', ok: true, path: resolvedPath };
+}
+
+export function CreateWalletBackup(
+  publicKey: string,
+  secretKeyBase64: string
+): WalletBackupFile {
+  const secretKey = Buffer.from(secretKeyBase64, 'base64');
+  if (secretKey.length !== 64) {
+    throw InvalidInput('The stored wallet key is invalid.');
+  }
+  return {
+    publicKey,
+    secretKeyBase58: bs58.encode(secretKey),
+    secretKeyBase64,
+    version: 2,
+  };
 }
