@@ -69,6 +69,43 @@ const MEMO_PROGRAM_ID = new PublicKey(
   'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'
 );
 
+/**
+ * Validate a wallet-signed checkout transaction without granting the fee payer
+ * authority over client-provided instructions. The fee payer signature must
+ * already be present from transaction preparation and every required signature
+ * must remain valid.
+ */
+export function ValidateSponsoredCheckoutTransaction(
+  signedTransactionBase64: string,
+  expectedFeePayer: PublicKey
+): string {
+  let transaction: Transaction;
+  try {
+    transaction = Transaction.from(
+      Buffer.from(signedTransactionBase64, 'base64')
+    );
+  } catch {
+    throw new Error('Invalid sponsored checkout transaction');
+  }
+
+  if (!transaction.feePayer?.equals(expectedFeePayer)) {
+    throw new Error('Sponsored checkout fee payer does not match');
+  }
+
+  const feePayerSignature = transaction.signatures.find(({ publicKey }) =>
+    publicKey.equals(expectedFeePayer)
+  )?.signature;
+  if (!feePayerSignature) {
+    throw new Error('Sponsored checkout fee payer signature is missing');
+  }
+
+  if (!transaction.verifySignatures()) {
+    throw new Error('Sponsored checkout transaction signatures are invalid');
+  }
+
+  return transaction.serialize().toString('base64');
+}
+
 /** Result of verifying a checkout payment transaction on-chain */
 export interface CheckoutPaymentVerification {
   verified: boolean;
@@ -738,9 +775,7 @@ export class Solana {
     const merchant = new PublicKey(merchantWalletAddress);
     const usdcMint = new PublicKey(this.GetUSDCMintAddress());
     const rentPayer = feeSponsored
-      ? Keypair.fromSecretKey(
-          bs58.decode(this.RequireCheckoutFeePayerSecretKey())
-        ).publicKey
+      ? this.GetCheckoutFeePayerKeypair().publicKey
       : payer;
 
     const payerTokenAccount = await getAssociatedTokenAddress(usdcMint, payer);
@@ -812,9 +847,7 @@ export class Solana {
     const subscriberSigner = createNoopSigner(subscriberAddress);
 
     const rentPayerPubkey = feeSponsored
-      ? Keypair.fromSecretKey(
-          bs58.decode(this.RequireCheckoutFeePayerSecretKey())
-        ).publicKey
+      ? this.GetCheckoutFeePayerKeypair().publicKey
       : new PublicKey(subscriberWallet);
     const rentPayerSigner = createNoopSigner(
       address(rentPayerPubkey.toBase58())
@@ -895,9 +928,7 @@ export class Solana {
     const subscriberSigner = createNoopSigner(subscriberAddress);
 
     const rentPayerPubkey = feeSponsored
-      ? Keypair.fromSecretKey(
-          bs58.decode(this.RequireCheckoutFeePayerSecretKey())
-        ).publicKey
+      ? this.GetCheckoutFeePayerKeypair().publicKey
       : new PublicKey(subscriberWallet);
     const rentPayerSigner = createNoopSigner(
       address(rentPayerPubkey.toBase58())
@@ -1011,36 +1042,24 @@ export class Solana {
   }
 
   /**
-   * After the customer co-signs a fee-sponsored checkout tx, add the
-   * TRANSACTION_FEE_PAYER signature and broadcast on our RPC.
+   * Validate that the customer preserved the fee payer's preparation signature,
+   * then broadcast the fully signed transaction unchanged.
    */
-  async CosignAndBroadcastCheckoutTransaction(
+  async ValidateAndBroadcastCheckoutTransaction(
     signedByCustomerBase64: string
   ): Promise<{ signature: string }> {
-    const transaction = Transaction.from(
-      Buffer.from(signedByCustomerBase64, 'base64')
+    const signedTransaction = ValidateSponsoredCheckoutTransaction(
+      signedByCustomerBase64,
+      this.GetCheckoutFeePayerKeypair().publicKey
     );
-    const feePayerKeypair = Keypair.fromSecretKey(
-      bs58.decode(this.RequireCheckoutFeePayerSecretKey())
-    );
-    transaction.partialSign(feePayerKeypair);
 
-    const broadcast = await this.BroadcastSignedTransaction(
-      transaction.serialize().toString('base64')
-    );
+    const broadcast = await this.BroadcastSignedTransaction(signedTransaction);
     if (broadcast.status === 'failed') {
       throw new Error(
         broadcast.failure_message || 'Failed to broadcast checkout transaction'
       );
     }
     return { signature: broadcast.signature };
-  }
-
-  /** @deprecated Use CosignAndBroadcastCheckoutTransaction */
-  async CosignAndBroadcastSubscribeTransaction(
-    signedBySubscriberBase64: string
-  ): Promise<{ signature: string }> {
-    return this.CosignAndBroadcastCheckoutTransaction(signedBySubscriberBase64);
   }
 
   /**
@@ -1328,14 +1347,14 @@ export class Solana {
     );
   }
 
-  private RequireCheckoutFeePayerSecretKey(): string {
+  private GetCheckoutFeePayerKeypair(): Keypair {
     const secretKey = GetCheckoutFeePayerSecretKey();
     if (!secretKey) {
       throw new Error(
         'TRANSACTION_FEE_PAYER_KEY is required for fee sponsorship'
       );
     }
-    return secretKey;
+    return Keypair.fromSecretKey(bs58.decode(secretKey));
   }
 
   private ToWeb3Instruction(instruction: Instruction): TransactionInstruction {
@@ -1371,10 +1390,7 @@ export class Solana {
     // Pre-sign with the fee payer so wallet simulation sees a funded payer
     // and does not warn about the subscriber's empty SOL balance.
     if (options?.feeSponsored) {
-      const feePayerKeypair = Keypair.fromSecretKey(
-        bs58.decode(this.RequireCheckoutFeePayerSecretKey())
-      );
-      transaction.partialSign(feePayerKeypair);
+      transaction.partialSign(this.GetCheckoutFeePayerKeypair());
     }
 
     const fee = await this.WithRetry(() =>
