@@ -200,8 +200,11 @@ a {
 
 @media only screen and (max-width: 1000px) {
   .side-menu-wrapper,
-  .variant-full {
+  .expanded-side-menu,
+  .variant-full,
+  .variant-full.expanded-side-menu {
     width: 100%;
+    height: auto;
     border-right: 0;
     border-bottom: 1px solid $darker-background-color;
   }
@@ -212,9 +215,15 @@ a {
 
   .sub-menus-wrapper {
     display: flex;
+    flex: none;
     padding: $spacing;
+    overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   .menu-group {
@@ -243,8 +252,14 @@ a {
     display: none;
   }
 
+  .side-menu-item {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
   .side-menu-text {
     font-size: $font-size;
+    white-space: nowrap;
   }
 
   .menu-icon {

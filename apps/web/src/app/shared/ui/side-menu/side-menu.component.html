@@ -20,7 +20,7 @@
       <ul>
         @for (sideMenuItem of group.items; track sideMenuItem.id) { @if
         (!sideMenuItem.hidden) {
-        <li [class.bottom-item-mobile]="sideMenuItem.bottom">
+        <li>
           <a
             class="side-menu-item"
             [class.desktop-hidden]="sideMenuItem.bottom"

@@ -63,19 +63,4 @@ export class SideMenuComponent {
   LinkFor(itemId: string): (string | number)[] {
     return [...this.basePath, itemId];
   }
-
-  ScrollToSelectedItem(): void {
-    setTimeout(() => {
-      if (typeof window !== 'undefined' && window.innerWidth <= 1000) {
-        const selectedItem = document.querySelector('.menu-icon-selected');
-        if (selectedItem) {
-          const subMenusWrapper = document.querySelector('.sub-menus-wrapper');
-          if (subMenusWrapper) {
-            const scrollLeft = (selectedItem as HTMLElement).offsetLeft - 16;
-            subMenusWrapper.scrollTo({ left: scrollLeft, behavior: 'smooth' });
-          }
-        }
-      }
-    }, 0);
-  }
 }
