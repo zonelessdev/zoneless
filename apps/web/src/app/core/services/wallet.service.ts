@@ -17,6 +17,8 @@ type DisconnectFeature = {
 
 export type MobileWalletSession = {
   payerWallet: string;
+  canSignTransaction: boolean;
+  SignUnsignedTransaction: (unsignedTxBase64: string) => Promise<Uint8Array>;
   SignAndSendUnsignedTransaction: (
     unsignedTxBase64: string,
     minContextSlot: number
@@ -97,6 +99,9 @@ export class SolanaWalletService {
 
       return callback({
         payerWallet: await this.GetMobileWalletAddress(account),
+        canSignTransaction: await this.SupportsMobileSignTransaction(wallet),
+        SignUnsignedTransaction: (unsignedTxBase64) =>
+          this.SignWithMobileWallet(wallet, unsignedTxBase64),
         SignAndSendUnsignedTransaction: (unsignedTxBase64, minContextSlot) =>
           this.SignAndSendWithMobileWallet(
             wallet,
@@ -271,6 +276,31 @@ export class SolanaWalletService {
       return bs58.default.encode(new Uint8Array(account.publicKey));
     }
     return bs58.default.encode(this.Base64ToBytes(account.address));
+  }
+
+  private async SupportsMobileSignTransaction(
+    wallet: MobileWallet
+  ): Promise<boolean> {
+    try {
+      const capabilities = await wallet.getCapabilities();
+      return capabilities.features.includes('solana:signTransactions');
+    } catch {
+      return false;
+    }
+  }
+
+  private async SignWithMobileWallet(
+    wallet: MobileWallet,
+    unsignedTxBase64: string
+  ): Promise<Uint8Array> {
+    const result = await wallet.signTransactions({
+      payloads: [unsignedTxBase64],
+    });
+    const signedTransaction = result.signed_payloads[0];
+    if (!signedTransaction) {
+      throw new Error('The wallet did not return a signed transaction');
+    }
+    return this.Base64ToBytes(signedTransaction);
   }
 
   private async SignAndSendWithMobileWallet(

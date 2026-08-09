@@ -673,6 +673,16 @@ export class CheckoutComponent implements OnInit {
     prepared: CheckoutPaymentTransaction,
     mobileWallet: MobileWalletSession
   ): Promise<CheckoutSession> {
+    if (prepared.fee_sponsored && mobileWallet.canSignTransaction) {
+      const signedTxBytes = await mobileWallet.SignUnsignedTransaction(
+        prepared.unsigned_transaction
+      );
+      return this.ConfirmPreparedPayment(session, prepared, {
+        signed_transaction:
+          this.solanaWalletService.BytesToBase64(signedTxBytes),
+      });
+    }
+
     const signatureBytes = await mobileWallet.SignAndSendUnsignedTransaction(
       prepared.unsigned_transaction,
       prepared.min_context_slot
