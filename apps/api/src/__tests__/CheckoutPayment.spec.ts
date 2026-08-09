@@ -388,7 +388,7 @@ describe('CheckoutPaymentModule', () => {
   });
 
   describe('ConfirmPayment', () => {
-    it('should emit charge.succeeded then payment_intent.succeeded before completing the session', async () => {
+    it('should relay signed transactions before completing the session', async () => {
       const session = BuildOpenSession();
       const requiresConfirmation = BuildPaymentIntent('requires_confirmation');
       const processing = {
@@ -460,9 +460,17 @@ describe('CheckoutPaymentModule', () => {
         amount_cents: 1000,
         failure_reason: null,
       });
+      mockSolana.CosignAndBroadcastCheckoutTransaction.mockResolvedValueOnce({
+        signature: 'sig_abc',
+      });
 
-      const result = await module.ConfirmPayment(session.url_slug, 'sig_abc');
+      const result = await module.ConfirmPayment(session.url_slug, undefined, {
+        signed_transaction: 'signed_tx_base64',
+      });
 
+      expect(
+        mockSolana.CosignAndBroadcastCheckoutTransaction
+      ).toHaveBeenCalledWith('signed_tx_base64');
       expect(eventService.Emit.mock.calls.map((call) => call[0])).toEqual([
         'payment_intent.processing',
         'charge.succeeded',
