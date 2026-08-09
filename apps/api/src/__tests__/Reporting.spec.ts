@@ -8,6 +8,7 @@ import {
   ParseInterval,
   ParseMetricIds,
   ResolveTodayPreset,
+  RowsToBucketMap,
   TruncateToBucket,
 } from '../modules/Reporting';
 
@@ -173,6 +174,18 @@ describe('Reporting helpers', () => {
         value: 1500,
       });
       expect(points[2].value).toBe(0);
+    });
+  });
+
+  describe('RowsToBucketMap', () => {
+    it('keys buckets by the aggregation _id instant', () => {
+      // Reporting pipelines group on `_id` via $dateTrunc. Aggregate must
+      // preserve `_id` or every bucket collapses to zero on the charts.
+      const bucket = new Date(Date.UTC(2026, 6, 2));
+      const map = RowsToBucketMap([{ _id: bucket, value: 4200 }]);
+
+      expect(map.get(Math.floor(bucket.getTime() / 1000))).toBe(4200);
+      expect(map.size).toBe(1);
     });
   });
 });
