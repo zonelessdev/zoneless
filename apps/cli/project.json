@@ -16,8 +16,8 @@
           "apps/cli/README.md",
           {
             "glob": "SKILL.md",
-            "input": ".agents/skills/zoneless-store",
-            "output": "skills/zoneless-store"
+            "input": ".agents/skills/zoneless-payments",
+            "output": "skills/zoneless-payments"
           },
           {
             "glob": "SKILL.md",

@@ -3,11 +3,13 @@ import path from 'node:path';
 import { CliError, InvalidInput } from './Errors';
 import { exitCodes, type AgentSkillId } from './Types';
 
-const defaultAgentSkillId: AgentSkillId = 'store';
+const defaultAgentSkillId: AgentSkillId = 'payments';
 const skillDirectories: Record<AgentSkillId, string> = {
   marketplace: 'zoneless-marketplace',
-  store: 'zoneless-store',
+  payments: 'zoneless-payments',
 };
+/** `store` was the original name of the payments skill; published prompts still use it. */
+const skillAliases: Record<string, AgentSkillId> = { store: 'payments' };
 
 export interface SkillSourceLocations {
   packagedSkillsDirectory: string;
@@ -52,12 +54,15 @@ export function ValidateAgentSkillId(
   skillIdValue: string | undefined
 ): AgentSkillId {
   const skillId = skillIdValue ?? defaultAgentSkillId;
-  if (!Object.prototype.hasOwnProperty.call(skillDirectories, skillId)) {
+  const resolvedSkillId = skillAliases[skillId] ?? skillId;
+  if (
+    !Object.prototype.hasOwnProperty.call(skillDirectories, resolvedSkillId)
+  ) {
     throw InvalidInput(
       `--skill must be one of: ${Object.keys(skillDirectories).join(', ')}.`
     );
   }
-  return skillId as AgentSkillId;
+  return resolvedSkillId as AgentSkillId;
 }
 
 function DefaultSourceLocations(): SkillSourceLocations {

@@ -1,13 +1,21 @@
 import { InvalidInput } from './Errors';
 import { ValidateAgentSkillId } from './SkillInstaller';
-import type { ParsedCommand, StoreInitCommand } from './Types';
+import {
+  recurringIntervals,
+  type ParsedCommand,
+  type RecurringInterval,
+  type StoreInitCommand,
+} from './Types';
 
 const storeValueOptions = new Set([
   '--amount',
   '--description',
   '--idempotency-key',
+  '--interval',
+  '--interval-count',
   '--name',
   '--profile',
+  '--trial-days',
 ]);
 const storeBooleanOptions = new Set(['--dry-run', '--json']);
 const doctorValueOptions = new Set(['--profile']);
@@ -200,12 +208,20 @@ function ParseStoreInit(argumentsList: string[]): StoreInitCommand {
     throw InvalidInput('--name must contain between 1 and 200 characters.');
   }
 
-  const amountText = ReadRequiredOption(argumentsList, '--amount');
-  const amount = Number(amountText);
-  if (!Number.isSafeInteger(amount) || amount <= 0) {
-    throw InvalidInput(
-      '--amount must be a positive integer in minor units (200 means 2.00 USDC).'
-    );
+  const amount = ParsePositiveInteger(
+    ReadRequiredOption(argumentsList, '--amount'),
+    '--amount',
+    ' in minor units (200 means 2.00 USDC)'
+  );
+
+  const interval = ReadOptionalInterval(argumentsList);
+  const intervalCount = ReadOptionalPositiveInteger(
+    argumentsList,
+    '--interval-count'
+  );
+  const trialDays = ReadOptionalPositiveInteger(argumentsList, '--trial-days');
+  if (!interval && (intervalCount !== undefined || trialDays !== undefined)) {
+    throw InvalidInput('--interval-count and --trial-days require --interval.');
   }
 
   const description = ReadOptionalOption(argumentsList, '--description');
@@ -229,9 +245,12 @@ function ParseStoreInit(argumentsList: string[]): StoreInitCommand {
     description,
     dryRun: argumentsList.includes('--dry-run'),
     idempotencyKey,
+    interval,
+    intervalCount,
     json: argumentsList.includes('--json'),
     productName,
     profile: ReadOptionalOption(argumentsList, '--profile'),
+    trialDays,
   };
 }
 
@@ -274,6 +293,41 @@ function ReadRequiredOption(
   const value = ReadOptionalOption(argumentsList, optionName);
   if (value === undefined) {
     throw InvalidInput(`${optionName} is required.`);
+  }
+  return value;
+}
+
+function ReadOptionalInterval(
+  argumentsList: string[]
+): RecurringInterval | undefined {
+  const value = ReadOptionalOption(argumentsList, '--interval');
+  if (value === undefined) return undefined;
+  if (!recurringIntervals.includes(value as RecurringInterval)) {
+    throw InvalidInput(
+      `--interval must be one of: ${recurringIntervals.join(', ')}.`
+    );
+  }
+  return value as RecurringInterval;
+}
+
+function ReadOptionalPositiveInteger(
+  argumentsList: string[],
+  optionName: string
+): number | undefined {
+  const value = ReadOptionalOption(argumentsList, optionName);
+  return value === undefined
+    ? undefined
+    : ParsePositiveInteger(value, optionName);
+}
+
+function ParsePositiveInteger(
+  rawValue: string,
+  optionName: string,
+  hint = ''
+): number {
+  const value = Number(rawValue);
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw InvalidInput(`${optionName} must be a positive integer${hint}.`);
   }
   return value;
 }
