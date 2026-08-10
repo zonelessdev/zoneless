@@ -78,7 +78,7 @@ After setup:
 
 ```bash
 npx @zoneless/cli@latest doctor --json
-npx @zoneless/cli@latest env sync --include-wallet --json
+npx @zoneless/cli@latest env sync --json
 npx @zoneless/cli@latest store init \
   --name "Agent product" \
   --amount 200 \
@@ -94,6 +94,11 @@ or creates the framework-appropriate default, and updates
 `--target <path>` when the repository contains multiple env files. This command
 is for local development; continue to use the deployment secret manager for
 live credentials.
+
+Payment collection does not require a wallet key in the application, so omit
+`--include-wallet` for checkout and subscription integrations. Use it only for
+a server process that must sign wallet operations, such as a self-hosted payout
+worker.
 
 Add `--interval` to sell the product as a recurring USDC subscription instead of
 a one-time purchase. The payment link then opens a subscription checkout, where
@@ -142,7 +147,11 @@ an agent.
 Environment credentials remain supported for CI and self-hosted deployments:
 
 ```bash
-export ZONELESS_API_URL=https://your-api.example/v1
+export ZONELESS_API_URL=https://your-api.example
 export ZONELESS_API_KEY=zk_...
 npx @zoneless/cli@latest doctor --json
 ```
+
+Use an origin without a trailing `/v1` when passing `ZONELESS_API_URL` to
+`@zoneless/node`. The CLI accepts either form and joins the API path exactly
+once.

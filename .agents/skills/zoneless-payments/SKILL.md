@@ -43,10 +43,11 @@ the opposite.
 ## Read documentation just in time
 
 Start with `https://zoneless.com/docs/subscriptions.md` for the recurring
-billing API and `https://zoneless.com/docs/checkout-api-quickstart.md` for the
-checkout request and response shapes. Use `https://zoneless.com/llms.txt` as an
-index and read a resource page only when implementing that resource or when
-blocked. Do not fetch the entire docs set upfront.
+billing API, `https://zoneless.com/docs/checkout-api-quickstart.md` for checkout
+request and response shapes, and `https://zoneless.com/docs/webhooks.md` when
+wiring lifecycle events. Use `https://zoneless.com/llms.txt` as an index and
+read a resource page only when implementing that resource or when blocked. Do
+not fetch the entire docs set upfront.
 
 The API shape and flow should be similar to Stripe.
 
@@ -94,6 +95,10 @@ wallet key in the application; Zoneless signs each collection. If the command
 reports multiple environment files, infer the server's actual env file from its
 scripts and framework, then rerun once with `--target <relative-path>`.
 
+`env sync` writes `ZONELESS_API_URL` as an origin without a trailing `/v1`.
+Pass that value directly to `@zoneless/node`; the SDK adds `/v1`. For raw HTTP
+requests, append `/v1` exactly once.
+
 ## Use test mode, then hand off live promotion
 
 Implement and verify against `https://api-test.zoneless.com`. Keep the mode
@@ -101,6 +106,17 @@ environment-driven rather than hardcoded. At handoff, explain that going live
 means configuring the separately provisioned live API key,
 `https://api.zoneless.com`, and the live webhook secret in the deployment
 secret manager.
+
+## Choose the integration client
+
+For JavaScript or TypeScript backends, install `@zoneless/node` and initialize
+it server-side with `ZONELESS_API_KEY` and `ZONELESS_API_URL`. Use the SDK's
+types for Checkout Sessions, Subscriptions, Invoices, and Events instead of
+recreating partial local interfaces.
+
+For other runtimes, build a small server-only HTTP adapter. Keep the API origin,
+authentication, error mapping, and `/v1` joining in that adapter rather than
+scattering raw requests through application handlers.
 
 ## Classify before editing
 
@@ -120,8 +136,15 @@ path:
 
 Also identify the backend runtime, the user or account model, where access is
 currently recorded, the test framework, deployment conventions, and secret
-handling. If the billing flow is unclear, stop and ask before editing. Do not
-redesign unrelated parts of the application.
+handling. Explicitly identify the **billing subject**: the record or resource
+that owns one entitlement and can be independently started, renewed, canceled,
+or switched between providers. It may be a user, account, workspace, seat,
+license, domain, or another application resource. Do not assume it is the user
+record merely because checkout is authenticated.
+
+Determine how provider subscription IDs map to billing subjects and where
+cancellation is managed. If that mapping or ownership boundary is unclear, stop
+and ask before editing. Do not redesign unrelated parts of the application.
 
 ## Add a payment method, not a plan
 
@@ -135,18 +158,23 @@ detail. Preserve these invariants:
 2. **One entitlement record.** Write access from Zoneless into the same field
    the existing provider already writes. Do not create a parallel notion of
    who has access; that is how customers end up locked out or served twice.
-3. **One active provider per subscriber.** Add a `billingProvider` value such
-   as `stripe` or `zoneless` to the subscriber record, alongside a separate
-   `zonelessSubscriptionId`. Pin it when a subscription starts.
-4. **No double billing.** A user with an active subscription on another
-   provider must cancel it or reach period end before starting a Zoneless one.
-   Enforce this on the server, not only in the UI.
+3. **One active provider per billing subject.** Add a `billingProvider` value
+   such as `stripe` or `zoneless` to the record that owns the entitlement,
+   alongside a separate `zonelessSubscriptionId`. Pin it when a subscription
+   starts. Different independently billed subjects may use different providers.
+4. **No double billing for the same subject.** A billing subject with an active
+   subscription on another provider must cancel it or reach period end before
+   starting a Zoneless one. Enforce this on the server, not only in the UI.
 5. **Keep existing IDs.** Preserve the existing provider's customer and
    subscription IDs so the user can switch back.
 
 Reuse the application's existing persistence style. For a small app with no
 subscription model, add only the fields needed to answer "who has access, until
 when, and who is billing them".
+
+Keep existing provider handlers unchanged unless enforcing the same-subject
+invariant genuinely requires a shared guard. If it does, ask before changing
+existing checkout behavior and keep the change provider-neutral.
 
 ## Mirror each plan with the CLI
 
@@ -188,12 +216,14 @@ mapping. Do not create a new plan row. Report the returned `product_id`,
 ## Open checkout from the application
 
 For a signed-in user, create a Checkout Session server-side so the subscription
-can be tied to that user. A bare payment link URL carries no user context.
+can be tied to the billing subject after validating that the user may purchase
+it. A bare payment link URL carries no application context.
 
 Create the session with `mode: 'subscription'`, one line item referencing the
-mirrored `price_id`, a `success_url`, and both `client_reference_id` set to the
-application's user ID and `customer` set to a stored Zoneless customer when one
-exists. Redirect the user to the returned session URL.
+mirrored `price_id`, a `success_url`, `client_reference_id` set to a stable
+application reference for the billing subject, and `customer` set to a stored
+Zoneless customer when one exists. Redirect the user to the returned session
+URL.
 
 Use the `checkout_url` from `store init` directly only when there is no user to
 attach, such as an anonymous landing page.
@@ -207,21 +237,36 @@ payment. Treat verified webhook events as the only source of truth.
 
 Reuse the application's existing webhook infrastructure. Preserve the raw body,
 verify `Zoneless-Signature` using `ZONELESS_WEBHOOK_SECRET`, and make duplicate
-events safe. Keep every existing provider webhook unchanged.
+events safe by recording `event.id`. Keep every existing provider webhook
+unchanged.
 
 Handle these events:
 
-- `checkout.session.completed` — resolve the user from `client_reference_id`,
-  pin `billingProvider` to `zoneless`, store the subscription ID, and grant
+- `checkout.session.completed` — resolve the application subject from
+  `client_reference_id`, store `subscription` and `customer`, retrieve the
+  Subscription when needed, pin `billingProvider` to `zoneless`, and grant
   access.
-- `invoice.payment_succeeded` — extend access for the new period. This is the
-  event that keeps a subscriber active month after month.
+- `invoice.paid` — resolve the subscription from
+  `parent.subscription_details.subscription` and extend access using the
+  invoice period. This is the event that keeps a subscriber active month after
+  month.
 - `invoice.payment_failed` — apply the application's existing dunning or grace
   behavior. Do not invent a new one.
 - `customer.subscription.updated` — follow status changes such as `past_due`
   and `paused`.
 - `customer.subscription.deleted` — revoke access at the end of the paid
   period.
+
+On a Subscription, billing periods belong to
+`items.data[*].current_period_start` and `items.data[*].current_period_end`, not
+the Subscription's top level. Match the relevant item by its ID or price before
+writing the entitlement period. Use SDK-shaped fixtures in tests so local
+parsers cannot drift from the actual resource shape.
+
+Process repeated and out-of-order events from current resource state. If an
+event omits a field required by the application, retrieve the referenced
+Checkout Session, Subscription, or Invoice rather than guessing. If the
+application already has a billing reconciliation path, include Zoneless in it.
 
 If a small app has no webhook infrastructure, retrieve subscription status from
 Zoneless instead of building a new event system, and note live webhook setup in
@@ -245,45 +290,51 @@ then add the returned `checkout_url` to the site as the purchase link. Verify
 the URL loads and that the visible name and amount match the request. Grant any
 access from `checkout.session.completed` rather than the redirect.
 
-## What Zoneless does not support yet
+## Keep the first integration focused
 
-Do not build these, and tell the human plainly if the integration needs one:
-
-- proration and mid-cycle plan changes;
-- coupons and promotion codes;
-- refunds through the API;
-- a hosted billing portal;
-- metered or usage-based billing;
-- invoice emails for `send_invoice` collection.
-
-Use fixed-price plans with automatic collection and cancellation at period end.
+Match the application's existing fixed-price entitlement and cancellation
+behavior. Do not simulate billing behavior that is not covered by the current
+API documentation. If the existing flow depends on additional behavior, report
+that dependency separately and continue with the safe, supported portion when
+possible.
 
 ## Verify
 
 Use mocks or test credentials. Add tests for:
 
 - the existing billing and checkout paths remaining unchanged;
-- a user never holding an active subscription on two providers at once;
+- one billing subject never holding active subscriptions on two providers at
+  once, while independent subjects remain independent;
 - entitlement granted from a verified webhook and not from the success
   redirect;
-- `invoice.payment_succeeded` extending the same access record the existing
+- `invoice.paid` extending the same access record the existing
   provider writes;
 - duplicate webhook deliveries being safe;
+- Checkout Session, Subscription, and Invoice handling using actual SDK-shaped
+  fixtures, including item-level subscription periods;
 - cancellation routing to the provider that owns the subscription;
 - no secret values reaching browser code, logs, fixtures, or snapshots.
 
 Run the project's formatter, focused tests, linter, type checker, and build.
 Fix regressions introduced by the integration.
 
+Open a test Checkout Session and verify that the hosted page shows the expected
+product, amount, cadence, and return URLs. When a test wallet is available,
+complete one supervised test subscription and verify the resulting entitlement.
+Do not describe unexecuted end-to-end behavior as tested.
+
 ## Human handoff
 
 Report:
 
 - changed files and the existing abstractions reused;
+- any existing-provider checkout or management behavior that changed;
 - the plans mirrored, with their Zoneless price IDs;
 - database migration and deployment commands;
-- required environment-variable names, never values;
-- tests run and any unverified behavior;
+- required environment-variable names (`ZONELESS_API_KEY`,
+  `ZONELESS_API_URL`, and `ZONELESS_WEBHOOK_SECRET`), never values;
+- checks run, distinguishing static checks, unit tests, hosted-checkout
+  verification, and completed end-to-end payments;
 - that to test a subscription end to end, the human needs a Solana wallet
   holding test USDC, available free from `https://faucet.circle.com/` by
   selecting **USDC** and **Solana Devnet**, and that they must never send real

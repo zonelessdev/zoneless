@@ -1,6 +1,6 @@
 {
   "name": "@zoneless/cli",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Provision and manage an agent-operated Zoneless store",
   "license": "Apache-2.0",
   "repository": {
