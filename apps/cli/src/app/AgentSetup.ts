@@ -69,10 +69,12 @@ interface AuthorizationPoll {
 export interface AgentSetupOptions {
   activationUrl?: string;
   authUrl?: string;
+  expectedWorkspaceId?: string;
   newPlatform?: boolean;
   platformName: string;
   pollIntervalMs?: number;
   profilePrefix?: string;
+  reconnect?: boolean;
 }
 
 export interface AuthorizationPrompt {
@@ -138,6 +140,7 @@ export class AgentSetupService {
         endpoint: 'CreateAgentAuthorization',
         newPlatform: options.newPlatform === true,
         platformName: options.platformName,
+        reconnect: options.reconnect === true,
         solanaPublicKey: walletPublicKey,
       });
     } catch (error) {
@@ -212,6 +215,23 @@ export class AgentSetupService {
       encryptionKeys.privateKey
     );
     ValidateCredentials(credentials);
+    if (options.reconnect && credentials.action !== 'reconnect') {
+      await this.secretStore.Delete(GetWalletAccount(walletPublicKey));
+      throw new ApiError(
+        'The authorization did not reconnect the existing platform.',
+        0
+      );
+    }
+    if (
+      options.expectedWorkspaceId &&
+      credentials.workspaceId !== options.expectedWorkspaceId
+    ) {
+      await this.secretStore.Delete(GetWalletAccount(walletPublicKey));
+      throw new ApiError(
+        'The authorization returned credentials for a different workspace.',
+        0
+      );
+    }
     if (credentials.walletPublicKey !== walletPublicKey) {
       await this.secretStore.Delete(GetWalletAccount(walletPublicKey));
     }

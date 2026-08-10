@@ -79,7 +79,7 @@ export class ProfileStore {
     return { profile, profileName: selectedName };
   }
 
-  async GetStatus(profileName?: string): Promise<{
+  async GetStatus(profileNames?: string | string[]): Promise<{
     currentProfile: string | null;
     profiles: Array<
       AgentProfile & {
@@ -91,7 +91,11 @@ export class ProfileStore {
   }> {
     const config = await this.Read();
     const profileEntries = Object.entries(config.profiles).filter(
-      ([name]) => !profileName || name === profileName
+      ([name]) =>
+        !profileNames ||
+        (Array.isArray(profileNames)
+          ? profileNames.includes(name)
+          : name === profileNames)
     );
     const profiles = await Promise.all(
       profileEntries.map(async ([name, profile]) => ({
@@ -111,17 +115,24 @@ export class ProfileStore {
     return { currentProfile: config.currentProfile, profiles };
   }
 
-  async GetReusableSetup(profilePrefix?: string): Promise<{
+  async GetReusableSetup(
+    profilePrefix?: string,
+    profileName?: string,
+    requireSecrets = true
+  ): Promise<{
     currentProfile: string;
     live: AgentProfile;
+    liveProfile: string;
     test: AgentProfile;
+    testProfile: string;
   } | null> {
     const config = await this.Read();
     const requestedNames = profilePrefix
       ? BuildProfileNames(profilePrefix)
       : null;
-    const selectedProfile = config.currentProfile
-      ? config.profiles[config.currentProfile]
+    const selectedName = profileName ?? config.currentProfile;
+    const selectedProfile = selectedName
+      ? config.profiles[selectedName]
       : undefined;
     const entries = requestedNames
       ? Object.entries(config.profiles).filter(([name]) =>
@@ -143,13 +154,19 @@ export class ProfileStore {
       this.secretStore.Get(GetApiKeyAccount(liveEntry[0])),
       this.secretStore.Get(GetApiKeyAccount(testEntry[0])),
     ]);
-    if (!liveKey || !testKey) return null;
+    if (requireSecrets && (!liveKey || !testKey)) return null;
     const currentProfile = [liveEntry[0], testEntry[0]].includes(
       config.currentProfile || ''
     )
       ? config.currentProfile!
       : testEntry[0];
-    return { currentProfile, live, test };
+    return {
+      currentProfile,
+      live,
+      liveProfile: liveEntry[0],
+      test,
+      testProfile: testEntry[0],
+    };
   }
 
   async ResolveNewPlatformPrefix(

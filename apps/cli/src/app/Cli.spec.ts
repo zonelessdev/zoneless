@@ -4,6 +4,9 @@ import path from 'node:path';
 import { ParseArguments } from './Arguments';
 import { PresentAuthorizationPrompt, RunCli } from './Cli';
 import type { FetchLike } from './Client';
+import { ProfileStore, type AgentProfile } from './ProfileStore';
+import { ProjectStore } from './ProjectStore';
+import type { SecretStore } from './SecretStore';
 import { exitCodes, type CliIo } from './Types';
 
 function CreateIo(): {
@@ -109,6 +112,34 @@ describe('Zoneless CLI', () => {
     ).toThrow(/marketplace, store/);
   });
 
+  it('parses reconnect and environment sync commands', () => {
+    expect(
+      ParseArguments(['auth', 'reconnect', '--profile', 'acme-test', '--json'])
+    ).toEqual({
+      activationUrl: undefined,
+      authUrl: undefined,
+      json: true,
+      name: 'auth-reconnect',
+      profile: 'acme-test',
+    });
+    expect(
+      ParseArguments([
+        'env',
+        'sync',
+        '--target',
+        '.env.local',
+        '--include-wallet',
+        '--json',
+      ])
+    ).toEqual({
+      includeWallet: true,
+      json: true,
+      name: 'env-sync',
+      profile: undefined,
+      target: '.env.local',
+    });
+  });
+
   it('returns the selected installed skill path as JSON', async () => {
     const projectDirectory = await fs.realpath(
       await fs.mkdtemp(path.join(os.tmpdir(), 'zoneless-cli-'))
@@ -143,6 +174,87 @@ describe('Zoneless CLI', () => {
     } finally {
       process.chdir(originalDirectory);
       await fs.rm(projectDirectory, { force: true, recursive: true });
+    }
+  });
+
+  it('uses the project-bound test profile instead of the global current profile', async () => {
+    const projectDirectory = await fs.realpath(
+      await fs.mkdtemp(path.join(os.tmpdir(), 'zoneless-bound-project-'))
+    );
+    const configRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'zoneless-bound-config-')
+    );
+    const originalDirectory = process.cwd();
+    const secrets = new Map<string, string>();
+    const secretStore: SecretStore = {
+      Delete: async (account) => {
+        secrets.delete(account);
+      },
+      Get: async (account) => secrets.get(account) ?? null,
+      Set: async (account, value) => {
+        secrets.set(account, value);
+      },
+    };
+    const profileStore = new ProfileStore(
+      { XDG_CONFIG_HOME: configRoot },
+      secretStore
+    );
+    await profileStore.SaveProfiles(
+      {
+        'acme-live': CreateProfile('live'),
+        'acme-test': CreateProfile('test'),
+        unrelated: {
+          ...CreateProfile('live'),
+          platformName: 'Unrelated',
+          workspaceId: 'workspace-unrelated',
+        },
+      },
+      {
+        'acme-live': 'live-secret',
+        'acme-test': 'test-secret',
+        unrelated: 'unrelated-secret',
+      },
+      'unrelated'
+    );
+    await new ProjectStore().Bind(projectDirectory, {
+      liveProfile: 'acme-live',
+      platformName: 'Acme',
+      profilePrefix: 'acme',
+      testProfile: 'acme-test',
+      version: 1,
+      workspaceId: 'workspace-acme',
+    });
+    const fetchRequest: FetchLike = jest.fn(async (input, init) => {
+      expect(String(input)).toContain('api-test.example');
+      expect(new Headers(init?.headers).get('x-api-key')).toBe('test-secret');
+      if (String(input).endsWith('/products?limit=1')) {
+        return JsonResponse({ data: [], object: 'list' });
+      }
+      return JsonResponse({ livemode: false, object: 'config' });
+    });
+    const { io, stdout } = CreateIo();
+    process.chdir(projectDirectory);
+
+    try {
+      const exitCode = await RunCli(
+        ['doctor', '--json'],
+        { XDG_CONFIG_HOME: configRoot },
+        io,
+        fetchRequest,
+        secretStore
+      );
+
+      expect(exitCode).toBe(exitCodes.success);
+      expect(JSON.parse(stdout.join(''))).toMatchObject({
+        livemode: false,
+        object: 'doctor',
+      });
+    } finally {
+      process.chdir(originalDirectory);
+      await Promise.all([
+        fs.rm(projectDirectory, { force: true, recursive: true }),
+        fs.rm(configRoot, { force: true, recursive: true }),
+      ]);
     }
   });
 
@@ -433,3 +545,15 @@ describe('Zoneless CLI', () => {
     expect(openBrowser).not.toHaveBeenCalled();
   });
 });
+
+function CreateProfile(mode: 'live' | 'test'): AgentProfile {
+  return {
+    apiKeyPrefix: `${mode}-prefix`,
+    apiUrl: `https://api-${mode}.example/v1`,
+    mode,
+    platformId: `platform-${mode}`,
+    platformName: 'Acme',
+    walletPublicKey: 'wallet-public-key',
+    workspaceId: 'workspace-acme',
+  };
+}

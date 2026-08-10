@@ -26,6 +26,20 @@ the human explicitly asks for that additional work.
 - Stop before a destructive schema change or an ambiguous money movement.
   Ask the human rather than guessing.
 
+## Assume no crypto knowledge
+
+Use plain language whenever the human must act. Briefly explain that USDC is a
+digital dollar, Solana is the network carrying it, SOL pays the small network
+fee, a wallet address is safe to share, and a wallet secret key authorizes
+spending and must remain private. Explain that devnet/test mode uses free,
+worthless test funds on a network separate from mainnet/live mode, and that a
+faucet is a website that supplies those test funds. Do not use terms such as
+gas, mint, token account, cluster, or airdrop without explaining them.
+
+Give concrete instructions: name the network and asset, say where to copy the
+public wallet address, link the relevant guide or faucet, and distinguish test
+funds from real funds. Never assume prior wallet or blockchain experience.
+
 ## Read documentation just in time
 
 Start with `https://zoneless.com/docs/api-quickstart.md`. Use
@@ -61,12 +75,33 @@ this marketplace; do not create duplicates.
 
 Show the returned `verification_url` and `user_code`, then wait. Do not approve
 the request for the human. Setup stores test and live credentials in the
-operating-system credential store without printing them. Continue with the
-test profile after approval.
+operating-system credential store without printing them and binds this
+repository to those profiles in `.zoneless/project.json`. Continue with the
+bound test profile after approval.
 
-Do not copy stored CLI credentials into the application. Add only environment
-variable names and secret-manager references to the project. The human supplies
-deployment values during handoff.
+Setup validates stored keys before reusing them. If it reports
+`credentials_invalid`, run:
+
+```bash
+npx @zoneless/cli@latest auth reconnect --json
+```
+
+Show the new authorization prompt to the human, then retry setup after
+reconnection.
+
+For local test execution, inject the bound test credentials into the project's
+local env file without displaying or reading them:
+
+```bash
+npx @zoneless/cli@latest env sync --include-wallet --json
+```
+
+If the command reports multiple environment files, infer the server's actual
+env file from its scripts and framework, then rerun once with
+`--target <relative-path>`. Do not print the file or return its values. The
+command preserves unrelated variables, ignores the target in Git, and writes
+owner-only permissions. For deployment, add only environment variable names
+and secret-manager references; the human supplies live values during handoff.
 
 ## Use test mode, then hand off live promotion
 
@@ -161,6 +196,26 @@ cluster, token-account, or RPC configuration; Zoneless builds the transaction.
 If the runtime cannot sign it, stop and ask before adding a sidecar or changing
 runtimes.
 
+## Match the existing payout trigger
+
+Do not invent a universal payout schedule. Preserve the marketplace's existing
+trigger and choose the matching Zoneless processor:
+
+- **Scheduled platform payout:** create transfers as earnings become eligible,
+  create pending payouts in the existing daily/weekly worker, then use
+  `processAll()` when that worker owns every pending Zoneless payout.
+- **Bounded worker batch:** use `processBatch()` when the existing worker
+  deliberately processes one platform-wide batch of up to 10.
+- **Seller claim or admin-selected payout:** reserve the claimed earnings,
+  create one transfer and payout, then process that payout ID with
+  `build`/`sign`/`broadcast`.
+- **Manual payout:** create the transfer and pending payout in the existing
+  admin flow, but leave transaction processing to the existing manual worker.
+
+Do not add both a claim route and a scheduler unless the application already
+supports both. Keep the existing eligibility thresholds, timing, and
+withdrawal rules.
+
 ## Implement the additive payout path
 
 Follow the project's architecture, but preserve these invariants:
@@ -212,6 +267,12 @@ Follow the project's architecture, but preserve these invariants:
      Remember that `processAll()` and `processBatch()` select pending payouts
      platform-wide; use explicit `build`/`sign`/`broadcast` when the worker must
      process one claimed payout.
+   - If a broadcast response is lost or times out, treat the payout as
+     `unknown`, retrieve its current Zoneless status, and do not create another
+     transfer or payout. If Zoneless reports it paid, reconcile locally. If it
+     remains pending, rebroadcast the same retained signed transaction when
+     possible; otherwise stop for reconciliation rather than rebuilding
+     blindly.
    - Do not mark local earnings paid until Zoneless reports the payout paid.
 
 5. **Status updates**
@@ -260,7 +321,18 @@ Report:
 - required environment-variable names, never values;
 - tests run and any unverified behavior;
 - the test-mode onboarding path;
+- that before an end-to-end test payout, the human must fund the test
+  platform's public wallet address (the `wallet_public_key` returned by setup or
+  the address shown under **Balance**) with devnet SOL from
+  `https://faucet.solana.com/` and test USDC from
+  `https://faucet.circle.com/`, selecting **USDC** and **Solana Devnet** at the
+  Circle faucet; link
+  `https://zoneless.com/docs/local-development.md` for the complete steps and
+  warn never to send real SOL or USDC to devnet;
 - where the human must configure the API key and webhook secret;
+- the exact live-mode promotion sequence, including the bound live profile
+  name, `https://api.zoneless.com`, deployment secret changes, live webhook
+  setup, wallet funding, and one supervised payout;
 - that the human must run
   `npx @zoneless/cli@latest wallet backup --output <secure-path>` themselves,
   place the backup's `secretKeyBase58` value directly in the production secret
