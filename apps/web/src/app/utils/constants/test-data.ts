@@ -6,7 +6,7 @@ export const TEST_PERSON_DATA: PersonFormData = {
   firstName: 'Tom',
   lastName: 'Jones',
   email: 'tom.jones@example.com',
-  phone: '+1 5551234567',
+  phone: '+1 4155552671',
   dobDay: 1,
   dobMonth: 1,
   dobYear: 1990,

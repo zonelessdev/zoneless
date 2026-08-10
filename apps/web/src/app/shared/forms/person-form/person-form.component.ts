@@ -122,7 +122,10 @@ export class PersonFormComponent implements OnInit, OnChanges {
       this.email.set(this.person.email || '');
 
       if (this.person.phone) {
-        this.ParseAndSetPhone(this.person.phone);
+        this.ParseAndSetPhone(
+          this.person.phone,
+          this.person.address?.country ?? undefined
+        );
       } else {
         this.phoneCountryCode.set('US');
         this.phoneNumber.set('');
@@ -176,10 +179,17 @@ export class PersonFormComponent implements OnInit, OnChanges {
     this.EmitFormChange();
   }
 
-  private ParseAndSetPhone(fullPhone: string): void {
-    const sortedCountries = [...ISO_CODES].sort(
-      (a, b) => b.dialCode.length - a.dialCode.length
-    );
+  private ParseAndSetPhone(
+    fullPhone: string,
+    preferredCountryCode?: string
+  ): void {
+    const sortedCountries = [...ISO_CODES].sort((a, b) => {
+      const dialCodeLengthDifference = b.dialCode.length - a.dialCode.length;
+      if (dialCodeLengthDifference !== 0) return dialCodeLengthDifference;
+      if (a.code === preferredCountryCode) return -1;
+      if (b.code === preferredCountryCode) return 1;
+      return 0;
+    });
     for (const country of sortedCountries) {
       if (fullPhone.startsWith(country.dialCode)) {
         this.phoneCountryCode.set(country.code);
@@ -609,7 +619,10 @@ export class PersonFormComponent implements OnInit, OnChanges {
     if (country) {
       this.phoneCountryCode.set(country.code);
     }
-    this.ParseAndSetPhone(TEST_PERSON_DATA.phone);
+    this.ParseAndSetPhone(
+      TEST_PERSON_DATA.phone,
+      TEST_PERSON_DATA.addressCountry
+    );
 
     this.ValidateAll();
     this.EmitFormChange();
