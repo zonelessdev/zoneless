@@ -35,22 +35,43 @@ export interface DoctorCommand {
   profile?: string;
 }
 
+/** Billing frequencies accepted by the Zoneless prices API. */
+export const recurringIntervals = [
+  'hour',
+  'day',
+  'week',
+  'month',
+  'year',
+] as const;
+
+export type RecurringInterval = (typeof recurringIntervals)[number];
+
+/** Recurring terms sent to the prices API, and echoed back in dry-run plans. */
+export interface RecurringPlan {
+  interval: RecurringInterval;
+  interval_count: number;
+  trial_period_days?: number;
+}
+
 export interface StoreInitCommand {
   name: 'store-init';
   amount: number;
   description?: string;
   dryRun: boolean;
   idempotencyKey?: string;
+  interval?: RecurringInterval;
+  intervalCount?: number;
   json: boolean;
   productName: string;
   profile?: string;
+  trialDays?: number;
 }
 
 export interface HelpCommand {
   name: 'help';
 }
 
-export type AgentSkillId = 'marketplace' | 'store';
+export type AgentSkillId = 'marketplace' | 'payments';
 
 export interface AgentSetupCommand {
   activationUrl?: string;

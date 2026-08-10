@@ -57,7 +57,7 @@ describe('Zoneless CLI', () => {
       newPlatform: false,
       platformName: 'Agent Store',
       profilePrefix: undefined,
-      skillId: 'store',
+      skillId: 'payments',
     });
     expect(ParseArguments(['doctor', '--profile', 'live'])).toEqual({
       json: false,
@@ -76,7 +76,7 @@ describe('Zoneless CLI', () => {
       name: 'agent-setup',
       newPlatform: true,
       platformName: 'Second Store',
-      skillId: 'store',
+      skillId: 'payments',
     });
   });
 
@@ -107,9 +107,63 @@ describe('Zoneless CLI', () => {
       name: 'agent-install-skill',
       skillId: 'marketplace',
     });
+    expect(
+      ParseArguments(['agent', 'install-skill', '--skill', 'store'])
+    ).toMatchObject({ skillId: 'payments' });
     expect(() =>
       ParseArguments(['agent', 'install-skill', '--skill', '../marketplace'])
-    ).toThrow(/marketplace, store/);
+    ).toThrow(/marketplace, payments/);
+  });
+
+  it('parses recurring store init options', () => {
+    expect(
+      ParseArguments([
+        'store',
+        'init',
+        '--name',
+        'Pro',
+        '--amount',
+        '2000',
+        '--interval',
+        'month',
+        '--interval-count',
+        '3',
+        '--trial-days',
+        '14',
+      ])
+    ).toMatchObject({
+      amount: 2000,
+      interval: 'month',
+      intervalCount: 3,
+      trialDays: 14,
+    });
+    expect(
+      ParseArguments(['store', 'init', '--name', 'Pro', '--amount', '2000'])
+    ).toMatchObject({ interval: undefined, trialDays: undefined });
+    expect(() =>
+      ParseArguments([
+        'store',
+        'init',
+        '--name',
+        'Pro',
+        '--amount',
+        '2000',
+        '--interval',
+        'fortnight',
+      ])
+    ).toThrow(/--interval must be one of/);
+    expect(() =>
+      ParseArguments([
+        'store',
+        'init',
+        '--name',
+        'Pro',
+        '--amount',
+        '2000',
+        '--trial-days',
+        '14',
+      ])
+    ).toThrow(/require --interval/);
   });
 
   it('parses reconnect and environment sync commands', () => {
@@ -320,6 +374,7 @@ describe('Zoneless CLI', () => {
       payment_link_id: 'plink_test',
       price_id: 'price_test',
       product_id: 'prod_test',
+      recurring: null,
     });
 
     const writeRequests = requests.slice(2);
@@ -339,6 +394,107 @@ describe('Zoneless CLI', () => {
       currency: 'usdc',
       line_items: [{ price: 'price_test', quantity: 1 }],
     });
+  });
+
+  it('sends recurring terms to the prices API', async () => {
+    const requests: { body: string | null; url: string }[] = [];
+    const fetchRequest: FetchLike = jest.fn(async (input, init) => {
+      const url = String(input);
+      requests.push({ body: (init?.body as string) ?? null, url });
+      if (url.endsWith('/products?limit=1')) {
+        return JsonResponse({ object: 'list', data: [] });
+      }
+      if (url.endsWith('/config')) {
+        return JsonResponse({ object: 'config', livemode: false });
+      }
+      if (url.endsWith('/products')) {
+        return JsonResponse({ id: 'prod_sub' }, 201);
+      }
+      if (url.endsWith('/prices')) {
+        return JsonResponse({ id: 'price_sub' }, 201);
+      }
+      return JsonResponse(
+        { id: 'plink_sub', url: 'https://pay.example/b/sub' },
+        201
+      );
+    });
+    const { io, stdout } = CreateIo();
+
+    const exitCode = await RunCli(
+      [
+        'store',
+        'init',
+        '--name',
+        'Pro',
+        '--amount',
+        '2000',
+        '--interval',
+        'month',
+        '--trial-days',
+        '14',
+        '--json',
+      ],
+      {
+        ZONELESS_API_KEY: 'zk_test_secret',
+        ZONELESS_API_URL: 'https://api.example',
+      },
+      io,
+      fetchRequest
+    );
+
+    expect(exitCode).toBe(exitCodes.success);
+    const priceRequest = requests.find(({ url }) => url.endsWith('/prices'));
+    expect(JSON.parse(priceRequest?.body ?? '{}')).toEqual({
+      currency: 'usdc',
+      product: 'prod_sub',
+      recurring: {
+        interval: 'month',
+        interval_count: 1,
+        trial_period_days: 14,
+      },
+      unit_amount: 2000,
+    });
+    expect(JSON.parse(stdout.join('')).recurring).toEqual({
+      interval: 'month',
+      interval_count: 1,
+      trial_period_days: 14,
+    });
+  });
+
+  it('summarizes recurring cadence in human-readable output', async () => {
+    const fetchRequest: FetchLike = jest.fn(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/products?limit=1')) {
+        return JsonResponse({ object: 'list', data: [] });
+      }
+      return JsonResponse({ object: 'config', livemode: false });
+    });
+    const { io, stdout } = CreateIo();
+
+    const exitCode = await RunCli(
+      [
+        'store',
+        'init',
+        '--name',
+        'Pro',
+        '--amount',
+        '2000',
+        '--interval',
+        'month',
+        '--trial-days',
+        '14',
+        '--dry-run',
+      ],
+      {
+        ZONELESS_API_KEY: 'zk_test_secret',
+        ZONELESS_API_URL: 'https://api.example',
+      },
+      io,
+      fetchRequest
+    );
+
+    expect(exitCode).toBe(exitCodes.success);
+    expect(stdout.join('')).toContain('20.00 USDC / month, 14-day trial');
   });
 
   it('creates resources against a live-mode API', async () => {

@@ -6,6 +6,7 @@ import type {
   PriceResponse,
   ProductResponse,
   PublicConfig,
+  RecurringPlan,
   StoreInitCommand,
 } from './Types';
 
@@ -35,6 +36,11 @@ export interface DoctorResult {
   ok: true;
 }
 
+interface StoreProduct {
+  description?: string;
+  name: string;
+}
+
 export interface StoreInitResult {
   amount: number;
   checkout_url: string;
@@ -44,6 +50,7 @@ export interface StoreInitResult {
   payment_link_id: string;
   price_id: string;
   product_id: string;
+  recurring: RecurringPlan | null;
 }
 
 export interface StoreInitPlan {
@@ -52,10 +59,8 @@ export interface StoreInitPlan {
   dry_run: true;
   object: 'store_init_plan';
   ok: true;
-  product: {
-    description?: string;
-    name: string;
-  };
+  product: StoreProduct;
+  recurring: RecurringPlan | null;
 }
 
 export async function RunDoctor(client: StoreClient): Promise<DoctorResult> {
@@ -82,6 +87,9 @@ export async function RunStoreInit(
 ): Promise<StoreInitResult | StoreInitPlan> {
   await RunDoctor(client);
 
+  const productBody = BuildProduct(command);
+  const recurring = BuildRecurring(command);
+
   if (command.dryRun) {
     return {
       amount: command.amount,
@@ -89,10 +97,8 @@ export async function RunStoreInit(
       dry_run: true,
       object: 'store_init_plan',
       ok: true,
-      product: {
-        name: command.productName,
-        ...(command.description ? { description: command.description } : {}),
-      },
+      product: productBody,
+      recurring: recurring ?? null,
     };
   }
 
@@ -105,10 +111,7 @@ export async function RunStoreInit(
 
   try {
     const product = await client.CreateProduct(
-      {
-        name: command.productName,
-        ...(command.description ? { description: command.description } : {}),
-      },
+      { ...productBody },
       `${idempotencyPrefix}:product`
     );
     partialResources.product_id = RequireValue(product.id, 'product id');
@@ -118,6 +121,7 @@ export async function RunStoreInit(
         currency: 'usdc',
         product: partialResources.product_id,
         unit_amount: command.amount,
+        ...(recurring ? { recurring } : {}),
       },
       `${idempotencyPrefix}:price`
     );
@@ -145,6 +149,7 @@ export async function RunStoreInit(
       payment_link_id: partialResources.payment_link_id,
       price_id: partialResources.price_id,
       product_id: partialResources.product_id,
+      recurring: recurring ?? null,
     };
   } catch (error) {
     if (Object.values(partialResources).some((value) => value !== null)) {
@@ -152,6 +157,22 @@ export async function RunStoreInit(
     }
     throw error;
   }
+}
+
+function BuildProduct(command: StoreInitCommand): StoreProduct {
+  return {
+    name: command.productName,
+    ...(command.description ? { description: command.description } : {}),
+  };
+}
+
+function BuildRecurring(command: StoreInitCommand): RecurringPlan | undefined {
+  if (!command.interval) return undefined;
+  return {
+    interval: command.interval,
+    interval_count: command.intervalCount ?? 1,
+    ...(command.trialDays ? { trial_period_days: command.trialDays } : {}),
+  };
 }
 
 function RequireValue(value: string | undefined, label: string): string {

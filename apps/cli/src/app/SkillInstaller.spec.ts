@@ -35,12 +35,12 @@ async function WriteSkill(
 }
 
 describe('Skill installer', () => {
-  it('installs the default store skill from the source tree', async () => {
+  it('installs the default payments skill from the source tree', async () => {
     const fixture = await CreateFixture();
     await WriteSkill(
       fixture.sourceLocations.sourceTreeSkillsDirectory,
-      'zoneless-store',
-      '# Store source skill\n'
+      'zoneless-payments',
+      '# Payments source skill\n'
     );
 
     try {
@@ -57,13 +57,43 @@ describe('Skill installer', () => {
           fixture.projectDirectory,
           '.agents',
           'skills',
-          'zoneless-store',
+          'zoneless-payments',
           'SKILL.md'
         ),
-        skill: 'store',
+        skill: 'payments',
       });
       expect(await fs.readFile(result.path, 'utf8')).toBe(
-        '# Store source skill\n'
+        '# Payments source skill\n'
+      );
+    } finally {
+      await fs.rm(fixture.rootDirectory, { force: true, recursive: true });
+    }
+  });
+
+  it('installs the payments skill for the legacy store alias', async () => {
+    const fixture = await CreateFixture();
+    await WriteSkill(
+      fixture.sourceLocations.sourceTreeSkillsDirectory,
+      'zoneless-payments',
+      '# Payments source skill\n'
+    );
+
+    try {
+      const result = await InstallAgentSkill(
+        fixture.projectDirectory,
+        'store',
+        fixture.sourceLocations
+      );
+
+      expect(result.skill).toBe('payments');
+      expect(result.path).toBe(
+        path.join(
+          fixture.projectDirectory,
+          '.agents',
+          'skills',
+          'zoneless-payments',
+          'SKILL.md'
+        )
       );
     } finally {
       await fs.rm(fixture.rootDirectory, { force: true, recursive: true });
@@ -105,10 +135,10 @@ describe('Skill installer', () => {
 
   it('rejects skill values outside the finite allowlist', () => {
     expect(() => ValidateAgentSkillId('../zoneless-marketplace')).toThrow(
-      /marketplace, store/
+      /marketplace, payments/
     );
     expect(() => ValidateAgentSkillId('zoneless-marketplace')).toThrow(
-      /marketplace, store/
+      /marketplace, payments/
     );
   });
 });

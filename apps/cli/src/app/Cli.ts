@@ -40,8 +40,11 @@ Options:
   --activation-url <url>     Human approval page override
   --profile-prefix <name>    Prefix stored live/test profile names
   --new-platform             Create another isolated platform
-  --skill <skill>            Agent skill: store (default) or marketplace
+  --skill <skill>            Agent skill: payments (default) or marketplace
   --description <text>       Product description
+  --interval <interval>      Bill on a recurring cycle: hour, day, week, month, year
+  --interval-count <count>   Intervals per billing cycle (default 1)
+  --trial-days <days>        Free trial length before the first charge
   --dry-run                  Validate without creating resources
   --idempotency-key <key>    Reuse the same operation keys on retry
   --profile <name>           Use a stored live or test profile
@@ -643,15 +646,34 @@ function FormatHumanResult(result: object): string {
     return `Authenticated to ${resultRecord['api_url']} in ${mode} mode.\n`;
   }
   if (resultRecord['object'] === 'store_init_plan') {
-    return `Dry run passed. Would create a ${resultRecord['amount']} USDC-minor-unit product and payment link.\n`;
+    return `Dry run passed. Would create a ${FormatPriceSummary(
+      resultRecord
+    )} product and payment link.\n`;
   }
   return [
     `Product: ${resultRecord['product_id']}`,
-    `Price: ${resultRecord['price_id']}`,
+    `Price: ${resultRecord['price_id']} (${FormatPriceSummary(resultRecord)})`,
     `Payment link: ${resultRecord['payment_link_id']}`,
     `Checkout URL: ${resultRecord['checkout_url']}`,
     '',
   ].join('\n');
+}
+
+/** Renders a store init amount as `2.00 USDC`, or `2.00 USDC / month` when recurring. */
+function FormatPriceSummary(result: Record<string, unknown>): string {
+  const amount = `${(Number(result['amount']) / 100).toFixed(2)} USDC`;
+  const recurring = result['recurring'];
+  if (!recurring || typeof recurring !== 'object') return amount;
+
+  const {
+    interval,
+    interval_count: intervalCount,
+    trial_period_days: trialDays,
+  } = recurring as Record<string, unknown>;
+  const cycle =
+    Number(intervalCount) === 1 ? interval : `${intervalCount} ${interval}s`;
+  const trial = trialDays ? `, ${trialDays}-day trial` : '';
+  return `${amount} / ${cycle}${trial}`;
 }
 
 function ParsePollInterval(value: string | undefined): number | undefined {

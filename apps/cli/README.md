@@ -1,6 +1,6 @@
 # @zoneless/cli
 
-CLI for securely provisioning Zoneless platforms for agent-managed store or
+CLI for securely provisioning Zoneless platforms for agent-managed payments or
 marketplace integrations.
 
 Run without installing globally:
@@ -15,7 +15,7 @@ Or install once with `npm install --global @zoneless/cli` and replace
 The command generates a Solana wallet locally, opens a one-time authorization
 flow, provisions live and test environments after human approval, saves API
 keys and the wallet secret in the operating-system credential store, and
-installs the `zoneless-store` Agent Skill in the current project. Secrets are
+installs the `zoneless-payments` Agent Skill in the current project. Secrets are
 never printed or sent to the approval page.
 
 For an existing marketplace that should add Zoneless as an optional USDC payout
@@ -31,8 +31,9 @@ npx @zoneless/cli@latest agent setup \
 
 The final JSON object includes `skill_path`, the exact local path to
 `.agents/skills/zoneless-marketplace/SKILL.md`. The agent should read that file
-before changing the marketplace. Omitting `--skill` continues to install the
-`zoneless-store` skill. The supported values are `store` and `marketplace`.
+before changing the marketplace. Omitting `--skill` installs the
+`zoneless-payments` skill. The supported values are `payments` and
+`marketplace`; `store` remains accepted as the former name for `payments`.
 
 To install either skill without provisioning a platform:
 
@@ -93,6 +94,24 @@ or creates the framework-appropriate default, and updates
 `--target <path>` when the repository contains multiple env files. This command
 is for local development; continue to use the deployment secret manager for
 live credentials.
+
+Add `--interval` to sell the product as a recurring USDC subscription instead of
+a one-time purchase. The payment link then opens a subscription checkout, where
+the customer approves the plan once and Zoneless collects each following cycle
+automatically:
+
+```bash
+npx @zoneless/cli@latest store init \
+  --name "Pro" \
+  --amount 2000 \
+  --interval month \
+  --trial-days 14 \
+  --json
+```
+
+`--interval` accepts `hour`, `day`, `week`, `month`, or `year`. Use
+`--interval-count` to bill every N intervals, and `--trial-days` to delay the
+first charge. Both require `--interval`.
 
 `--amount` is expressed in minor units, so `200` means `2.00 USDC`. The API URL
 determines whether resources are created in the hosted test or live environment,
