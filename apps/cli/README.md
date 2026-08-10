@@ -50,7 +50,18 @@ prints the verification URL without opening a browser so an agent can present it
 to the human approving the request.
 
 Running setup again with valid local profiles reuses them without rotating API
-keys or changing wallets. Create another isolated platform with:
+keys or changing wallets. Setup validates both keys before reuse and writes
+`.zoneless/project.json`, a non-secret binding that lets commands run from the
+repository without relying on whichever profile was last used globally.
+
+If a key was rotated or revoked, authorize replacement keys without creating a
+new platform:
+
+```bash
+npx @zoneless/cli@latest auth reconnect --json
+```
+
+Create another isolated platform with:
 
 ```bash
 npx @zoneless/cli@latest agent setup \
@@ -58,14 +69,15 @@ npx @zoneless/cli@latest agent setup \
   --new-platform
 ```
 
-If local credentials were lost, setup lets the human reconnect to an existing
-platform on the approval page. Reconnecting keeps its wallet and replaces only
-the previous agent API key; the original wallet backup is still required.
+Reconnecting keeps the platform and wallet while replacing the previous agent
+API keys. The original wallet backup is still required if its local key was
+lost.
 
 After setup:
 
 ```bash
 npx @zoneless/cli@latest doctor --json
+npx @zoneless/cli@latest env sync --include-wallet --json
 npx @zoneless/cli@latest store init \
   --name "Agent product" \
   --amount 200 \
@@ -73,10 +85,20 @@ npx @zoneless/cli@latest store init \
   --json
 ```
 
+`env sync` validates the selected profile, finds an unambiguous local env file
+or creates the framework-appropriate default, and updates
+`ZONELESS_API_URL`, `ZONELESS_API_KEY`, and, with `--include-wallet`,
+`SOLANA_SECRET_KEY`. It preserves unrelated values, adds the target to
+`.gitignore`, sets owner-only permissions, and never prints secret values. Use
+`--target <path>` when the repository contains multiple env files. This command
+is for local development; continue to use the deployment secret manager for
+live credentials.
+
 `--amount` is expressed in minor units, so `200` means `2.00 USDC`. The API URL
 determines whether resources are created in the hosted test or live environment,
-or in the configured mode of a self-hosted environment. Setup selects the
-stored `test` profile by default. Pass `--profile live` for live resources.
+or in the configured mode of a self-hosted environment. Setup binds the
+repository to its test and live profiles and selects test by default. Pass an
+explicit `--profile <name>` when working with another profile.
 
 Inspect non-secret profile metadata with:
 

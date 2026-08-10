@@ -108,6 +108,33 @@ describe('Profile store multi-platform behavior', () => {
       )
     ).resolves.toBeUndefined();
   });
+
+  it('can resolve profile metadata for reconnect when local keys are missing', async () => {
+    const store = new ProfileStore(
+      { XDG_CONFIG_HOME: configRoot },
+      secretStore
+    );
+    await store.SaveProfiles(
+      {
+        'acme-live': CreateProfile('live'),
+        'acme-test': CreateProfile('test'),
+      },
+      {
+        'acme-live': 'live-secret',
+        'acme-test': 'test-secret',
+      },
+      'acme-test'
+    );
+    secrets.clear();
+
+    await expect(store.GetReusableSetup('acme')).resolves.toBeNull();
+    await expect(
+      store.GetReusableSetup('acme', 'acme-test', false)
+    ).resolves.toMatchObject({
+      liveProfile: 'acme-live',
+      testProfile: 'acme-test',
+    });
+  });
 });
 
 function CreateProfile(mode: 'live' | 'test'): AgentProfile {

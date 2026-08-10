@@ -75,6 +75,22 @@ export interface AuthStatusCommand {
   profile?: string;
 }
 
+export interface AuthReconnectCommand {
+  activationUrl?: string;
+  authUrl?: string;
+  json: boolean;
+  name: 'auth-reconnect';
+  profile?: string;
+}
+
+export interface EnvSyncCommand {
+  includeWallet: boolean;
+  json: boolean;
+  name: 'env-sync';
+  profile?: string;
+  target?: string;
+}
+
 export interface WalletBackupCommand {
   name: 'wallet-backup';
   outputPath: string;
@@ -87,6 +103,8 @@ export type ParsedCommand =
   | AgentSetupCommand
   | AgentInstallSkillCommand
   | AuthStatusCommand
+  | AuthReconnectCommand
+  | EnvSyncCommand
   | WalletBackupCommand
   | HelpCommand;
 

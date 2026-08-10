@@ -12,6 +12,13 @@ const storeValueOptions = new Set([
 const storeBooleanOptions = new Set(['--dry-run', '--json']);
 const doctorValueOptions = new Set(['--profile']);
 const jsonBooleanOptions = new Set(['--json']);
+const reconnectValueOptions = new Set([
+  '--activation-url',
+  '--auth-url',
+  '--profile',
+]);
+const envSyncValueOptions = new Set(['--profile', '--target']);
+const envSyncBooleanOptions = new Set(['--include-wallet', '--json']);
 const installSkillValueOptions = new Set(['--skill']);
 const walletBackupValueOptions = new Set(['--output', '--profile']);
 const setupValueOptions = new Set([
@@ -85,6 +92,40 @@ export function ParseArguments(argumentsList: string[]): ParsedCommand {
       name: 'auth-status',
       json: commandArguments.includes('--json'),
       profile: ReadOptionalOption(commandArguments, '--profile'),
+    };
+  }
+
+  if (argumentsList[0] === 'auth' && argumentsList[1] === 'reconnect') {
+    const commandArguments = argumentsList.slice(2);
+    ValidateOptions(
+      commandArguments,
+      reconnectValueOptions,
+      jsonBooleanOptions,
+      'auth reconnect'
+    );
+    return {
+      activationUrl: ReadOptionalOption(commandArguments, '--activation-url'),
+      authUrl: ReadOptionalOption(commandArguments, '--auth-url'),
+      json: commandArguments.includes('--json'),
+      name: 'auth-reconnect',
+      profile: ReadOptionalOption(commandArguments, '--profile'),
+    };
+  }
+
+  if (argumentsList[0] === 'env' && argumentsList[1] === 'sync') {
+    const commandArguments = argumentsList.slice(2);
+    ValidateOptions(
+      commandArguments,
+      envSyncValueOptions,
+      envSyncBooleanOptions,
+      'env sync'
+    );
+    return {
+      includeWallet: commandArguments.includes('--include-wallet'),
+      json: commandArguments.includes('--json'),
+      name: 'env-sync',
+      profile: ReadOptionalOption(commandArguments, '--profile'),
+      target: ReadOptionalOption(commandArguments, '--target'),
     };
   }
 

@@ -86,11 +86,11 @@ describe('Agent setup', () => {
     const fetchRequest = jest.fn(
       async (_input: RequestInfo | URL, init?: RequestInit) => {
         const request = JSON.parse(String(init?.body)) as {
-          data: Record<string, string>;
+          data: Record<string, unknown>;
         };
         if (request.data['endpoint'] === 'CreateAgentAuthorization') {
-          credentialPublicKey = request.data['credentialPublicKey'];
-          walletPublicKey = request.data['solanaPublicKey'];
+          credentialPublicKey = String(request.data['credentialPublicKey']);
+          walletPublicKey = String(request.data['solanaPublicKey']);
           return JsonResponse({
             deviceCode: 'device-secret',
             expiresAt: Date.now() + 60_000,
@@ -180,6 +180,7 @@ describe('Agent setup', () => {
     };
     let generatedWallet = '';
     let credentialPublicKey = '';
+    let reconnectRequested = false;
     const savedProfiles: Record<string, { walletPublicKey: string }> = {};
     const profileWriter: ProfileWriter = {
       SaveProfiles: async (profiles) => {
@@ -189,11 +190,12 @@ describe('Agent setup', () => {
     const fetchRequest = jest.fn(
       async (_input: RequestInfo | URL, init?: RequestInit) => {
         const request = JSON.parse(String(init?.body)) as {
-          data: Record<string, string>;
+          data: Record<string, unknown>;
         };
         if (request.data['endpoint'] === 'CreateAgentAuthorization') {
-          credentialPublicKey = request.data['credentialPublicKey'];
-          generatedWallet = request.data['solanaPublicKey'];
+          credentialPublicKey = String(request.data['credentialPublicKey']);
+          generatedWallet = String(request.data['solanaPublicKey']);
+          reconnectRequested = request.data['reconnect'] === true;
           return JsonResponse({
             deviceCode: 'device-secret',
             expiresAt: Date.now() + 60_000,
@@ -243,13 +245,16 @@ describe('Agent setup', () => {
     const result = await service.Setup(
       {
         authUrl: 'https://auth.example/Actions',
+        expectedWorkspaceId: 'workspace-existing',
         platformName: 'Existing Store',
         pollIntervalMs: 100,
+        reconnect: true,
       },
       () => undefined
     );
 
     expect(result.wallet_public_key).toBe('existing-wallet');
+    expect(reconnectRequested).toBe(true);
     expect(savedProfiles['live'].walletPublicKey).toBe('existing-wallet');
     expect([...secrets.keys()]).not.toContain(`wallet:${generatedWallet}`);
   });
