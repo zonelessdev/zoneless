@@ -83,7 +83,7 @@
         [limit]="10"
         [queryParams]="priceQueryParams()"
         [paginationEnabled]="false"
-        (rowClick)="OnPriceListClick($event)"
+        rowLinkPrefix="/account/prices"
       ></app-paginated-list>
     </div>
     <div class="view-section">

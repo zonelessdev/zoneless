@@ -10,7 +10,7 @@ import {
   PaginatedListComponent,
   PaginatedListColumn,
 } from '../../../../../shared';
-import { Router, ActivatedRoute } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import type { Customer, PaymentIntent } from '@zoneless/shared-types';
 import { GetPaymentIntentListStatus } from '@zoneless/shared-types';
 import { MetaService } from '../../../../../core';
@@ -37,7 +37,6 @@ type PaymentsStatusTab =
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PaymentIntentListComponent implements OnInit {
-  readonly router = inject(Router);
   readonly route = inject(ActivatedRoute);
   private readonly metaService = inject(MetaService);
 
@@ -170,10 +169,6 @@ export class PaymentIntentListComponent implements OnInit {
   SetPaymentsStatusTab(tab: PaymentsStatusTab): void {
     this.paymentsStatusTab.set(tab);
     this.SyncPaymentIntentsQueryParams();
-  }
-
-  OnPaymentIntentClick(paymentIntent: PaymentIntent): void {
-    this.router.navigate(['/account/payments', paymentIntent.id]);
   }
 
   private SyncPaymentIntentsQueryParams(): void {

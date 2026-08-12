@@ -10,10 +10,26 @@
   }
   <tbody>
     @if (!loading() && items().length > 0) { @for (item of items(); track
-    item.id) {
-    <tr class="row more-icon-highlight" (click)="OnRowClick(item)">
-      @for (column of columns; track column.field) {
-      <td>
+    item.id) { @let rowLink = GetRowLink(item);
+    <tr
+      class="row more-icon-highlight"
+      [class.row-interactive]="IsRowInteractive()"
+      (click)="OnRowClick(item)"
+    >
+      @for (column of columns; track column.field; let isFirst = $first) {
+      <td
+        [class.row-cell]="rowLink != null && column.type !== 'actions'"
+        [class.actions-cell]="column.type === 'actions'"
+      >
+        @if (rowLink && column.type !== 'actions') {
+        <a
+          class="row-link"
+          [routerLink]="rowLink"
+          [attr.tabindex]="isFirst ? null : -1"
+          [attr.aria-hidden]="isFirst ? null : true"
+          [attr.aria-label]="isFirst ? 'Open ' + item.id : null"
+        ></a>
+        }
         <div
           class="data-cell"
           [class.bold-cell]="column.bolded"

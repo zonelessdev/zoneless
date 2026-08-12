@@ -277,18 +277,6 @@ export class CustomerDetailComponent implements OnInit, OnDestroy {
     this.invoiceQueryParams.set({ customer: customerId });
   }
 
-  OnSubscriptionClick(subscription: SubscriptionType): void {
-    void this.router.navigate(['/account/subscriptions', subscription.id]);
-  }
-
-  OnPaymentClick(paymentIntent: PaymentIntent): void {
-    void this.router.navigate(['/account/payments', paymentIntent.id]);
-  }
-
-  OnInvoiceClick(invoice: Invoice): void {
-    void this.router.navigate(['/account/invoices', invoice.id]);
-  }
-
   OnEdit(): void {
     const p = this.customer();
     if (p) this.actions.OpenEdit(p);

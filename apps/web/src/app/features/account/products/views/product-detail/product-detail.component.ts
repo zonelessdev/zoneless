@@ -260,8 +260,4 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     const p = this.product();
     if (p) this.priceActions.OpenCreate(p.id);
   }
-
-  OnPriceListClick(price: Price): void {
-    this.router.navigate(['/account/prices', price.id]);
-  }
 }

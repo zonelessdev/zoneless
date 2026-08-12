@@ -65,7 +65,7 @@
   [limit]="10"
   [queryParams]="productsQueryParams()"
   [expand]="productsExpand()"
-  (rowClick)="OnProductListClick($event)"
+  rowLinkPrefix="/account/products"
 ></app-paginated-list>
 }
 

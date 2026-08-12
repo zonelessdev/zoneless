@@ -15,7 +15,7 @@
   [columns]="paymentLinkColumns"
   [limit]="10"
   [queryParams]="paymentLinksQueryParams()"
-  (rowClick)="OnRowClick($event)"
+  rowLinkPrefix="/account/payment-links"
 ></app-paginated-list>
 
 <app-payment-link-actions-host></app-payment-link-actions-host>

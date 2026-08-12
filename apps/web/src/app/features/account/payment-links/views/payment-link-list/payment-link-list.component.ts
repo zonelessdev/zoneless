@@ -105,10 +105,6 @@ export class PaymentLinkListComponent implements OnInit, OnDestroy {
     this.sub?.unsubscribe();
   }
 
-  OnRowClick(paymentLink: PaymentLink): void {
-    void this.router.navigate(['/account/payment-links', paymentLink.id]);
-  }
-
   private CopyPaymentLinkUrl(paymentLink: PaymentLink): void {
     void navigator.clipboard.writeText(paymentLink.url);
   }

@@ -7,12 +7,12 @@ import {
   OnChanges,
   SimpleChanges,
   ChangeDetectionStrategy,
-  HostListener,
   signal,
   WritableSignal,
   inject,
 } from '@angular/core';
 import { DatePipe, DecimalPipe, TitleCasePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 
 import { ApiService } from '../../../core';
 import { ListResponse } from '@zoneless/shared-types';
@@ -76,6 +76,7 @@ interface ListItem {
     DatePipe,
     DecimalPipe,
     TitleCasePipe,
+    RouterLink,
     StatusChipComponent,
     PopupMenuComponent,
   ],
@@ -113,7 +114,14 @@ export class PaginatedListComponent<T extends ListItem>
   /** Act on behalf of a connected account (Zoneless-Account header) */
   @Input() zonelessAccount = '';
 
-  /** Emits when a row is clicked */
+  /**
+   * Router path prefix for each row (e.g. `/account/customers`).
+   * When set, rows become real links to `${rowLinkPrefix}/${item.id}`
+   * so the browser can open them in a new tab.
+   */
+  @Input() rowLinkPrefix = '';
+
+  /** Emits when a row is clicked (used when the row is not a link) */
   @Output() rowClick = new EventEmitter<T>();
 
   loading: WritableSignal<boolean> = signal(false);
@@ -122,7 +130,6 @@ export class PaginatedListComponent<T extends ListItem>
   pageNumber: WritableSignal<number> = signal(0);
   initialLoadComplete: WritableSignal<boolean> = signal(false);
   totalCount: WritableSignal<number> = signal(0);
-  openMenuItemId: WritableSignal<string | null> = signal(null);
 
   // Store last item ID of each page for pagination
   // pageLastItems[N] = last item ID of page N
@@ -262,11 +269,17 @@ export class PaginatedListComponent<T extends ListItem>
     }
   }
 
+  GetRowLink(item: T): string[] | null {
+    if (!this.rowLinkPrefix) return null;
+    return [this.rowLinkPrefix, item.id];
+  }
+
+  IsRowInteractive(): boolean {
+    return Boolean(this.rowLinkPrefix) || this.rowClick.observed;
+  }
+
   OnRowClick(item: T): void {
-    if (this.openMenuItemId() !== null) {
-      this.openMenuItemId.set(null);
-      return;
-    }
+    if (this.GetRowLink(item)) return;
     this.rowClick.emit(item);
   }
 

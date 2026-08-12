@@ -15,7 +15,7 @@
   [columns]="customerColumns"
   [limit]="10"
   [queryParams]="customersQueryParams()"
-  (rowClick)="OnCustomerListClick($event)"
+  rowLinkPrefix="/account/customers"
 ></app-paginated-list>
 
 <app-customer-actions-host></app-customer-actions-host>

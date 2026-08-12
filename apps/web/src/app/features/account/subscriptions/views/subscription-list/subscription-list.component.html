@@ -68,7 +68,7 @@
   [limit]="10"
   [queryParams]="subscriptionsQueryParams()"
   [expand]="subscriptionsExpand()"
-  (rowClick)="OnSubscriptionClick($event)"
+  rowLinkPrefix="/account/subscriptions"
 ></app-paginated-list>
 
 <app-subscription-actions-host></app-subscription-actions-host>
