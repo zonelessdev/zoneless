@@ -107,6 +107,11 @@ that Zoneless cannot reach `localhost`; the human must run a tunnel such as
 `ngrok http <port>` or Cloudflare Tunnel and provide its public HTTPS URL. Do not
 silently install or leave a tunnel process running.
 
+Before handoff, ask the human for the public HTTPS URL so you can complete
+webhook sync. If they cannot provide one, distinguish **application code
+complete** from **webhook delivery pending** and include the exact command they
+must run later; do not imply that webhook-backed entitlements are ready.
+
 Once the URL is known, create or update the bound test endpoint and sync its
 signing secret without displaying it:
 

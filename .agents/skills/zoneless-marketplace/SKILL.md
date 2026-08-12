@@ -103,6 +103,37 @@ command preserves unrelated variables, ignores the target in Git, and writes
 owner-only permissions. For deployment, add only environment variable names
 and secret-manager references; the human supplies live values during handoff.
 
+## Configure test webhook delivery when used
+
+If the integration implements a Zoneless webhook route, determine its public
+HTTPS URL. For localhost, explain that Zoneless cannot reach `localhost`; the
+human must run a tunnel such as `ngrok http <port>` or Cloudflare Tunnel and
+provide its public URL. Do not silently install or leave a tunnel running.
+
+Before handoff, ask for that URL so you can complete webhook sync. If the human
+cannot provide one, distinguish **application code complete** from **webhook
+delivery pending** and include the exact command they must run later.
+
+For the standard marketplace flow, sync the onboarding, transfer, and payout
+events without displaying the signing secret:
+
+```bash
+npx @zoneless/cli@latest webhook sync \
+  --url "https://<public-host>/<server-webhook-route>" \
+  --events "account.updated,transfer.created,payout.paid,payout.failed" \
+  --json
+```
+
+Add `--target <relative-path>` when the server uses a non-default env file.
+`webhook sync` replaces the managed endpoint's event list, so if the application
+already handles other Zoneless events, pass the union of its existing events
+and the marketplace events it needs. Restart the application afterward so it
+loads `ZONELESS_WEBHOOK_SECRET`.
+
+If the implementation intentionally retrieves account and payout status instead
+of using webhooks, do not create an unused endpoint or require
+`ZONELESS_WEBHOOK_SECRET`.
+
 ## Use test mode, then hand off live promotion
 
 Setup provisions both test and live profiles and makes test the current CLI
