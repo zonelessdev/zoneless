@@ -112,6 +112,24 @@ export interface EnvSyncCommand {
   target?: string;
 }
 
+export const subscriptionWebhookEvents = [
+  'checkout.session.completed',
+  'invoice.paid',
+  'invoice.payment_failed',
+  'customer.subscription.updated',
+  'customer.subscription.deleted',
+] as const;
+
+export interface WebhookSyncCommand {
+  events: string[];
+  json: boolean;
+  name: 'webhook-sync';
+  preset: 'subscriptions' | null;
+  profile?: string;
+  target?: string;
+  url: string;
+}
+
 export interface WalletBackupCommand {
   name: 'wallet-backup';
   outputPath: string;
@@ -126,6 +144,7 @@ export type ParsedCommand =
   | AuthStatusCommand
   | AuthReconnectCommand
   | EnvSyncCommand
+  | WebhookSyncCommand
   | WalletBackupCommand
   | HelpCommand;
 
@@ -146,6 +165,21 @@ export interface PriceResponse {
 export interface PaymentLinkResponse {
   id: string;
   url: string;
+}
+
+export interface WebhookEndpointResponse {
+  description?: string | null;
+  enabled_events: string[];
+  id: string;
+  metadata?: Record<string, string>;
+  secret?: string | null;
+  status?: string;
+  url: string;
+}
+
+export interface WebhookEndpointListResponse {
+  data: WebhookEndpointResponse[];
+  has_more: boolean;
 }
 
 export interface PartialResources {

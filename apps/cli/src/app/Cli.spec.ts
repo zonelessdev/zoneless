@@ -194,6 +194,54 @@ describe('Zoneless CLI', () => {
     });
   });
 
+  it('parses subscription and custom webhook sync events', () => {
+    expect(
+      ParseArguments([
+        'webhook',
+        'sync',
+        '--url',
+        'https://example.ngrok.app/api/webhooks/zoneless',
+        '--preset',
+        'subscriptions',
+        '--target',
+        '.env',
+        '--json',
+      ])
+    ).toMatchObject({
+      events: [
+        'checkout.session.completed',
+        'invoice.paid',
+        'invoice.payment_failed',
+        'customer.subscription.updated',
+        'customer.subscription.deleted',
+      ],
+      name: 'webhook-sync',
+      preset: 'subscriptions',
+      target: '.env',
+    });
+    expect(
+      ParseArguments([
+        'webhook',
+        'sync',
+        '--url',
+        'https://example.com/webhook',
+        '--events',
+        'invoice.paid, customer.subscription.deleted,invoice.paid',
+      ])
+    ).toMatchObject({
+      events: ['invoice.paid', 'customer.subscription.deleted'],
+      preset: null,
+    });
+    expect(() =>
+      ParseArguments([
+        'webhook',
+        'sync',
+        '--url',
+        'http://localhost:4242/webhook',
+      ])
+    ).toThrow(/must use HTTPS/);
+  });
+
   it('returns the selected installed skill path as JSON', async () => {
     const projectDirectory = await fs.realpath(
       await fs.mkdtemp(path.join(os.tmpdir(), 'zoneless-cli-'))

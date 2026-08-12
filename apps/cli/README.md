@@ -100,6 +100,35 @@ Payment collection does not require a wallet key in the application, so omit
 a server process that must sign wallet operations, such as a self-hosted payout
 worker.
 
+Create or update a test webhook endpoint and sync its one-time signing secret
+without printing it:
+
+```bash
+npx @zoneless/cli@latest webhook sync \
+  --url "https://YOUR-PUBLIC-HOST/api/webhooks/zoneless" \
+  --preset subscriptions \
+  --json
+```
+
+The subscription preset listens for `checkout.session.completed`,
+`invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, and
+`customer.subscription.deleted`. The command stores the endpoint secret in the
+operating-system credential store, writes `ZONELESS_WEBHOOK_SECRET` with the API
+credentials in the selected local env file, and reports that the application
+must restart. Rerunning it updates the managed endpoint URL and events without
+changing its secret. Use `--events <event,...>` instead of the preset for a
+custom list.
+
+The URL must be publicly reachable over HTTPS. For local development, start an
+ngrok or Cloudflare Tunnel separately and pass its URL to the command.
+
+To configure an endpoint manually, use the Developers page in the
+[test dashboard](https://dashboard-test.zoneless.com/account/developers) or,
+for an explicit production rollout, the
+[live dashboard](https://dashboard.zoneless.com/account/developers). In
+**Webhook Endpoints**, choose **Add endpoint**, enter the URL, select the events,
+and choose **Create**. The signing secret is displayed once.
+
 Add `--interval` to sell the product as a recurring USDC subscription instead of
 a one-time purchase. The payment link then opens a subscription checkout, where
 the customer approves the plan once and Zoneless collects each following cycle
