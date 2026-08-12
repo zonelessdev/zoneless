@@ -13,9 +13,8 @@ the human explicitly asks for that additional work.
 
 - Never request, read, print, export, transmit, or commit an API key, wallet
   private key, seed phrase, or secret-manager value.
-- Never run `wallet backup` for the human. At handoff, tell the human to run it
-  themselves in an interactive terminal and place the result directly in their
-  deployment secret manager.
+- `wallet backup` is a human-run command. At handoff, tell the human to run it
+  in an interactive terminal and keep the resulting file somewhere private.
 - Work in the test profile. Do not create live-mode application data, fund a
   wallet, submit a transaction, broadcast a payout, or switch production
   traffic.
@@ -364,10 +363,13 @@ Report:
 - the exact live-mode promotion sequence, including the bound live profile
   name, `https://api.zoneless.com`, deployment secret changes, live webhook
   setup, wallet funding, and one supervised payout;
-- that the human must run
-  `npx @zoneless/cli@latest wallet backup --output <secure-path>` themselves,
-  place the backup's `secretKeyBase58` value directly in the production secret
-  manager as `SOLANA_SECRET_KEY`, and delete the temporary export securely;
+- that setup created a platform wallet and, before enabling live payouts, the
+  human should run
+  `npx @zoneless/cli@latest wallet backup --profile <live-profile> --output <private-path>`
+  in an interactive terminal and keep the resulting file somewhere private;
+  when the deployed payout worker needs wallet signing, they should use its
+  `secretKeyBase58` value as `SOLANA_SECRET_KEY` in the deployment secret
+  manager;
 - that the human must follow
   `https://zoneless.com/docs/fund-platform-wallet.md` to fund the platform
   wallet with enough USDC for seller payouts and a small amount of SOL for
