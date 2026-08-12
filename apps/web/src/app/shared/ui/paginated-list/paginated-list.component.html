@@ -18,7 +18,7 @@
     >
       @for (column of columns; track column.field; let isFirst = $first) {
       <td
-        [class.row-cell]="rowLink != null && column.type !== 'actions'"
+        [class.row-cell]="rowLink !== null && column.type !== 'actions'"
         [class.actions-cell]="column.type === 'actions'"
       >
         @if (rowLink && column.type !== 'actions') {
