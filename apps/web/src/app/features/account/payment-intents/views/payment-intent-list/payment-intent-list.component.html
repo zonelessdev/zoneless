@@ -112,7 +112,7 @@
   [limit]="20"
   [queryParams]="paymentIntentsQueryParams()"
   [expand]="paymentIntentsExpand()"
-  (rowClick)="OnPaymentIntentClick($event)"
+  rowLinkPrefix="/account/payments"
 ></app-paginated-list>
 } @if (transactionsTab() === 'payouts') {
 <app-transaction-list

@@ -8,7 +8,6 @@ import {
   OnDestroy,
   ViewChild,
 } from '@angular/core';
-import { Router } from '@angular/router';
 import {
   PaginatedListComponent,
   PaginatedListColumn,
@@ -37,7 +36,6 @@ type SubscriptionsStatusTab = 'active' | 'paused' | 'canceled' | 'all';
 })
 export class SubscriptionListComponent implements OnInit, OnDestroy {
   private readonly metaService = inject(MetaService);
-  private readonly router = inject(Router);
   private readonly actions = inject(SubscriptionActionsService);
   @ViewChild('subscriptionsList')
   subscriptionsList?: PaginatedListComponent<any>;
@@ -124,10 +122,6 @@ export class SubscriptionListComponent implements OnInit, OnDestroy {
   SetSubscriptionsStatusTab(tab: SubscriptionsStatusTab): void {
     this.subscriptionsStatusTab.set(tab);
     this.SyncSubscriptionsQueryParams();
-  }
-
-  OnSubscriptionClick(subscription: Subscription): void {
-    this.router.navigate(['/account/subscriptions', subscription.id]);
   }
 
   private SyncSubscriptionsQueryParams(): void {

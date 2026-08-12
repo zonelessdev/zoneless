@@ -12,7 +12,6 @@ import {
   PaginatedListComponent,
   PaginatedListColumn,
 } from '../../../../../shared';
-import { Router, ActivatedRoute } from '@angular/router';
 import type { Customer } from '@zoneless/shared-types';
 
 import { Subscription } from 'rxjs';
@@ -28,8 +27,6 @@ import { MetaService } from '../../../../../core';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CustomerListComponent implements OnInit, OnDestroy {
-  readonly router = inject(Router);
-  readonly route = inject(ActivatedRoute);
   private sub?: Subscription;
   private readonly metaService = inject(MetaService);
   readonly actions = inject(CustomerActionsService);
@@ -100,9 +97,5 @@ export class CustomerListComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
-  }
-
-  OnCustomerListClick(customer: Customer): void {
-    this.router.navigate(['/account/customers', customer.id]);
   }
 }

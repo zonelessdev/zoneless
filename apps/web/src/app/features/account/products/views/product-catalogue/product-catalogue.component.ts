@@ -12,7 +12,6 @@ import {
   PaginatedListComponent,
   PaginatedListColumn,
 } from '../../../../../shared';
-import { Router, ActivatedRoute } from '@angular/router';
 import type { Product, Price } from '@zoneless/shared-types';
 
 import { ProductService } from '../../../../../data';
@@ -31,8 +30,6 @@ import { FormatPriceDisplay } from '../../util/price-display';
 })
 export class ProductCatalogueComponent implements OnInit, OnDestroy {
   readonly productService = inject(ProductService);
-  readonly router = inject(Router);
-  readonly route = inject(ActivatedRoute);
   readonly actions = inject(ProductActionsService);
   private sub?: Subscription;
   private readonly metaService = inject(MetaService);
@@ -124,10 +121,6 @@ export class ProductCatalogueComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
-  }
-
-  OnProductListClick(product: Product): void {
-    this.router.navigate(['/account/products', product.id]);
   }
 
   SetProductsTab(tab: 'all'): void {

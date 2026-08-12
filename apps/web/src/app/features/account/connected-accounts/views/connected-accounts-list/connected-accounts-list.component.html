@@ -34,7 +34,7 @@
   [columns]="connectedAccountColumns"
   [limit]="20"
   [queryParams]="accountsQueryParams()"
-  (rowClick)="OnConnectedAccountClick($event)"
+  rowLinkPrefix="/account/connected-accounts"
 ></app-paginated-list>
 
 <app-create-connected-account-host

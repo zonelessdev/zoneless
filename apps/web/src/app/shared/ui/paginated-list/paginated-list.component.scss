@@ -35,11 +35,34 @@ th {
 .row {
   border-bottom: 1px solid $darker-background-color;
   transition: $transition-fast;
+}
+
+.row-interactive {
   cursor: pointer;
 }
 
-.row:hover {
+.row-interactive:hover {
   background-color: $dark-background-color;
+  position: relative;
+  z-index: 3;
+}
+
+.row-cell {
+  position: relative;
+}
+
+.row-link {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.actions-cell {
+  position: relative;
+  z-index: 2;
 }
 
 .row td {

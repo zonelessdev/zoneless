@@ -65,5 +65,5 @@
   [limit]="10"
   [queryParams]="invoicesQueryParams()"
   [expand]="invoicesExpand()"
-  (rowClick)="OnInvoiceClick($event)"
+  rowLinkPrefix="/account/invoices"
 ></app-paginated-list>

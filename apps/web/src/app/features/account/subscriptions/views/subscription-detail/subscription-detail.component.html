@@ -247,7 +247,7 @@
         [queryParams]="invoiceQueryParams()"
         [expand]="invoiceExpand()"
         [paginationEnabled]="false"
-        (rowClick)="OnInvoiceClick($event)"
+        rowLinkPrefix="/account/invoices"
       ></app-paginated-list>
     </div>
 

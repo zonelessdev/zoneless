@@ -50,7 +50,7 @@
         [expand]="subscriptionExpand()"
         [paginationEnabled]="false"
         [showResultCount]="true"
-        (rowClick)="OnSubscriptionClick($event)"
+        rowLinkPrefix="/account/subscriptions"
       ></app-paginated-list>
     </div>
     <div class="view-section">
@@ -61,7 +61,7 @@
         [limit]="5"
         [queryParams]="paymentQueryParams()"
         [paginationEnabled]="false"
-        (rowClick)="OnPaymentClick($event)"
+        rowLinkPrefix="/account/payments"
       ></app-paginated-list>
     </div>
     <div class="view-section">
@@ -91,7 +91,7 @@
         [queryParams]="invoiceQueryParams()"
         [expand]="invoiceExpand()"
         [paginationEnabled]="false"
-        (rowClick)="OnInvoiceClick($event)"
+        rowLinkPrefix="/account/invoices"
       ></app-paginated-list>
     </div>
     <div class="view-section">

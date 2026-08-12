@@ -9,7 +9,7 @@ import {
   WritableSignal,
 } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import type { Invoice, Subscription } from '@zoneless/shared-types';
 import { Subscription as RxSubscription } from 'rxjs';
 import { SubscriptionService } from '../../../../../data';
@@ -76,7 +76,6 @@ import {
 })
 export class SubscriptionDetailComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly subscriptionService = inject(SubscriptionService);
   private readonly metaService = inject(MetaService);
   readonly actions = inject(SubscriptionActionsService);
@@ -287,10 +286,6 @@ export class SubscriptionDetailComponent implements OnInit, OnDestroy {
       },
     ];
     this.invoiceQueryParams.set({ subscription: subscriptionId });
-  }
-
-  OnInvoiceClick(invoice: Invoice): void {
-    this.router.navigate(['/account/invoices', invoice.id]);
   }
 
   OnEditMetadata(): void {

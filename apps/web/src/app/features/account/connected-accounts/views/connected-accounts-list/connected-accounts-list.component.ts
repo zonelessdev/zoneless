@@ -129,11 +129,6 @@ export class ConnectedAccountsListComponent implements OnInit, OnDestroy {
     this.statusTab.set(tab);
   }
 
-  OnConnectedAccountClick(item: unknown): void {
-    const account = item as Account;
-    void this.router.navigate(['/account/connected-accounts', account.id]);
-  }
-
   OnViewCreatedAccount(accountId: string): void {
     void this.router.navigate(['/account/connected-accounts', accountId]);
   }
