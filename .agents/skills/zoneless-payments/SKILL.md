@@ -99,6 +99,47 @@ scripts and framework, then rerun once with `--target <relative-path>`.
 Pass that value directly to `@zoneless/node`; the SDK adds `/v1`. For raw HTTP
 requests, append `/v1` exactly once.
 
+## Configure test webhook delivery
+
+Determine the application's server-side webhook route and its public HTTPS URL.
+For a deployed test app, use its existing HTTPS origin. For localhost, explain
+that Zoneless cannot reach `localhost`; the human must run a tunnel such as
+`ngrok http <port>` or Cloudflare Tunnel and provide its public HTTPS URL. Do not
+silently install or leave a tunnel process running.
+
+Once the URL is known, create or update the bound test endpoint and sync its
+signing secret without displaying it:
+
+```bash
+npx @zoneless/cli@latest webhook sync \
+  --url "https://<public-host>/<server-webhook-route>" \
+  --preset subscriptions \
+  --json
+```
+
+Add `--target <relative-path>` when the server uses a non-default env file. The
+command subscribes to `checkout.session.completed`, `invoice.paid`,
+`invoice.payment_failed`, `customer.subscription.updated`, and
+`customer.subscription.deleted`; stores the one-time endpoint secret in the
+operating-system credential store; and writes `ZONELESS_WEBHOOK_SECRET` to the
+local env file without printing it. Restart the application after the command
+so it loads the new value.
+
+If CLI setup is unavailable, give the human these manual test-mode steps without
+asking them to reveal the secret:
+
+1. Open `https://dashboard-test.zoneless.com/account/developers`.
+2. Choose **Developers** in the side menu.
+3. In **Webhook Endpoints**, choose **Add endpoint**.
+4. Enter the public HTTPS endpoint URL.
+5. Select the five subscription events listed above.
+6. Choose **Create**, copy the one-time webhook secret directly into the
+   server's local environment as `ZONELESS_WEBHOOK_SECRET`, and restart the
+   server.
+
+Reserve `https://dashboard.zoneless.com/account/developers` for the explicit
+live handoff. Never configure a live endpoint while implementing in test mode.
+
 ## Use test mode, then hand off live promotion
 
 Implement and verify against `https://api-test.zoneless.com`. Keep the mode

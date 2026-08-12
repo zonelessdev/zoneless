@@ -15,6 +15,7 @@ import { ProjectStore, type LocatedProjectBinding } from './ProjectStore';
 import { KeyringSecretStore, type SecretStore } from './SecretStore';
 import { InstallAgentSkill } from './SkillInstaller';
 import { BackupWallet } from './Wallet';
+import { SyncWebhook } from './WebhookSync';
 import {
   exitCodes,
   type CliIo,
@@ -30,6 +31,7 @@ Usage:
   zoneless auth status [--profile <name>] [--json]
   zoneless auth reconnect [--profile <name>] [--json]
   zoneless env sync [--target <path>] [--include-wallet] [--json]
+  zoneless webhook sync --url <https-url> [--preset subscriptions] [--target <path>] [--json]
   zoneless wallet backup --output <path> [--profile <name>]
   zoneless doctor [--profile <name>] [--json]
   zoneless store init --name <name> --amount <integer> [options]
@@ -49,6 +51,9 @@ Options:
   --idempotency-key <key>    Reuse the same operation keys on retry
   --profile <name>           Use a stored live or test profile
   --target <path>            Environment file relative to the project
+  --url <https-url>          Public webhook endpoint URL
+  --preset subscriptions     Subscribe to the standard billing events
+  --events <event,...>       Subscribe to a custom comma-separated event list
   --include-wallet           Also sync SOLANA_SECRET_KEY
   --json                     Emit machine-readable JSON
 
@@ -369,6 +374,44 @@ export async function RunCli(
       WriteResult(command.json, result, io);
       return exitCodes.success;
     }
+    if (command.name === 'webhook-sync') {
+      if (!locatedProject) {
+        throw InvalidInput(
+          'Webhook sync requires a bound Zoneless project. Run "zoneless agent setup" first.'
+        );
+      }
+      const profileName =
+        (await ResolveProfileName(
+          command.profile,
+          environment,
+          locatedProject
+        )) ?? (await profileStore.GetProfile()).profileName;
+      await VerifyProfileCredentials(
+        profileName,
+        profileStore,
+        fetchRequest,
+        secretValues
+      );
+      const credentials = await profileStore.GetCredentials(profileName);
+      secretValues.push(credentials.apiKey);
+      const result = await SyncWebhook(
+        new ZonelessClient(
+          credentials.profile.apiUrl,
+          credentials.apiKey,
+          fetchRequest
+        ),
+        {
+          command,
+          profileName,
+          profileStore,
+          projectDirectory: locatedProject.rootDirectory,
+          secretStore,
+          workspaceId: locatedProject.binding.workspaceId,
+        }
+      );
+      WriteResult(command.json, result, io);
+      return exitCodes.success;
+    }
     if (command.name === 'wallet-backup') {
       const profileName = await ResolveProfileName(
         command.profile,
@@ -614,6 +657,19 @@ function FormatHumanResult(result: object): string {
     return [
       `Synced ${written} to ${resultRecord['target']}.`,
       `Profile: ${resultRecord['profile']} (${resultRecord['mode']})`,
+      '',
+    ].join('\n');
+  }
+  if (resultRecord['object'] === 'webhook_sync') {
+    return [
+      `${resultRecord['created'] ? 'Created' : 'Updated'} webhook endpoint ${
+        resultRecord['endpoint_id']
+      }.`,
+      `URL: ${resultRecord['url']}`,
+      `Events: ${(resultRecord['enabled_events'] as string[]).join(', ')}`,
+      `Synced ZONELESS_WEBHOOK_SECRET to ${resultRecord['target']}.`,
+      'Restart the application so it loads the updated environment.',
+      `Dashboard: ${resultRecord['dashboard_url']}`,
       '',
     ].join('\n');
   }

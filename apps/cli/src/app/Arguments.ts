@@ -5,6 +5,8 @@ import {
   type ParsedCommand,
   type RecurringInterval,
   type StoreInitCommand,
+  subscriptionWebhookEvents,
+  type WebhookSyncCommand,
 } from './Types';
 
 const storeValueOptions = new Set([
@@ -27,6 +29,13 @@ const reconnectValueOptions = new Set([
 ]);
 const envSyncValueOptions = new Set(['--profile', '--target']);
 const envSyncBooleanOptions = new Set(['--include-wallet', '--json']);
+const webhookSyncValueOptions = new Set([
+  '--events',
+  '--preset',
+  '--profile',
+  '--target',
+  '--url',
+]);
 const installSkillValueOptions = new Set(['--skill']);
 const walletBackupValueOptions = new Set(['--output', '--profile']);
 const setupValueOptions = new Set([
@@ -135,6 +144,10 @@ export function ParseArguments(argumentsList: string[]): ParsedCommand {
       profile: ReadOptionalOption(commandArguments, '--profile'),
       target: ReadOptionalOption(commandArguments, '--target'),
     };
+  }
+
+  if (argumentsList[0] === 'webhook' && argumentsList[1] === 'sync') {
+    return ParseWebhookSync(argumentsList.slice(2));
   }
 
   if (argumentsList[0] === 'wallet' && argumentsList[1] === 'backup') {
@@ -252,6 +265,62 @@ function ParseStoreInit(argumentsList: string[]): StoreInitCommand {
     profile: ReadOptionalOption(argumentsList, '--profile'),
     trialDays,
   };
+}
+
+function ParseWebhookSync(argumentsList: string[]): WebhookSyncCommand {
+  ValidateOptions(
+    argumentsList,
+    webhookSyncValueOptions,
+    jsonBooleanOptions,
+    'webhook sync'
+  );
+
+  const rawUrl = ReadRequiredOption(argumentsList, '--url');
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(rawUrl);
+  } catch {
+    throw InvalidInput('--url must be a valid public HTTPS URL.');
+  }
+  if (parsedUrl.protocol !== 'https:') {
+    throw InvalidInput('--url must use HTTPS so Zoneless can deliver events.');
+  }
+
+  const presetValue = ReadOptionalOption(argumentsList, '--preset');
+  const eventsValue = ReadOptionalOption(argumentsList, '--events');
+  if (presetValue !== undefined && eventsValue !== undefined) {
+    throw InvalidInput('Use either --preset or --events, not both.');
+  }
+  if (presetValue !== undefined && presetValue !== 'subscriptions') {
+    throw InvalidInput('--preset must be subscriptions.');
+  }
+  const events =
+    eventsValue !== undefined
+      ? ParseWebhookEvents(eventsValue)
+      : [...subscriptionWebhookEvents];
+
+  return {
+    events,
+    json: argumentsList.includes('--json'),
+    name: 'webhook-sync',
+    preset: eventsValue !== undefined ? null : 'subscriptions',
+    profile: ReadOptionalOption(argumentsList, '--profile'),
+    target: ReadOptionalOption(argumentsList, '--target'),
+    url: parsedUrl.toString(),
+  };
+}
+
+function ParseWebhookEvents(value: string): string[] {
+  const events = [...new Set(value.split(',').map((event) => event.trim()))];
+  if (
+    events.length === 0 ||
+    events.some((event) => !/^[a-z0-9_.]+$/.test(event))
+  ) {
+    throw InvalidInput(
+      '--events must be a comma-separated list of Zoneless event types.'
+    );
+  }
+  return events;
 }
 
 function ValidateStoreOptions(argumentsList: string[]): void {

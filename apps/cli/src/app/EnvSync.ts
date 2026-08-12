@@ -12,6 +12,7 @@ export interface EnvSyncOptions {
   profileName: string;
   projectDirectory: string;
   target?: string;
+  webhookSecret?: string;
 }
 
 export interface EnvSyncResult {
@@ -38,6 +39,10 @@ export async function SyncEnvironment(
     ZONELESS_API_KEY: credentials.apiKey,
     ZONELESS_API_URL: credentials.profile.apiUrl.replace(/\/v1\/?$/, ''),
   };
+
+  if (options.webhookSecret) {
+    values['ZONELESS_WEBHOOK_SECRET'] = options.webhookSecret;
+  }
 
   if (options.includeWallet) {
     const secretKeyBase64 = await secretStore.Get(

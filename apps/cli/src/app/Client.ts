@@ -4,6 +4,8 @@ import type {
   PriceResponse,
   ProductResponse,
   PublicConfig,
+  WebhookEndpointListResponse,
+  WebhookEndpointResponse,
 } from './Types';
 
 export type FetchLike = (
@@ -67,6 +69,34 @@ export class ZonelessClient {
       body,
       idempotencyKey,
     });
+  }
+
+  ListWebhookEndpoints(): Promise<WebhookEndpointListResponse> {
+    return this.Request<WebhookEndpointListResponse>(
+      'GET',
+      '/webhook_endpoints?limit=100'
+    );
+  }
+
+  CreateWebhookEndpoint(
+    body: Record<string, unknown>,
+    idempotencyKey: string
+  ): Promise<WebhookEndpointResponse> {
+    return this.Request<WebhookEndpointResponse>('POST', '/webhook_endpoints', {
+      body,
+      idempotencyKey,
+    });
+  }
+
+  UpdateWebhookEndpoint(
+    id: string,
+    body: Record<string, unknown>
+  ): Promise<WebhookEndpointResponse> {
+    return this.Request<WebhookEndpointResponse>(
+      'POST',
+      `/webhook_endpoints/${encodeURIComponent(id)}`,
+      { body }
+    );
   }
 
   private async Request<T>(

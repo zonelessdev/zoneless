@@ -52,3 +52,10 @@ export function GetApiKeyAccount(profileName: string): string {
 export function GetWalletAccount(walletPublicKey: string): string {
   return `wallet:${walletPublicKey}:secret-key`;
 }
+
+export function GetWebhookSecretAccount(
+  profileName: string,
+  endpointId: string
+): string {
+  return `profile:${profileName}:webhook:${endpointId}:secret`;
+}
