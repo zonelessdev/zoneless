@@ -389,6 +389,11 @@ Report:
   collected automatically, so no further signing is required;
 - where the human must configure the live API key, live API URL, and live
   webhook secret;
+- that setup created a platform wallet for receiving USDC and, before accepting
+  live payments, the human should run
+  `npx @zoneless/cli@latest wallet backup --profile <live-profile> --output <private-path>`
+  in an interactive terminal and keep the resulting file somewhere private so
+  they can access the wallet later;
 - that the human must explicitly approve any live rollout.
 
 Do not claim the integration is production-ready until the human completes
