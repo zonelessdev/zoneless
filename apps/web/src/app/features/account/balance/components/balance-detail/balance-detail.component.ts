@@ -13,7 +13,7 @@ import {
 import { DecimalPipe } from '@angular/common';
 
 import { BalanceDetails } from '@zoneless/shared-types';
-import { BalanceService } from '../../../../../data';
+import { BalanceService, ConfigService } from '../../../../../data';
 import { LoaderComponent } from '../../../../../shared';
 
 @Component({
@@ -29,6 +29,7 @@ export class BalanceDetailComponent implements OnChanges {
   @Output() synced = new EventEmitter<void>();
 
   readonly balanceService = inject(BalanceService);
+  private readonly configService = inject(ConfigService);
 
   syncSuccess: WritableSignal<boolean> = signal(false);
 
@@ -84,11 +85,16 @@ export class BalanceDetailComponent implements OnChanges {
   }
 
   GetExplorerUrl(): string {
+    if (this.configService.IsSimulatedSettlement()) return '';
     const address = this.GetWalletAddress();
     if (!address) return '';
     const isTestMode = this.balanceService.balance()?.livemode === false;
     const clusterParam = isTestMode ? '?cluster=devnet' : '';
     return `https://explorer.solana.com/address/${address}${clusterParam}`;
+  }
+
+  IsSimulatedSettlement(): boolean {
+    return this.configService.IsSimulatedSettlement();
   }
 
   IsInSync(): boolean {

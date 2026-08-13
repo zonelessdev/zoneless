@@ -51,6 +51,7 @@ import {
   subscriptionsProgram,
 } from '@solana/subscriptions';
 import {
+  GetAppConfig,
   GetCheckoutFeePayerSecretKey,
   RequireSubscriptionOperatorSecretKey,
 } from '../AppConfig';
@@ -184,6 +185,7 @@ export function SolanaExplorerUrl(
   type: 'tx' | 'address',
   value: string
 ): string {
+  if (GetAppConfig().settlement_rail === 'simulated') return '';
   const livemode = process.env.LIVEMODE === 'true';
   const clusterParam = livemode ? '' : '?cluster=devnet';
   return `https://explorer.solana.com/${type}/${value}${clusterParam}`;

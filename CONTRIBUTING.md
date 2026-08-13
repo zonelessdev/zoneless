@@ -31,6 +31,9 @@ npx nx lint api --fix
 npx nx lint web --fix
 ```
 
+Test mode uses simulated funds by default (`SETTLEMENT_RAIL=simulated`). To
+exercise Solana Devnet instead, set `LIVEMODE=false` and `SETTLEMENT_RAIL=onchain`.
+
 ## How to Contribute
 
 ### Reporting Bugs

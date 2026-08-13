@@ -88,7 +88,45 @@
 
   <main class="payment-panel">
     <div class="payment-content">
-      @if (IsComplete()) {
+      @if (simulatedWalletOpen()) {
+      <section
+        class="simulated-wallet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="simulated-wallet-title"
+      >
+        <div class="simulated-wallet-icon">
+          <img src="/assets/icons/account_balance_wallet.svg" alt="" />
+        </div>
+        <h1 id="simulated-wallet-title" class="simulated-wallet-title">
+          Test wallet
+        </h1>
+        <p class="simulated-wallet-copy">
+          Approve this test payment of
+          {{ FormatAmount(session.amount_total) }} USDC. No real wallet or funds
+          are used.
+        </p>
+        <div class="simulated-wallet-from">
+          From {{ SimulatedPayerLabel() }}
+        </div>
+        <div class="simulated-wallet-actions">
+          <button
+            type="button"
+            class="checkout-pay-button"
+            (click)="ApproveSimulatedWallet()"
+          >
+            Approve
+          </button>
+          <button
+            type="button"
+            class="simulated-wallet-decline"
+            (click)="DeclineSimulatedWallet()"
+          >
+            Decline
+          </button>
+        </div>
+      </section>
+      } @else if (IsComplete()) {
       <div class="checkout-confirmation">
         <img
           class="checkout-confirmation-check"

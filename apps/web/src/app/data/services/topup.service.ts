@@ -148,6 +148,15 @@ export class TopupService {
   }
 
   /**
+   * Credit the platform ledger with fake USDC (simulated test mode only).
+   */
+  async FundTestBalance(amountCents: number): Promise<TopUp> {
+    return this.api.Call<TopUp>('POST', 'test_helpers/treasury/topups', {
+      amount: amountCents,
+    });
+  }
+
+  /**
    * Reset service state.
    */
   Reset(): void {

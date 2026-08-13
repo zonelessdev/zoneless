@@ -144,6 +144,13 @@ export class ConfigService {
   }
 
   /**
+   * Returns true when test mode uses fake funds instead of a blockchain.
+   */
+  IsSimulatedSettlement(): boolean {
+    return this.config()?.settlement === 'simulated';
+  }
+
+  /**
    * Clear the cached config. Useful when switching contexts.
    */
   ClearConfig(): void {

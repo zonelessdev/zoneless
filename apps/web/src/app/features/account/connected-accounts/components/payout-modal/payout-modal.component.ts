@@ -5,6 +5,7 @@ import {
   inject,
 } from '@angular/core';
 import { ModalComponent } from '../../../../../shared';
+import { ConfigService } from '../../../../../data';
 import { ConnectedAccountActionsService } from '../../services/connected-account-actions.service';
 
 @Component({
@@ -16,6 +17,11 @@ import { ConnectedAccountActionsService } from '../../services/connected-account
 })
 export class PayoutModalComponent {
   readonly actions = inject(ConnectedAccountActionsService);
+  private readonly configService = inject(ConfigService);
+
+  readonly isSimulatedSettlement = computed(() =>
+    this.configService.IsSimulatedSettlement()
+  );
 
   readonly availableCents = computed(() =>
     this.actions.GetAvailableAmount(this.actions.connectedBalance())

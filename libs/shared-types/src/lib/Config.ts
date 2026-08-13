@@ -3,6 +3,10 @@
  * Static configuration from environment variables (.env).
  * These are deployment-specific settings that don't change at runtime.
  */
+
+/** How an instance settles payments, payouts, and collections. */
+export type SettlementRail = 'simulated' | 'onchain';
+
 export interface AppConfig {
   /** MongoDB connection string */
   mongodbUri: string;
@@ -28,6 +32,11 @@ export interface AppConfig {
   appSecret: string;
   /** True if running in live mode, false for test mode (from LIVEMODE env var) */
   livemode: boolean;
+  /**
+   * How test mode settles money. Live mode is always `onchain`.
+   * `simulated` (test default) uses fake funds; `onchain` uses Solana.
+   */
+  settlement_rail: SettlementRail;
 }
 
 /**
@@ -62,6 +71,8 @@ export interface PublicConfig {
   privacy_url: string;
   /** True if running in live mode, false for test mode */
   livemode: boolean;
+  /** How this instance settles money: fake funds vs a real chain */
+  settlement: SettlementRail;
 }
 
 /**

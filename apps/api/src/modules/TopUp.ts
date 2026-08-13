@@ -186,6 +186,34 @@ export class TopUpModule {
   }
 
   /**
+   * Credit the platform ledger with fake USDC in simulated test mode.
+   */
+  async CreateSimulatedDeposit(
+    amountCents: number,
+    platformAccountId: string
+  ): Promise<TopUpType> {
+    if (!Number.isInteger(amountCents) || amountCents <= 0) {
+      throw new AppError(
+        'Amount must be a positive integer number of cents',
+        ERRORS.VALIDATION_ERROR.status,
+        ERRORS.VALIDATION_ERROR.type
+      );
+    }
+
+    return this.CreateFromDeposit(
+      {
+        signature: GenerateId('sim_dep'),
+        amount: amountCents / 100,
+        amountCents,
+        senderAddress: 'SimulatedTestWallet1111111111111111111',
+        timestamp: Now(),
+        slot: 0,
+      },
+      platformAccountId
+    );
+  }
+
+  /**
    * Cancel a pending top-up.
    * Only pending top-ups can be canceled.
    * Emits a 'topup.canceled' event.

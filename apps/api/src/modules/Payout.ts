@@ -13,7 +13,7 @@ import { BalanceTransactionModule } from './BalanceTransaction';
 import { BalanceModule } from './Balance';
 import { ExternalWalletModule } from './ExternalWallet';
 import { AccountModule } from './Account';
-import { Solana } from './chains/Solana';
+import { GetSettlement, IsSimulatedSettlement } from './chains/Settlement';
 import { GetPlatformAccountId } from './PlatformAccess';
 import { GetAppConfig } from './AppConfig';
 import { GenerateId } from '../utils/IdGenerator';
@@ -73,7 +73,7 @@ export class PayoutModule {
   private readonly externalWalletModule: ExternalWalletModule;
   private readonly balanceModule: BalanceModule;
   private readonly balanceTransactionModule: BalanceTransactionModule;
-  private readonly solana: Solana;
+  private readonly solana: ReturnType<typeof GetSettlement>;
 
   constructor(db: Database, eventService?: EventService) {
     this.db = db;
@@ -82,7 +82,7 @@ export class PayoutModule {
     this.externalWalletModule = new ExternalWalletModule(db);
     this.balanceModule = new BalanceModule(db);
     this.balanceTransactionModule = new BalanceTransactionModule(db);
-    this.solana = new Solana();
+    this.solana = GetSettlement();
     this.listHelper = new ListHelper<PayoutType>(db, {
       collection: 'Payouts',
       orderByField: 'created',
@@ -767,7 +767,7 @@ export class PayoutModule {
       // Success: mark all payouts as paid
       for (const payout of payouts) {
         await this.MarkPayoutPaid(payout, {
-          network: 'solana',
+          network: IsSimulatedSettlement() ? 'simulated' : 'solana',
           blockchain_tx: result.signature,
           gas_fee: 0, // Fee was paid by platform, not deducted from payout
           gas_fee_currency: 'sol',

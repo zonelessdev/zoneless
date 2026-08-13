@@ -15,12 +15,14 @@
       >
     </div>
 
+    @if (!IsSimulatedSettlement()) {
     <div class="panel-row">
       <span class="panel-label">SOL</span>
       <span class="panel-value balance-value"
         >{{ GetWalletSol() }} <span class="currency-tag">SOL</span></span
       >
     </div>
+    }
 
     <div class="panel-row">
       <span class="panel-label">Wallet</span>
@@ -37,6 +39,7 @@
       </span>
     </div>
 
+    @if (GetExplorerUrl()) {
     <button
       type="button"
       class="action-button action-button-dainty outline panel-action-button"
@@ -49,6 +52,7 @@
         class="panel-action-icon"
       />
     </button>
+    }
   </div>
 
   <!-- Balance Breakdown -->

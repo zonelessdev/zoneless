@@ -21,7 +21,7 @@ import { GetAppConfig } from './AppConfig';
 import { GetPlatformAccountId } from './PlatformAccess';
 import { AccountModule } from './Account';
 import { ExternalWalletModule } from './ExternalWallet';
-import { Solana } from './chains/Solana';
+import { GetSettlement, IsSimulatedSettlement } from './chains/Settlement';
 
 export class BalanceModule {
   private readonly db: Database;
@@ -206,11 +206,15 @@ export class BalanceModule {
 
     if (!wallet) return null;
 
-    const solana = new Solana();
+    const settlement = GetSettlement();
     const [walletUsdc, walletSol, platformBalance, connectedOwed] =
       await Promise.all([
-        solana.GetUSDCBalance(wallet.wallet_address),
-        solana.GetSOLBalance(wallet.wallet_address),
+        IsSimulatedSettlement()
+          ? Promise.resolve(0)
+          : settlement.GetUSDCBalance(wallet.wallet_address),
+        IsSimulatedSettlement()
+          ? Promise.resolve(0)
+          : settlement.GetSOLBalance(wallet.wallet_address),
         this.GetBalance(platformAccountId),
         this.GetConnectedAccountsOwed(platformAccountId),
       ]);
@@ -223,7 +227,7 @@ export class BalanceModule {
 
     return {
       object: 'balance_details',
-      wallet_usdc: walletUsdc,
+      wallet_usdc: IsSimulatedSettlement() ? available / 100 : walletUsdc,
       wallet_sol: walletSol,
       connected_accounts_owed: connectedOwed,
       platform_available: available,

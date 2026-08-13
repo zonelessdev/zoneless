@@ -7,6 +7,7 @@ import {
   CheckoutPaymentTransaction,
   CheckoutSessionService,
 } from '../../data/services/checkout-session.service';
+import { ConfigService } from '../../data/services/config.service';
 import { CheckoutComponent } from './checkout.component';
 
 describe('CheckoutComponent mobile wallet handoff', () => {
@@ -22,6 +23,10 @@ describe('CheckoutComponent mobile wallet handoff', () => {
     SignAndSendUnsignedTransaction: jest.fn(),
     SignUnsignedTransaction: jest.fn(),
     BytesToBase64: jest.fn(),
+  };
+  const configService = {
+    IsSimulatedSettlement: jest.fn(() => false),
+    LoadConfig: jest.fn().mockResolvedValue({}),
   };
   const checkoutSessionService = {
     PreparePayment: jest.fn(),
@@ -65,6 +70,7 @@ describe('CheckoutComponent mobile wallet handoff', () => {
           useValue: { snapshot: { paramMap: { get: () => null } } },
         },
         { provide: CheckoutSessionService, useValue: checkoutSessionService },
+        { provide: ConfigService, useValue: configService },
         { provide: MetaService, useValue: {} },
         { provide: SolanaWalletService, useValue: walletService },
       ],
@@ -98,6 +104,7 @@ describe('CheckoutComponent mobile wallet handoff', () => {
     walletService.BytesToBase64.mockReturnValue('signed-transaction');
     checkoutSessionService.PreparePayment.mockResolvedValue(preparedPayment);
     checkoutSessionService.ConfirmPayment.mockResolvedValue(completedSession);
+    configService.IsSimulatedSettlement.mockReturnValue(false);
   });
 
   afterEach(() => {
@@ -292,5 +299,15 @@ describe('CheckoutComponent mobile wallet handoff', () => {
     expect(component.mobileWalletHandoffRequested()).toBe(true);
     expect(component.NeedsMobileWalletHandoff()).toBe(true);
     expect(component.paymentError()).toBeNull();
+  });
+
+  it('opens a simulated wallet instead of connecting a chain wallet', async () => {
+    configService.IsSimulatedSettlement.mockReturnValue(true);
+
+    await component.Pay();
+
+    expect(component.simulatedWalletOpen()).toBe(true);
+    expect(walletService.Connect).not.toHaveBeenCalled();
+    expect(component.NeedsMobileWalletHandoff()).toBe(false);
   });
 });

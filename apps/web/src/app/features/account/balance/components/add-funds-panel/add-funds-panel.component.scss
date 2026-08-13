@@ -1,5 +1,6 @@
 @use '../../../../../styles/base.scss' as *;
 @use '../../../../../styles/buttons.scss' as *;
+@use '../../../../../styles/forms.scss' as *;
 @use '../../../../../styles/panels.scss' as *;
 
 .add-funds-content {
@@ -214,6 +215,34 @@
   display: flex;
   flex-direction: column;
   gap: $spacing;
+}
+
+.field-title {
+  font-size: $font-size-small;
+  font-weight: $medium-weight;
+  margin-bottom: $spacing-extra-small;
+}
+
+.amount-input-row {
+  display: flex;
+  align-items: center;
+  border: 1px solid $darkest-background-color;
+  border-radius: $border-radius-small;
+  overflow: hidden;
+}
+
+.amount-prefix {
+  padding: 0 $spacing-small 0 $spacing;
+  font-size: $font-size;
+  opacity: $dimmed;
+  white-space: nowrap;
+}
+
+.amount-input {
+  border: none !important;
+  border-radius: 0 !important;
+  flex: 1;
+  min-width: 0;
 }
 
 .testmode-banner {

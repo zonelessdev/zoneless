@@ -22,8 +22,8 @@ jest.mock('../modules/AppConfig', () => ({
     appSecret: 'test-secret',
   })),
 }));
-jest.mock('../modules/chains/Solana', () => ({
-  Solana: jest.fn().mockImplementation(() => ({
+jest.mock('../modules/chains/Settlement', () => ({
+  GetSettlement: () => ({
     CheckWalletExists: jest.fn().mockResolvedValue(true),
     GetUSDCBalance: jest.fn().mockResolvedValue(100),
     GetSOLBalance: jest.fn().mockResolvedValue(1),
@@ -39,7 +39,8 @@ jest.mock('../modules/chains/Solana', () => ({
       signature: 'sig123',
       viewer_url: 'https://solscan.io/tx/sig123',
     }),
-  })),
+  }),
+  IsSimulatedSettlement: jest.fn(() => false),
 }));
 
 describe('PayoutModule', () => {
