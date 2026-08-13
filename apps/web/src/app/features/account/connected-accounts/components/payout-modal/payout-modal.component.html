@@ -48,6 +48,7 @@
       </div>
     </div>
 
+    @if (!isSimulatedSettlement()) {
     <div class="field">
       <div class="field-title">Sign payout</div>
       <div class="field-help signer-help">
@@ -120,6 +121,7 @@
         } }
       </div>
     </div>
+    }
 
     <div class="confirm-section">
       <div class="confirm-heading">Confirm payout</div>

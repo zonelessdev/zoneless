@@ -30,14 +30,13 @@ the human explicitly asks for that additional work.
 Use plain language whenever the human must act. Briefly explain that USDC is a
 digital dollar, Solana is the network carrying it, SOL pays the small network
 fee, a wallet address is safe to share, and a wallet secret key authorizes
-spending and must remain private. Explain that devnet/test mode uses free,
-worthless test funds on a network separate from mainnet/live mode, and that a
-faucet is a website that supplies those test funds. Do not use terms such as
-gas, mint, token account, cluster, or airdrop without explaining them.
+spending and must remain private. Explain that test mode uses fake USDC so they
+can onboard sellers and run payouts without a wallet, a faucet, or the live
+Solana network. Live mode is when real USDC moves on Solana. Do not use terms
+such as gas, mint, token account, cluster, or airdrop without explaining them.
 
-Give concrete instructions: name the network and asset, say where to copy the
-public wallet address, link the relevant guide or faucet, and distinguish test
-funds from real funds. Never assume prior wallet or blockchain experience.
+Give concrete instructions: distinguish test funds from real funds. Never
+assume prior wallet or blockchain experience.
 
 ## Read documentation just in time
 
@@ -195,7 +194,8 @@ Use the payout helper that matches the existing worker:
   `payouts.broadcast(...)` when the marketplace must process an explicitly
   claimed payout ID.
 
-The SDK already builds and signs Solana transactions. Do not install
+The SDK already builds and signs Solana transactions. In simulated test mode
+it passes dummy `sim_tx` payloads through without signing. Do not install
 `@solana/web3.js`, `@solana/spl-token`, `bs58`, or add mint, cluster, RPC, token
 account, or platform-account configuration to a Node application. Those are
 Zoneless implementation details. The marketplace app needs only the relevant
@@ -351,14 +351,13 @@ Report:
 - required environment-variable names, never values;
 - tests run and any unverified behavior;
 - the test-mode onboarding path;
-- that before an end-to-end test payout, the human must fund the test
-  platform's public wallet address (the `wallet_public_key` returned by setup or
-  the address shown under **Balance**) with devnet SOL from
-  `https://faucet.solana.com/` and test USDC from
-  `https://faucet.circle.com/`, selecting **USDC** and **Solana Devnet** at the
-  Circle faucet; link
-  `https://zoneless.com/docs/local-development.md` for the complete steps and
-  warn never to send real SOL or USDC to devnet;
+- that a test payout still uses the live two-step flow: create stays
+  pending, then `processAll` / build and broadcast marks it paid with
+  simulated USDC. No wallet, faucet, or Devnet is required — broadcast
+  the unsigned dummy transaction. Use **Add test USDC**
+  on the dashboard Balance page (or
+  `POST /v1/test_helpers/treasury/topups`) if the platform ledger needs a
+  balance first;
 - where the human must configure the API key and webhook secret;
 - the exact live-mode promotion sequence, including the bound live profile
   name, `https://api.zoneless.com`, deployment secret changes, live webhook

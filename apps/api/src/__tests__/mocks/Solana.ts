@@ -30,6 +30,7 @@ export class Solana {
   GetSOLBalance = jest.fn().mockResolvedValue(1);
   GetUSDCMintAddress = jest.fn().mockReturnValue('UsdcMint_test');
   GetPlanOwnerPublicKey = jest.fn().mockReturnValue('PlanOwner111');
+  GetIncomingDeposits = jest.fn().mockResolvedValue([]);
   GetIncomingUSDCDeposits = jest.fn().mockResolvedValue([]);
   BuildCheckoutPaymentTransaction = jest.fn().mockResolvedValue({
     unsigned_transaction: 'base64tx',

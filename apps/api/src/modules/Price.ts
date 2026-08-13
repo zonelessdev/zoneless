@@ -15,7 +15,7 @@ import {
 } from '@zoneless/shared-types';
 import { ValidateUpdate } from './Util';
 import { ExtractChangedFields } from './Event';
-import { Solana } from './chains/Solana';
+import { GetSettlement, IsSimulatedSettlement } from './chains/Settlement';
 import { ExternalWalletModule } from './ExternalWallet';
 import type { ProductModule } from './Product';
 import {
@@ -116,9 +116,9 @@ export class PriceModule {
     if (
       price.type === 'recurring' &&
       price.recurring &&
-      process.env.NODE_ENV !== 'test'
+      (IsSimulatedSettlement() || process.env.NODE_ENV !== 'test')
     ) {
-      const solana = new Solana();
+      const settlement = GetSettlement();
       const amount = price.unit_amount as number;
       const periodHours = this.PeriodToHours(
         price.recurring.interval,
@@ -127,15 +127,14 @@ export class PriceModule {
       const destinationAddress = await this.GetPlatformWalletPublicKey(
         price.platform_account
       );
-      const pullerAddress = solana.GetPlanOwnerPublicKey();
-      const planPda = await solana.CreateSubscriptionPlan(
+      const pullerAddress = settlement.GetPlanOwnerPublicKey();
+      price.subscription_plan_pda = await settlement.CreateSubscriptionPlan(
         price.id,
         periodHours,
         amount,
         destinationAddress,
         pullerAddress
       );
-      price.subscription_plan_pda = planPda;
     }
 
     await this.db.Set('Prices', price.id, price);

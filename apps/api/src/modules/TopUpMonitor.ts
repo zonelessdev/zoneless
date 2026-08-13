@@ -23,7 +23,8 @@ import { Database } from './Database';
 import { TopUpModule } from './TopUp';
 import { AccountModule } from './Account';
 import { ExternalWalletModule } from './ExternalWallet';
-import { Solana, IncomingDeposit } from './chains/Solana';
+import { IncomingDeposit } from './chains/Solana';
+import { GetSettlement, IsSimulatedSettlement } from './chains/Settlement';
 import { EventService } from './EventService';
 import { TopUp, CheckDepositsResponse } from '@zoneless/shared-types';
 import { Logger } from '../utils/Logger';
@@ -53,7 +54,7 @@ export class TopUpMonitor {
   private readonly topUpModule: TopUpModule;
   private readonly accountModule: AccountModule;
   private readonly externalWalletModule: ExternalWalletModule;
-  private readonly solana: Solana;
+  private readonly solana: ReturnType<typeof GetSettlement>;
   private intervalId: NodeJS.Timeout | null = null;
   private isRunning: boolean = false;
 
@@ -63,14 +64,14 @@ export class TopUpMonitor {
     this.topUpModule = new TopUpModule(db, eventService);
     this.accountModule = new AccountModule(db);
     this.externalWalletModule = new ExternalWalletModule(db);
-    this.solana = new Solana();
+    this.solana = GetSettlement();
   }
 
   /**
    * Check if the TopUp monitor is enabled via configuration.
    */
   static IsEnabled(): boolean {
-    return TOPUP_MONITOR_ENABLED;
+    return TOPUP_MONITOR_ENABLED && !IsSimulatedSettlement();
   }
 
   /**

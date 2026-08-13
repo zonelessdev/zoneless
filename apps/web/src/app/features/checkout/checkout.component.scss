@@ -262,6 +262,71 @@
   line-height: 1.5;
 }
 
+.simulated-wallet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: $spacing-extra-large 0;
+}
+
+.simulated-wallet-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: $spacing;
+  opacity: 0.7;
+  filter: $base-filter;
+
+  img {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.simulated-wallet-title {
+  margin: 0;
+  font-family: $title-font;
+  font-size: $font-size-large;
+  font-weight: $title-weight;
+  color: $checkout-heading;
+}
+
+.simulated-wallet-copy {
+  max-width: 360px;
+  margin: $spacing-small 0 $spacing;
+  color: $checkout-label;
+  font-size: $font-size;
+  line-height: 1.5;
+}
+
+.simulated-wallet-from {
+  margin-bottom: $spacing-large;
+  color: $checkout-label;
+  font-size: $font-size-small;
+  font-family: monospace;
+}
+
+.simulated-wallet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-snug;
+  width: 100%;
+  max-width: 320px;
+}
+
+.simulated-wallet-decline {
+  background: none;
+  border: none;
+  color: $checkout-label;
+  font-size: $font-size;
+  cursor: pointer;
+  padding: $spacing-snug;
+
+  &:hover {
+    color: $checkout-heading;
+  }
+}
+
 .form-section {
   margin-bottom: $spacing-medium;
 }

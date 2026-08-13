@@ -19,7 +19,12 @@ import type { SubscriptionModule } from './Subscription';
 import type { PaymentIntentModule } from './PaymentIntent';
 import type { ChargeModule } from './Charge';
 import type { PaymentLinkModule } from './PaymentLink';
-import { Solana, SolanaExplorerUrl } from './chains/Solana';
+import { SolanaExplorerUrl } from './chains/Solana';
+import {
+  GetSettlement,
+  SimulatedSignature,
+  type Settlement,
+} from './chains/Settlement';
 import { IsCheckoutFeeSponsored } from './AppConfig';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
@@ -114,7 +119,7 @@ export class CheckoutPaymentModule {
   private readonly paymentLinkModule: PaymentLinkModule | null;
   private readonly customerModule: CustomerModule | null;
   private readonly subscriptionModule: SubscriptionModule | null;
-  private readonly solana: Solana;
+  private readonly solana: Settlement;
 
   constructor(
     db: Database,
@@ -124,7 +129,7 @@ export class CheckoutPaymentModule {
     paymentIntentModule?: PaymentIntentModule,
     chargeModule?: ChargeModule,
     paymentLinkModule?: PaymentLinkModule,
-    solana?: Solana,
+    solana?: Settlement,
     customerModule?: CustomerModule,
     subscriptionModule?: SubscriptionModule
   ) {
@@ -140,7 +145,7 @@ export class CheckoutPaymentModule {
     this.paymentLinkModule = paymentLinkModule || null;
     this.customerModule = customerModule || null;
     this.subscriptionModule = subscriptionModule || null;
-    this.solana = solana || new Solana();
+    this.solana = solana || GetSettlement();
   }
 
   /**
@@ -487,6 +492,26 @@ export class CheckoutPaymentModule {
     }
 
     return this.ConfirmOneTimePayment(session, resolvedSignature);
+  }
+
+  /**
+   * Complete a checkout session as if the simulated wallet approved.
+   * Simulated test mode only.
+   */
+  async CompleteSimulatedCheckout(
+    urlSlug: string,
+    payerWallet: string,
+    customerDetails?: Omit<PrepareCheckoutPaymentInput, 'payer_wallet'>
+  ): Promise<CheckoutSession> {
+    const prepared = await this.PreparePayment(
+      urlSlug,
+      payerWallet,
+      customerDetails
+    );
+    return this.ConfirmPayment(
+      urlSlug,
+      SimulatedSignature(prepared.checkout_session, payerWallet)
+    );
   }
 
   /**

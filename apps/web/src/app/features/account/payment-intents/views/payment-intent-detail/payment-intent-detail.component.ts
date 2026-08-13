@@ -199,7 +199,7 @@ export class PaymentIntentDetailComponent implements OnInit, OnDestroy {
   }
 
   GetExplorerUrl(txHash: string | null | undefined): string | null {
-    if (!txHash) return null;
+    if (!txHash || txHash.startsWith('sim_')) return null;
     const livemode = this.paymentIntent()?.livemode;
     const clusterParam = livemode === false ? '?cluster=devnet' : '';
     return `https://explorer.solana.com/tx/${txHash}${clusterParam}`;

@@ -30,10 +30,10 @@ explicitly asks for that additional work.
 Use plain language whenever the human must act. Briefly explain that USDC is a
 digital dollar and Solana is the network carrying it, that a wallet address is
 safe to share, and that a wallet secret key authorizes spending and must remain
-private. Explain that test mode uses free, worthless test funds on a network
-separate from live mode, and that a faucet is a website that supplies those
-test funds. Do not use terms such as gas, mint, token account, cluster, or
-airdrop without explaining them.
+private. Explain that test mode uses fake USDC so they can try checkout
+without a wallet, a faucet, or the live Solana network. Live mode is when
+real USDC moves on Solana. Do not use terms such as gas, mint, token account,
+cluster, or airdrop without explaining them.
 
 The merchant does not need to hold, fund, or manage any crypto to receive
 subscription payments. Money moves from the customer's wallet to the platform
@@ -365,9 +365,9 @@ Run the project's formatter, focused tests, linter, type checker, and build.
 Fix regressions introduced by the integration.
 
 Open a test Checkout Session and verify that the hosted page shows the expected
-product, amount, cadence, and return URLs. When a test wallet is available,
-complete one supervised test subscription and verify the resulting entitlement.
-Do not describe unexecuted end-to-end behavior as tested.
+product, amount, cadence, and return URLs. Complete one test subscription with
+the simulated wallet (or the test_helpers complete endpoint) and verify the
+resulting entitlement. Do not describe unexecuted end-to-end behavior as tested.
 
 ## Human handoff
 
@@ -381,10 +381,10 @@ Report:
   `ZONELESS_API_URL`, and `ZONELESS_WEBHOOK_SECRET`), never values;
 - checks run, distinguishing static checks, unit tests, hosted-checkout
   verification, and completed end-to-end payments;
-- that to test a subscription end to end, the human needs a Solana wallet
-  holding test USDC, available free from `https://faucet.circle.com/` by
-  selecting **USDC** and **Solana Devnet**, and that they must never send real
-  funds to a test network;
+- that to test a subscription end to end, the human opens hosted checkout in
+  test mode and approves the simulated wallet (no Phantom, faucet, or Devnet
+  switch). They can also complete a session with
+  `POST /v1/test_helpers/checkout/sessions/:id/complete`;
 - that the customer approves the plan once at checkout and every later cycle is
   collected automatically, so no further signing is required;
 - where the human must configure the live API key, live API URL, and live

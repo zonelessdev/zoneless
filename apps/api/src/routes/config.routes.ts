@@ -34,7 +34,8 @@ const apiKeyModule = new ApiKeyModule(db);
  * Helper to build PublicConfig from a platform account.
  */
 function BuildPublicConfig(platformAccount: Account | null): PublicConfig {
-  const { livemode } = GetAppConfig();
+  const { livemode, settlement_rail } = GetAppConfig();
+  const settlement = settlement_rail ?? 'simulated';
 
   if (!platformAccount) {
     return {
@@ -44,6 +45,7 @@ function BuildPublicConfig(platformAccount: Account | null): PublicConfig {
       terms_url: '',
       privacy_url: '',
       livemode,
+      settlement,
     };
   }
 
@@ -57,6 +59,7 @@ function BuildPublicConfig(platformAccount: Account | null): PublicConfig {
     terms_url: platformAccount.settings?.terms_url || '',
     privacy_url: platformAccount.settings?.privacy_url || '',
     livemode,
+    settlement,
   };
 }
 

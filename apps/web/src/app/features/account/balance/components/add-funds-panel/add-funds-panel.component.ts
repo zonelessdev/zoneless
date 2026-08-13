@@ -41,6 +41,9 @@ export class AddFundsPanelComponent implements OnChanges, OnDestroy {
   state: WritableSignal<PanelState> = signal('loading');
   copiedField: WritableSignal<string | null> = signal(null);
   newDeposit: WritableSignal<TopUp | null> = signal(null);
+  testAmount: WritableSignal<string> = signal('100.00');
+  testFundsError: WritableSignal<string | null> = signal(null);
+  testFundsLoading: WritableSignal<boolean> = signal(false);
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen']) {
@@ -110,6 +113,10 @@ export class AddFundsPanelComponent implements OnChanges, OnDestroy {
 
   IsTestMode(): boolean {
     return this.configService.IsTestMode();
+  }
+
+  IsSimulatedSettlement(): boolean {
+    return this.configService.IsSimulatedSettlement();
   }
 
   GetExplorerUrl(): string {
@@ -196,5 +203,33 @@ export class AddFundsPanelComponent implements OnChanges, OnDestroy {
 
   OnOpenUsdcFaucet(): void {
     window.open('https://faucet.circle.com/', '_blank', 'noopener,noreferrer');
+  }
+
+  OnTestAmountInput(event: Event): void {
+    this.testAmount.set((event.target as HTMLInputElement).value);
+  }
+
+  async OnAddTestFunds(): Promise<void> {
+    const cents = Math.round(parseFloat(this.testAmount()) * 100);
+    if (!Number.isFinite(cents) || cents <= 0) {
+      this.testFundsError.set('Enter an amount greater than 0');
+      return;
+    }
+
+    this.testFundsError.set(null);
+    this.testFundsLoading.set(true);
+    try {
+      const deposit = await this.topupService.FundTestBalance(cents);
+      this.newDeposit.set(deposit);
+      this.state.set('success');
+      this.ScrollToTop();
+      this.depositCompleted.emit(deposit);
+    } catch (error) {
+      this.testFundsError.set(
+        error instanceof Error ? error.message : 'Failed to add test funds'
+      );
+    } finally {
+      this.testFundsLoading.set(false);
+    }
   }
 }

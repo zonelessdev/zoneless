@@ -16,13 +16,47 @@
     />
     <h3 class="add-funds-title">Add funds to your balance</h3>
     <p class="add-funds-subtitle">
-      Send USDC on Solana to the wallet address below. Funds typically arrive
-      within 30 seconds of network confirmation.
+      @if (IsSimulatedSettlement()) { Add test USDC to your balance. These funds
+      are simulated and have no value. } @else { Send USDC on Solana to the
+      wallet address below. Funds typically arrive within 30 seconds of network
+      confirmation. }
     </p>
   </div>
 
-  <!-- Devnet Faucets (test mode only) -->
-  @if (IsTestMode()) {
+  <!-- Simulated test funds -->
+  @if (IsSimulatedSettlement()) {
+  <div class="testmode-section">
+    <div class="testmode-banner">
+      <span>You're in test mode. Add simulated USDC below.</span>
+    </div>
+    <div class="field">
+      <div class="field-title">Amount</div>
+      <div class="amount-input-row">
+        <span class="amount-prefix">US$</span>
+        <input
+          type="text"
+          inputmode="decimal"
+          class="text-input amount-input"
+          placeholder="0.00"
+          [value]="testAmount()"
+          (input)="OnTestAmountInput($event)"
+          [disabled]="testFundsLoading()"
+        />
+      </div>
+    </div>
+    @if (testFundsError()) {
+    <div class="fund-error">{{ testFundsError() }}</div>
+    }
+    <button
+      type="button"
+      class="action-button action-button-dainty"
+      (click)="OnAddTestFunds()"
+      [disabled]="testFundsLoading()"
+    >
+      <span>{{ testFundsLoading() ? 'Adding…' : 'Add test USDC' }}</span>
+    </button>
+  </div>
+  } @else if (IsTestMode()) {
   <div class="testmode-section">
     <div class="testmode-banner">
       <span>You're in test mode. Use the buttons below to add funds.</span>
@@ -56,8 +90,7 @@
       </button>
     </div>
   </div>
-  }
-
+  } @if (!IsSimulatedSettlement()) {
   <!-- Wallet Address Section -->
   <div class="wallet-address-section">
     <div class="wallet-address-label">Your deposit address</div>
@@ -187,6 +220,7 @@
       />
     </button>
   </div>
+  }
 </div>
 }
 

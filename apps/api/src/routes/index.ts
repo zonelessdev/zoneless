@@ -36,6 +36,7 @@ import billingRouter from './billing.routes';
 import telemetryRouter from './telemetry.routes';
 import identityVerificationSessionsRouter from './identityVerificationSessions.routes';
 import identityWebhooksRouter from './identityWebhooks.routes';
+import testHelpersRouter from './testHelpers.routes';
 
 const router = express.Router();
 
@@ -93,6 +94,7 @@ router.use('/invoiceitems', invoiceItemsRouter);
 router.use('/invoices', invoicesRouter);
 router.use('/reporting', reportingRouter);
 router.use('/telemetry', telemetryRouter);
+router.use('/test_helpers', testHelpersRouter);
 router.use(
   '/identity/verification_sessions',
   identityVerificationSessionsRouter

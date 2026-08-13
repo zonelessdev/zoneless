@@ -225,11 +225,13 @@ async function StartServer() {
       console.log(`📊 Health check at http://localhost:${port}/api/health`);
       console.log('');
       const livemode = appConfig.livemode;
-      console.log(
-        livemode
+      const settlement =
+        appConfig.settlement_rail === 'simulated'
+          ? '🧪 Simulated settlement (test mode)'
+          : livemode
           ? '💰 Solana: mainnet-beta (live USDC)'
-          : '🧪 Solana: devnet (test mode)'
-      );
+          : '🧪 Solana: devnet (test mode)';
+      console.log(settlement);
       if (IsSingleTenantMode()) {
         console.log('🔒 Single-tenant mode: Only one platform allowed');
       } else {

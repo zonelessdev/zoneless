@@ -185,6 +185,7 @@ export class ConnectedAccountActionsService {
     const amount = this.ParseAmountCents(this.payoutAmount());
     const available = this.GetAvailableAmount(this.connectedBalance());
     const signerReady =
+      this.configService.IsSimulatedSettlement() ||
       !!this.payoutSignedTransaction() ||
       this.GetPayoutSignerAddress() === this.payoutPlatformWalletAddress();
     const account = this.activeAccount();
@@ -559,7 +560,7 @@ export class ConnectedAccountActionsService {
           ? { statement_descriptor: statementDescriptor }
           : {}),
       };
-      const result = await this.ConfirmClientSignedPayout(account.id, input);
+      const result = await this.ConfirmProcessedPayout(account.id, input);
 
       this.events$.next({
         type: 'payout_processed',
@@ -643,12 +644,13 @@ export class ConnectedAccountActionsService {
     }
   }
 
-  private async ConfirmClientSignedPayout(
+  private async ConfirmProcessedPayout(
     connectedAccountId: string,
     input: Parameters<PayoutService['CreatePayoutForConnectedAccount']>[1]
   ) {
+    const simulated = this.configService.IsSimulatedSettlement();
     const expectedSigner = this.payoutPlatformWalletAddress();
-    if (!this.payoutSignedTransaction()) {
+    if (!simulated && !this.payoutSignedTransaction()) {
       this.ValidatePayoutSignerAddress(this.GetPayoutSignerAddress());
     }
 
@@ -669,29 +671,33 @@ export class ConnectedAccountActionsService {
       this.payoutBuildResult.set(buildResult);
     }
 
-    const chain = this.configService.config()?.livemode
-      ? 'solana:mainnet'
-      : 'solana:devnet';
     let signedTransaction = this.payoutSignedTransaction();
     if (!signedTransaction) {
-      const signedBytes =
-        this.payoutSignerMethod() === 'wallet'
-          ? await this.solanaWalletService.SignUnsignedTransaction(
-              buildResult.unsigned_transaction,
-              chain
-            )
-          : await this.solanaWalletService.SignUnsignedTransactionWithSecretKey(
-              buildResult.unsigned_transaction,
-              this.payoutPrivateKey(),
-              expectedSigner
-            );
-      signedTransaction = this.solanaWalletService.BytesToBase64(signedBytes);
-      this.payoutSignedTransaction.set(signedTransaction);
+      if (simulated) {
+        signedTransaction = buildResult.unsigned_transaction;
+      } else {
+        const chain = this.configService.config()?.livemode
+          ? 'solana:mainnet'
+          : 'solana:devnet';
+        const signedBytes =
+          this.payoutSignerMethod() === 'wallet'
+            ? await this.solanaWalletService.SignUnsignedTransaction(
+                buildResult.unsigned_transaction,
+                chain
+              )
+            : await this.solanaWalletService.SignUnsignedTransactionWithSecretKey(
+                buildResult.unsigned_transaction,
+                this.payoutPrivateKey(),
+                expectedSigner
+              );
+        signedTransaction = this.solanaWalletService.BytesToBase64(signedBytes);
 
-      if (this.payoutSignerMethod() === 'private_key') {
-        this.payoutPrivateKey.set('');
-        this.payoutPrivateKeyAddress.set('');
+        if (this.payoutSignerMethod() === 'private_key') {
+          this.payoutPrivateKey.set('');
+          this.payoutPrivateKeyAddress.set('');
+        }
       }
+      this.payoutSignedTransaction.set(signedTransaction);
     }
 
     return this.payoutService.BroadcastPayoutsBatch({

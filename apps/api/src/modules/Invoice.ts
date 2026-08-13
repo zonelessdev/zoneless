@@ -20,7 +20,8 @@ import type { ChargeModule } from './Charge';
 import type { PriceModule } from './Price';
 import { BalanceModule } from './Balance';
 import { BalanceTransactionModule } from './BalanceTransaction';
-import { Solana, SolanaExplorerUrl } from './chains/Solana';
+import { SolanaExplorerUrl } from './chains/Solana';
+import { GetSettlement, type Settlement } from './chains/Settlement';
 import { GenerateId } from '../utils/IdGenerator';
 import {
   BalanceTransaction as BalanceTransactionType,
@@ -104,7 +105,7 @@ export class InvoiceModule {
   private readonly priceModule: PriceModule | null;
   private readonly balanceModule: BalanceModule;
   private readonly balanceTransactionModule: BalanceTransactionModule;
-  private readonly solana: Solana;
+  private readonly solana: Settlement;
 
   constructor(
     db: Database,
@@ -114,7 +115,7 @@ export class InvoiceModule {
     paymentIntentModule?: PaymentIntentModule,
     chargeModule?: ChargeModule,
     priceModule?: PriceModule,
-    solana?: Solana
+    solana?: Settlement
   ) {
     this.db = db;
     this.eventService = eventService || null;
@@ -132,7 +133,7 @@ export class InvoiceModule {
     this.priceModule = priceModule || null;
     this.balanceModule = new BalanceModule(db);
     this.balanceTransactionModule = new BalanceTransactionModule(db);
-    this.solana = solana || new Solana();
+    this.solana = solana || GetSettlement();
   }
 
   /**

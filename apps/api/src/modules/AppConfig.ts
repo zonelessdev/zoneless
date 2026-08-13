@@ -22,7 +22,11 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { randomBytes } from 'crypto';
-import type { AppConfig, AppSecrets } from '@zoneless/shared-types';
+import type {
+  AppConfig,
+  AppSecrets,
+  SettlementRail,
+} from '@zoneless/shared-types';
 import { DeriveKey } from './Encryption';
 
 // Load environment variables first.
@@ -62,6 +66,24 @@ function NormalizeOrigin(url: string): string {
 }
 
 /**
+ * Test mode defaults to simulated settlement. Live mode is always on-chain.
+ * SETTLEMENT_RAIL=onchain with LIVEMODE=false restores Solana Devnet.
+ */
+function ResolveSettlementRail(livemode: boolean): SettlementRail {
+  const rail = (process.env.SETTLEMENT_RAIL || '').trim().toLowerCase();
+  if (livemode) {
+    if (rail === 'simulated') {
+      throw new Error(
+        'SETTLEMENT_RAIL=simulated is not valid when LIVEMODE=true'
+      );
+    }
+    return 'onchain';
+  }
+  if (rail === 'onchain') return 'onchain';
+  return 'simulated';
+}
+
+/**
  * Build the base config from environment variables.
  * appSecret will be empty until InitializeAppConfig is called (if not in env).
  */
@@ -74,6 +96,7 @@ function BuildConfigFromEnv(): AppConfig {
   const paymentLinkUrl = NormalizeOrigin(
     process.env.PAYMENT_LINK_URL || checkoutUrl
   );
+  const livemode = process.env.LIVEMODE === 'true';
 
   return {
     mongodbUri:
@@ -83,7 +106,8 @@ function BuildConfigFromEnv(): AppConfig {
     checkoutUrl,
     paymentLinkUrl,
     appSecret: process.env.APP_SECRET || '',
-    livemode: process.env.LIVEMODE === 'true',
+    livemode,
+    settlement_rail: ResolveSettlementRail(livemode),
   };
 }
 
