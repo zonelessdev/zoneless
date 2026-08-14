@@ -45,4 +45,4 @@ If you have ideas about how this could be implemented, share them here.
 
 - [ ] I have searched existing issues to ensure this feature hasn't been requested
 - [ ] I have clearly described the problem and proposed solution
-- [ ] This feature aligns with Zoneless's goal of being a Stripe Connect alternative
+- [ ] This feature aligns with Zoneless's goal of being an open-source payments platform
