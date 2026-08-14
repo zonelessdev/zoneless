@@ -1,13 +1,13 @@
 <p align="center">
   <a href="https://zoneless.com">
-    <img src="https://zoneless.com/assets/images/screenshots/og.png" alt="Zoneless, an open-source Stripe Connect alternative" width="800" />
+    <img src="https://zoneless.com/assets/images/screenshots/og.png" alt="Zoneless, an open-source payments platform" width="800" />
   </a>
 </p>
 
 <h1 align="center">Zoneless</h1>
 
 <p align="center">
-  <strong>The open-source Stripe Connect replacement, built on stablecoins.<br>Onboard sellers and send payouts without percentage fees.</strong>
+  <strong>Your own open-source payments platform.<br>Accept payments, manage subscriptions, and pay sellers globally in USDC from infrastructure you control. No middlemen and no fees.</strong>
 </p>
 
 <p align="center">
@@ -24,118 +24,116 @@
 
 ---
 
-Zoneless gives marketplaces and platforms a self-hosted replacement for Stripe Connect. It includes connected account onboarding, transfers, payouts, and an Express-style dashboard for sellers.
+Zoneless is an open-source payments stack for stablecoins.
 
-Payouts settle in USDC on Solana. Funds move from a wallet controlled by the platform to a wallet controlled by the seller. Zoneless does not hold the funds.
+It includes checkout, subscriptions, marketplace accounts, and payouts through a Stripe-compatible API. Use the full platform or add it alongside your current payment setup.
 
-<table>
-  <tr>
-    <td align="center"><strong>~$0.002</strong><br><sub>average network cost per payout</sub></td>
-    <td align="center"><strong>Seconds</strong><br><sub>to settle on Solana</sub></td>
-    <td align="center"><strong>2,500+</strong><br><sub>sellers onboarded in production</sub></td>
-    <td align="center"><strong>73%</strong><br><sub>of eligible sellers chose USDC payouts</sub></td>
-  </tr>
-</table>
-
-## What is included
-
-- **Platform dashboard:** View connected accounts, transfers, payouts, and balances.
-- **Seller onboarding:** Collect account details and wallet addresses through a hosted onboarding flow.
-- **Express dashboard:** Give each seller a place to view earnings, payouts, and account details.
-- **Stripe-style API:** Work with familiar resources such as Accounts, Account Links, Transfers, Payouts, Persons, and External Accounts.
-- **Developer tools:** Manage API keys, webhook endpoints, events, and logs.
-- **Self-hosting:** Run the API, dashboard, database, and wallet infrastructure on your own servers.
-
-## Why it exists
-
-Stripe Connect can become expensive for marketplaces with lots of sellers, small balances, or frequent payouts. It can also leave platforms dependent on Stripe's country coverage and account approval process.
-
-Zoneless uses USDC and Solana to make the payout part simpler:
-
-- Payouts cost fractions of a cent in network fees.
-- Transfers settle in seconds instead of business days.
-- The platform and seller keep control of their own wallets.
-- The API follows Stripe Connect's resource names and object shapes.
-- The whole stack is available under the Apache 2.0 license.
-
-## A drop-in replacement for Stripe Connect
-
-Swap the SDK, point it at your Zoneless instance, and keep your existing payout flow. Accounts, Account Links, Transfers, Payouts, webhook events, idempotency keys, and object shapes follow Stripe Connect's API.
-
-```typescript
-// import Stripe from 'stripe';
-// const client = new Stripe('sk_live_...');
-
-import { Zoneless } from '@zoneless/node';
-const client = new Zoneless('sk_live_z_YOUR_API_KEY', 'https://api.zoneless.com');
-
-const account = await client.accounts.create({
-  type: 'express',
-  country: 'US',
-  email: 'seller@example.com',
-});
-
-await client.payouts.create(
-  {
-    amount: 10000,
-    currency: 'usdc',
-  },
-  {
-    zonelessAccount: account.id,
-  }
-);
-```
-
-The payout is sent as USDC on Solana instead of through a bank. See the [migration guide](https://zoneless.com/docs/migrate-from-stripe) for setup instructions and a complete example.
-
-## How a payout works
-
-1. **Create a connected account:** Add the seller through the API or platform dashboard.
-2. **Onboard the seller:** Send the seller a hosted Account Link. They enter their details and connect a Solana wallet.
-3. **Transfer their earnings:** Allocate funds to the connected account using the Transfers API.
-4. **Send the payout:** USDC moves from the platform wallet to the seller's wallet and the API emits the relevant webhook events.
-
-Sellers can hold or spend the USDC, or move it to an exchange that supports withdrawals in their country.
-
-## Used in production
-
-Zoneless was built for [PromptBase](https://promptbase.com), an AI marketplace serving more than 450,000 users. PromptBase had reached more than $9,400 per month in Stripe Connect fees, so it began offering sellers USDC payouts through Zoneless.
-
-Over a 14-week period, 73% of eligible sellers chose Zoneless instead of Stripe for their payouts. More than 2,500 sellers completed onboarding.
-
-## Dashboard and onboarding
-
-Try the [live demo](https://zoneless.com/#live-demo) of the platform dashboard and seller onboarding in test mode.
+## Features
 
 ### Platform dashboard
 
-Manage connected accounts, transfers, payouts, and balances from the platform dashboard.
+Manage payments, customers, products, subscriptions, connected accounts, and balances from one place.
 
 <p align="center">
-  <img src="https://zoneless.com/assets/images/screenshots/hero-dashboard.webp" alt="Zoneless platform dashboard" width="700" />
+  <a href="https://zoneless.com/docs/platform-dashboard">
+    <img src="https://zoneless.com/assets/images/screenshots/hero-dashboard.webp" alt="Zoneless platform dashboard" width="700" />
+  </a>
+</p>
+
+### Checkout
+
+Create products and payment links, then let customers pay with USDC through hosted checkout.
+
+<p align="center">
+  <a href="https://zoneless.com/docs/payment-link-quickstart">
+    <img src="https://zoneless.com/assets/images/screenshots/checkout.webp" alt="Zoneless hosted checkout" width="700" />
+  </a>
+</p>
+
+### Payments
+
+Manage payments, subscription charges, payouts, refunds, and other balance activity.
+
+<p align="center">
+  <a href="https://zoneless.com/docs/platform-dashboard">
+    <img src="https://zoneless.com/assets/images/screenshots/transactions.webp" alt="Payment activity in the Zoneless dashboard" width="700" />
+  </a>
+</p>
+
+### Subscriptions
+
+Manage recurring payments, invoices, and subscription status.
+
+<p align="center">
+  <a href="https://zoneless.com/docs/subscriptions">
+    <img src="https://zoneless.com/assets/images/screenshots/subscriptions.webp" alt="Subscriptions in the Zoneless dashboard" width="700" />
+  </a>
 </p>
 
 ### Seller onboarding
 
-Send each seller a hosted onboarding link where they can enter their account details and connect a wallet.
+Onboard sellers to your marketplace via a hosted flow where they can enter their details and connect a wallet.
 
 <p align="center">
-  <img src="https://zoneless.com/assets/images/screenshots/onboard.webp" alt="Zoneless connected account onboarding" width="700" />
+  <a href="https://zoneless.com/docs/quickstart">
+    <img src="https://zoneless.com/assets/images/screenshots/onboard.webp" alt="Zoneless connected account onboarding" width="700" />
+  </a>
 </p>
 
-### Express dashboard
+### Identity verification
 
-Each seller gets an Express-style dashboard for viewing earnings, payouts, and account details.
+Set verification rules and review sellers who need an identity check.
 
 <p align="center">
-  <img src="https://zoneless.com/assets/images/screenshots/connect.webp" alt="Zoneless Express dashboard for connected accounts" width="700" />
+  <a href="https://zoneless.com/docs/identity-verification">
+    <img src="https://zoneless.com/assets/images/screenshots/kyc-hero.webp" alt="Seller identity verification in Zoneless" width="700" />
+  </a>
 </p>
 
-## Payments
+### Seller dashboard
 
-The repository also includes checkout, payment links, customers, products, invoices, and subscriptions. These can be used alongside Connect, but connected accounts and marketplace payouts are the current focus of the project.
+Give each seller an Express-style dashboard for viewing earnings, payouts, and account details.
 
-## Quick Start
+<p align="center">
+  <a href="https://zoneless.com/#live-demo">
+    <img src="https://zoneless.com/assets/images/screenshots/connect.webp" alt="Zoneless dashboard for connected accounts" width="700" />
+  </a>
+</p>
+
+## A familiar API
+
+Zoneless uses familiar resources such as Checkout Sessions, Payment Links, Customers, Products, Subscriptions, Accounts, Transfers, and Payouts. It also follows Stripe's object shapes, webhook patterns, and idempotency model.
+
+If you have worked with Stripe before, the SDK should feel familiar:
+
+```typescript
+import { Zoneless } from '@zoneless/node';
+const client = new Zoneless('sk_live_z_YOUR_API_KEY', 'https://api.zoneless.com');
+
+const session = await client.checkout.sessions.create({
+  success_url: 'https://yoursite.com/success',
+  cancel_url: 'https://yoursite.com/cancel',
+  line_items: [
+    {
+      price_data: {
+        currency: 'usdc',
+        unit_amount: 1000,
+        product_data: { name: 'My first product' },
+      },
+      quantity: 1,
+    },
+  ],
+  mode: 'payment',
+});
+```
+
+The API covers checkout, subscriptions, and marketplace payouts. See the [API reference](https://zoneless.com/docs) for the full list of resources and endpoints.
+
+## Running in production
+
+Zoneless was built for [PromptBase](https://promptbase.com), an AI marketplace with more than 500,000 users, and runs its seller payout infrastructure in production.
+
+## Quick start
 
 ```bash
 git clone https://github.com/zonelessdev/zoneless.git
@@ -145,18 +143,22 @@ docker compose up -d
 
 Open [localhost/setup](http://localhost/setup) to create your platform account and API key.
 
-See the full [Quickstart Guide](https://zoneless.com/docs/quickstart) for creating checkout sessions, connected accounts, transfers, and payouts.
+See the [self-hosting guide](https://zoneless.com/docs/self-hosting) for configuration, credentials, and deployment options.
 
-## Documentation
+## Guides and documentation
 
-All guides and API reference docs live at **[zoneless.com/docs](https://zoneless.com/docs)**:
+The full API reference is at **[zoneless.com/docs](https://zoneless.com/docs)**. These guides are good places to start:
 
-- [Quickstart](https://zoneless.com/docs/quickstart): Set up an instance and make your first API requests
-- [Deployment](https://zoneless.com/docs/deployment): Deploy Zoneless with Docker
-- [Account Links](https://zoneless.com/docs/account-links): Build hosted onboarding for connected accounts
-- [Migrate from Stripe](https://zoneless.com/docs/migrate-from-stripe): Move an existing Stripe Connect payout flow
+- [Accept your first stablecoin payment](https://zoneless.com/docs/payment-link-quickstart)
+- [Create a Checkout Session with the API](https://zoneless.com/docs/checkout-api-quickstart)
+- [Onboard a seller and send a payout](https://zoneless.com/docs/quickstart)
+- [Run Stripe and Zoneless side by side](https://zoneless.com/blog/run-stripe-and-zoneless-side-by-side)
+- [Onboard sellers outside Stripe Connect's supported regions](https://zoneless.com/blog/onboard-sellers-stripe-connect-doesnt-support)
+- [Move an existing Stripe Connect payout flow](https://zoneless.com/docs/migrate-from-stripe)
 
-## Local Development
+For a product overview, see [marketplace payouts](https://zoneless.com) or [USDC checkout and subscriptions](https://zoneless.com/payments).
+
+## Local development
 
 ```bash
 npm install
@@ -171,22 +173,24 @@ Or run everything at once:
 npm run dev
 ```
 
-### Running Tests
+### Running tests
 
 ```bash
 npx nx test api
 npx nx test web
 ```
 
-## Project Structure
+## Project structure
 
 ```
 zoneless/
 ├── apps/
 │   ├── api/              # Express.js API backend
-│   └── web/              # Angular dashboard & onboarding
+│   ├── web/              # Angular dashboard, checkout and onboarding
+│   └── cli/              # Cli for humans and agents
 ├── libs/
-│   └── shared-types/     # Shared TypeScript interfaces
+│   ├── shared-types/     # Shared TypeScript interfaces
+│   └── shared-schemas/   # Shared Zod schemas
 ├── docker-compose.yml    # Full-stack Docker setup
 └── nx.json
 ```
@@ -194,11 +198,6 @@ zoneless/
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup, style guidelines, and the pull request process.
-
-## Anonymous usage telemetry
-
-Self-hosted Zoneless can optionally share anonymous usage heartbeats with
-maintainers (opt-in, off by default). See [TELEMETRY.md](./TELEMETRY.md).
 
 ## Security
 
@@ -210,4 +209,4 @@ See [SECURITY.md](./SECURITY.md) to report vulnerabilities.
 
 ---
 
-If Zoneless is useful to you, consider giving it a star. It helps others find the project.
+If Zoneless is useful to you, give the repository a star. It helps more people find the project.
