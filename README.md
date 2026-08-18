@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://zoneless.com">
-    <img src="https://zoneless.com/assets/images/screenshots/og.png" alt="Zoneless, an open-source payments platform" width="800" />
+    <img src="https://zoneless.com/assets/images/screenshots/og-payments.png" alt="Zoneless, an open-source payments platform" width="800" />
   </a>
 </p>
 
