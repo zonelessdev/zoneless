@@ -1,3 +1,5 @@
+import { OrchestraPayoutIntent } from './Orchestra';
+
 /**
  * Payout failure codes
  * These map to crypto/blockchain-specific failure reasons
@@ -119,6 +121,12 @@ export interface Payout {
    * @zoneless_extension
    */
   platform_account: string;
+
+  /**
+   * Flashnet Orchestra payout intent when the seller dest is not native solana:USDC.
+   * @zoneless_extension
+   */
+  orchestra?: OrchestraPayoutIntent | null;
 }
 
 export interface PayoutResponse {
@@ -152,6 +160,11 @@ export interface PayoutBatchBuildResponse {
   total_amount: number;
   /** Number of recipients in the transaction */
   recipients_count: number;
+  /**
+   * Present when the batch funds an Orchestra deposit (single orchestra dest).
+   * The unsigned transaction still sends solana USDC to orchestra.deposit_address.
+   */
+  orchestra?: OrchestraPayoutIntent | null;
 }
 
 /**
@@ -162,8 +175,11 @@ export interface PayoutBatchBroadcastResponse {
   object: 'payout_batch_broadcast';
   /** Transaction signature on Solana */
   signature: string;
-  /** Status of the broadcast: 'paid' or 'failed' */
-  status: 'paid' | 'failed';
+  /**
+   * Status of the broadcast: native dests are 'paid' or 'failed'.
+   * Orchestra funding success is 'in_transit' until SyncPayout settles the swap.
+   */
+  status: 'paid' | 'failed' | 'in_transit';
   /** URL to view the transaction on Solana Explorer */
   viewer_url: string;
   /** Array of updated payout objects */

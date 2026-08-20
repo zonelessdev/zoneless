@@ -221,6 +221,10 @@ select.checkout-field-control {
   color: $checkout-heading;
   cursor: pointer;
 
+  + .checkout-method-option {
+    border-top: 1px solid $checkout-muted-border;
+  }
+
   input[type='radio'] {
     width: 16px;
     height: 16px;

@@ -8,7 +8,7 @@
   (submitted)="actions.ConfirmPayout()"
   (closed)="actions.ClosePayout()"
 >
-  <div class="fund-modal">
+  <div class="payout-modal">
     @if (!hasBalance()) {
     <div class="payout-status">No balance available</div>
     } @if (actions.activeAccount() && !actions.activeAccount()?.payouts_enabled)
@@ -40,12 +40,20 @@
 
     <div class="field">
       <div class="field-title">Send to</div>
-      <div class="fund-static-value">
+      <div class="payout-static-value">
         {{ walletLabel() }}
-        @if (actions.GetDefaultWallet()?.default_for_currency) {
-        <span class="wallet-default"> (Default for USDC)</span>
+        @if (actions.GetDefaultWallet()?.last4) {
+        <span class="wallet-default">
+          •••• {{ actions.GetDefaultWallet()?.last4 }}</span
+        >
         }
       </div>
+      @if (needsConversionNote()) {
+      <div class="field-help">
+        Payout converts from your Solana USDC balance. Network/conversion cost
+        is paid from the sent amount.
+      </div>
+      }
     </div>
 
     @if (!isSimulatedSettlement()) {
@@ -137,7 +145,7 @@
     </div>
 
     @if (actions.payoutError()) {
-    <div class="fund-error">{{ actions.payoutError() }}</div>
+    <div class="payout-error">{{ actions.payoutError() }}</div>
     }
   </div>
 </app-modal>

@@ -222,6 +222,11 @@ export const ERRORS = {
     status: 500,
     type: 'internal_server_error',
   },
+  ORCHESTRA_UNAVAILABLE: {
+    message: 'Orchestra is unavailable',
+    status: 502,
+    type: 'api_error',
+  },
 } as const;
 
 export type ErrorCode = keyof typeof ERRORS;

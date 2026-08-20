@@ -3,7 +3,7 @@
   @if (mode === 'onboard' && configService.IsTestMode()) {
   <app-test-mode-banner
     message="You're using a test account."
-    actionLabel="Use test wallet"
+    [actionLabel]="IsSolanaNetwork() ? 'Use test wallet' : ''"
     (actionClicked)="FillTestData()"
   ></app-test-mode-banner>
   }
@@ -12,12 +12,13 @@
   @if (mode === 'onboard') {
   <h1>Add your payout wallet</h1>
   <p>
-    Enter your Solana wallet address to receive USDC payouts. USDC is a
-    stablecoin pegged 1:1 to the US dollar.
+    Enter the wallet address where you want to receive payouts. USDC and USDT
+    are stablecoins pegged 1:1 to the US dollar.
   </p>
   }
 
   <!-- Wallet Guide Toggle -->
+  @if (IsSolanaNetwork()) {
   <div
     class="collapsible-toggle"
     tabindex="0"
@@ -95,36 +96,46 @@
       </div>
     </div>
   </div>
-  }
+  } }
 
   <div class="wallet-info">
     <div class="wallet-info-row">
       <span class="info-label">Network:</span>
-      <img
-        src="assets/images/logos/solana.svg"
-        alt="Solana"
-        class="info-logo"
-      />
-      <span class="info-value">Solana</span>
+      <select
+        class="wallet-select"
+        [ngModel]="network()"
+        (ngModelChange)="OnNetworkChange($event)"
+      >
+        @for (option of networkOptions; track option.value) {
+        <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
     </div>
     <div class="wallet-info-row">
       <span class="info-label">Currency:</span>
-      <img src="assets/images/logos/usdc.svg" alt="USDC" class="info-logo" />
-      <span class="info-value">USDC</span>
+      <select
+        class="wallet-select"
+        [ngModel]="currency()"
+        (ngModelChange)="OnCurrencyChange($event)"
+      >
+        @for (option of currencyOptions; track option.value) {
+        <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
     </div>
   </div>
 
   <div class="field">
-    <div class="field-title">Solana Wallet Address</div>
+    <div class="field-title">{{ AddressFieldTitle() }}</div>
     <p class="field-help">
-      Make sure this address supports USDC on the Solana network.
+      {{ AddressHelpText() }}
     </p>
     <div class="field-value field-with-status">
       <input
         [ngModel]="walletAddress()"
         (ngModelChange)="OnWalletAddressChange($event)"
         type="text"
-        placeholder="e.g., 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"
+        [placeholder]="AddressPlaceholder()"
         [class.field-error]="showErrors && walletAddressError()"
       />
       @if (validationStatus() === 'valid') {

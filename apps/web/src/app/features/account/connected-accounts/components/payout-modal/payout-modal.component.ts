@@ -37,6 +37,10 @@ export class PayoutModalComponent {
     this.actions.FormatWalletLabel(this.actions.GetDefaultWallet())
   );
 
+  readonly needsConversionNote = computed(() =>
+    this.actions.NeedsPayoutConversionNote(this.actions.GetDefaultWallet())
+  );
+
   readonly connectedSignerAddress = computed(() =>
     this.actions.solanaWalletService.GetAddress()
   );

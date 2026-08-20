@@ -18,11 +18,13 @@ import { TestModeBannerComponent } from '../../ui';
 import { ConfigService } from '../../../data';
 
 import {
-  ValidateSolanaAddress,
-  GetSolanaAddressError,
-  SOLANA_NETWORK,
+  GetWalletAddressError,
   SOLANA_CURRENCY,
+  SOLANA_NETWORK,
   TEST_WALLET_DATA,
+  ValidateWalletAddress,
+  WALLET_CURRENCIES,
+  WALLET_NETWORKS,
 } from '../../../utils';
 
 export type ExternalWalletFormMode = 'onboard' | 'edit';
@@ -53,13 +55,15 @@ export class ExternalWalletFormComponent implements OnInit, OnChanges {
   @Output() validationChange = new EventEmitter<boolean>();
 
   walletAddress: WritableSignal<string> = signal('');
+  network: WritableSignal<string> = signal(SOLANA_NETWORK);
+  currency: WritableSignal<string> = signal(SOLANA_CURRENCY);
   walletAddressError: WritableSignal<string> = signal('');
   validationStatus: WritableSignal<'none' | 'valid' | 'invalid'> =
     signal('none');
   showWalletGuide: WritableSignal<boolean> = signal(false);
 
-  readonly network = SOLANA_NETWORK;
-  readonly currency = SOLANA_CURRENCY;
+  readonly networkOptions = WALLET_NETWORKS;
+  readonly currencyOptions = WALLET_CURRENCIES;
 
   ngOnInit(): void {
     this.InitializeForm();
@@ -75,8 +79,14 @@ export class ExternalWalletFormComponent implements OnInit, OnChanges {
   InitializeForm(): void {
     if (this.wallet) {
       this.walletAddress.set(this.wallet.wallet_address || '');
+      this.network.set((this.wallet.network || SOLANA_NETWORK).toLowerCase());
+      this.currency.set(
+        (this.wallet.currency || SOLANA_CURRENCY).toLowerCase()
+      );
     } else {
       this.walletAddress.set('');
+      this.network.set(SOLANA_NETWORK);
+      this.currency.set(SOLANA_CURRENCY);
     }
 
     if (this.walletAddress()) {
@@ -95,6 +105,20 @@ export class ExternalWalletFormComponent implements OnInit, OnChanges {
     this.EmitFormChange();
   }
 
+  OnNetworkChange(value: string): void {
+    this.network.set(value.toLowerCase());
+    if (!this.IsSolanaNetwork()) {
+      this.showWalletGuide.set(false);
+    }
+    this.ValidateWalletAddress();
+    this.EmitFormChange();
+  }
+
+  OnCurrencyChange(value: string): void {
+    this.currency.set(value.toLowerCase());
+    this.EmitFormChange();
+  }
+
   ValidateWalletAddress(): void {
     const address = this.walletAddress();
 
@@ -104,12 +128,12 @@ export class ExternalWalletFormComponent implements OnInit, OnChanges {
       return;
     }
 
-    const error = GetSolanaAddressError(address);
+    const error = GetWalletAddressError(address, this.network());
     this.walletAddressError.set(error);
 
     if (error) {
       this.validationStatus.set('invalid');
-    } else if (ValidateSolanaAddress(address)) {
+    } else if (ValidateWalletAddress(address, this.network())) {
       this.validationStatus.set('valid');
     } else {
       this.validationStatus.set('none');
@@ -128,12 +152,14 @@ export class ExternalWalletFormComponent implements OnInit, OnChanges {
   GetFormData(): ExternalWalletFormData {
     return {
       walletAddress: this.walletAddress(),
-      network: this.network,
-      currency: this.currency,
+      network: this.network().toLowerCase(),
+      currency: this.currency().toLowerCase(),
     };
   }
 
   FillTestData(): void {
+    this.network.set(SOLANA_NETWORK);
+    this.currency.set(SOLANA_CURRENCY);
     this.walletAddress.set(TEST_WALLET_DATA.walletAddress);
     this.ValidateWalletAddress();
     this.EmitFormChange();
@@ -141,6 +167,39 @@ export class ExternalWalletFormComponent implements OnInit, OnChanges {
 
   ToggleWalletGuide(): void {
     this.showWalletGuide.set(!this.showWalletGuide());
+  }
+
+  IsSolanaNetwork(): boolean {
+    return this.network() === SOLANA_NETWORK;
+  }
+
+  NetworkLabel(): string {
+    return (
+      this.networkOptions.find((option) => option.value === this.network())
+        ?.label ?? 'Solana'
+    );
+  }
+
+  CurrencyLabel(): string {
+    return this.currency().toUpperCase();
+  }
+
+  AddressFieldTitle(): string {
+    return `${this.NetworkLabel()} wallet address`;
+  }
+
+  AddressHelpText(): string {
+    return `Make sure this address supports ${this.CurrencyLabel()} on the ${this.NetworkLabel()} network.`;
+  }
+
+  AddressPlaceholder(): string {
+    if (this.IsSolanaNetwork()) {
+      return 'e.g., 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
+    }
+    if (this.network() === 'tron') {
+      return 'e.g., TXYZopYRdj2D9XRtbG411XZZ3kM5VkCeP';
+    }
+    return 'e.g., 0x742d35Cc6634C0532925a3b844Bc454e4438f44e';
   }
 
   private EmitFormChange(): void {

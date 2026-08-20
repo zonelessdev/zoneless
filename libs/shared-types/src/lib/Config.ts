@@ -1,3 +1,5 @@
+import { OrchestraSource } from './Orchestra';
+
 /**
  * Application infrastructure configuration.
  * Static configuration from environment variables (.env).
@@ -37,6 +39,13 @@ export interface AppConfig {
    * `simulated` (test default) uses fake funds; `onchain` uses Solana.
    */
   settlement_rail: SettlementRail;
+  /** Flashnet Orchestra host. Empty when unset (simulated rails). */
+  orchestraApiUrl: string;
+  /**
+   * Flashnet Orchestra server key (`fn_...`). Empty when unset.
+   * Never log this value.
+   */
+  orchestraApiKey: string;
 }
 
 /**
@@ -73,6 +82,14 @@ export interface PublicConfig {
   livemode: boolean;
   /** How this instance settles money: fake funds vs a real chain */
   settlement: SettlementRail;
+  /**
+   * Orchestra pay-in picker. Enabled when live or settlement is simulated
+   * so hosted checkout can demo Cash App / deposit rails in test.
+   */
+  orchestra: {
+    enabled: boolean;
+    sources: OrchestraSource[];
+  };
 }
 
 /**

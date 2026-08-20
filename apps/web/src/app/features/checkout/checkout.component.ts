@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
+  OnDestroy,
   OnInit,
   signal,
   WritableSignal,
@@ -17,9 +18,15 @@ import {
 } from '../../core';
 import {
   CheckoutPaymentTransaction,
+  CheckoutSessionOrchestra,
   CheckoutSessionService,
+  OrchestraCheckoutResponse,
+  OrchestraCheckoutSession,
 } from '../../data/services/checkout-session.service';
-import { ConfigService } from '../../data/services/config.service';
+import {
+  ConfigService,
+  OrchestraSource,
+} from '../../data/services/config.service';
 import { LoaderComponent, PageLoaderComponent } from '../../shared';
 import { ISO_CODES } from '../../utils';
 import {
@@ -43,6 +50,7 @@ import {
   HasCheckoutConfirmationDetails,
 } from './util/checkout-completion';
 import {
+  FormatStableAmount,
   FormatUsdcAmount,
   GetCheckoutSubmitLabel,
 } from './util/checkout-format';
@@ -53,7 +61,14 @@ import {
 } from './util/mobile-wallet';
 import { TEST_WALLET_DATA } from '../../utils/constants/test-data';
 
-type PaymentPhase = 'idle' | 'awaiting_wallet' | 'processing' | 'complete';
+type PaymentPhase =
+  | 'idle'
+  | 'awaiting_wallet'
+  | 'awaiting_deposit'
+  | 'processing'
+  | 'complete';
+
+type CheckoutMethod = 'solana' | 'cashapp' | 'deposit';
 
 type AddressFormValue = {
   name: string;
@@ -114,7 +129,7 @@ function HasAddressDetails(form: AddressFormValue): boolean {
   styleUrl: './checkout.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CheckoutComponent implements OnInit {
+export class CheckoutComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly checkoutSessionService = inject(CheckoutSessionService);
   private readonly configService = inject(ConfigService);
@@ -125,6 +140,11 @@ export class CheckoutComponent implements OnInit {
   loading: WritableSignal<boolean> = signal(true);
   paymentPhase: WritableSignal<PaymentPhase> = signal('idle');
   paymentError: WritableSignal<string | null> = signal(null);
+  selectedMethod: WritableSignal<CheckoutMethod> = signal('solana');
+  selectedSource: WritableSignal<OrchestraSource | null> = signal(null);
+  orchestraPayment: WritableSignal<CheckoutSessionOrchestra | null> =
+    signal(null);
+  copiedField: WritableSignal<string | null> = signal(null);
   simulatedWalletOpen: WritableSignal<boolean> = signal(false);
   mobileWalletHandoffRequested: WritableSignal<boolean> = signal(false);
   confirmationExpanded: WritableSignal<boolean> = signal(false);
@@ -146,6 +166,10 @@ export class CheckoutComponent implements OnInit {
   termsAccepted = false;
   customFieldValues: Record<string, string> = {};
 
+  private orchestraPoll: ReturnType<typeof setInterval> | null = null;
+  private orchestraPollGeneration = 0;
+  private orchestraConfirming = false;
+
   async ngOnInit(): Promise<void> {
     const urlSlug = this.route.snapshot.paramMap.get('checkoutSessionId');
     if (!urlSlug) return;
@@ -153,6 +177,11 @@ export class CheckoutComponent implements OnInit {
       this.LoadCheckoutSession(urlSlug),
       this.configService.LoadConfig().catch(() => undefined),
     ]);
+    this.EnsureSelectedSource();
+  }
+
+  ngOnDestroy(): void {
+    this.StopOrchestraPoll();
   }
 
   private async LoadCheckoutSession(urlSlug: string): Promise<void> {
@@ -195,6 +224,8 @@ export class CheckoutComponent implements OnInit {
       if (checkoutSession.status === 'complete') {
         this.paymentPhase.set('complete');
         this.HandleAfterCompletion(checkoutSession);
+      } else {
+        this.ResumeOrchestraIfNeeded(checkoutSession);
       }
     } finally {
       this.loading.set(false);
@@ -278,7 +309,11 @@ export class CheckoutComponent implements OnInit {
 
   IsBusy(): boolean {
     const phase = this.paymentPhase();
-    return phase === 'awaiting_wallet' || phase === 'processing';
+    return (
+      phase === 'awaiting_wallet' ||
+      phase === 'awaiting_deposit' ||
+      phase === 'processing'
+    );
   }
 
   IsComplete(): boolean {
@@ -286,6 +321,7 @@ export class CheckoutComponent implements OnInit {
   }
 
   NeedsMobileWalletHandoff(): boolean {
+    if (this.selectedMethod() !== 'solana') return false;
     if (this.IsSimulatedSettlement()) return false;
     if (typeof navigator === 'undefined') return false;
     return (
@@ -327,6 +363,11 @@ export class CheckoutComponent implements OnInit {
 
     this.paymentError.set(null);
     this.mobileWalletHandoffRequested.set(false);
+
+    if (this.selectedMethod() !== 'solana') {
+      await this.PayWithOrchestra(session);
+      return;
+    }
 
     if (this.IsSimulatedSettlement()) {
       this.simulatedWalletOpen.set(true);
@@ -386,6 +427,254 @@ export class CheckoutComponent implements OnInit {
   DeclineSimulatedWallet(): void {
     this.simulatedWalletOpen.set(false);
     this.paymentError.set('Payment was declined');
+  }
+
+  OrchestraEnabled(): boolean {
+    return this.configService.OrchestraEnabled();
+  }
+
+  OrchestraSources(): OrchestraSource[] {
+    return this.configService.OrchestraSources();
+  }
+
+  ShowCashAppMethod(): boolean {
+    return this.OrchestraEnabled() && !this.IsSubscription();
+  }
+
+  ShowDepositMethod(): boolean {
+    return this.ShowCashAppMethod() && this.OrchestraSources().length > 0;
+  }
+
+  SelectMethod(method: CheckoutMethod): void {
+    this.selectedMethod.set(method);
+    if (method === 'deposit') {
+      this.EnsureSelectedSource();
+    }
+  }
+
+  SelectedSourceKey(): string {
+    const source = this.selectedSource();
+    return source ? this.SourceKey(source) : '';
+  }
+
+  OnSourceChange(key: string): void {
+    const source = this.OrchestraSources().find(
+      (item) => this.SourceKey(item) === key
+    );
+    this.selectedSource.set(source ?? null);
+  }
+
+  IsAwaitingDeposit(): boolean {
+    return this.paymentPhase() === 'awaiting_deposit';
+  }
+
+  OrchestraCashAppUrl(): string | null {
+    return this.orchestraPayment()?.cash_app_url ?? null;
+  }
+
+  OrchestraDepositAddress(): string | null {
+    return this.orchestraPayment()?.deposit_address ?? null;
+  }
+
+  OrchestraDepositMemo(): string | null {
+    return this.orchestraPayment()?.deposit_memo ?? null;
+  }
+
+  OrchestraAmountLabel(): string {
+    return this.FormatStableAmount(this.orchestraPayment()?.amount_in);
+  }
+
+  ShortAddress(address: string | null): string {
+    if (!address) return '';
+    if (address.length <= 16) return address;
+    return `${address.slice(0, 8)}...${address.slice(-8)}`;
+  }
+
+  OrchestraSourceLabel(): string {
+    const payment = this.orchestraPayment();
+    const selected = this.selectedSource();
+    return this.SourceDisplayLabel(
+      payment?.source_chain || selected?.chain,
+      payment?.source_asset || selected?.asset
+    );
+  }
+
+  WaitingTitle(): string {
+    return this.selectedMethod() === 'cashapp'
+      ? 'Waiting for Cash App'
+      : 'Waiting for your deposit';
+  }
+
+  WaitingSubtitle(): string {
+    if (this.selectedMethod() === 'cashapp') {
+      return 'Open Cash App to approve this payment. We will complete checkout once it arrives.';
+    }
+    return 'Send the amount below to the deposit address. We will complete checkout once it arrives.';
+  }
+
+  async CopyDepositField(value: string, field: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(value);
+      this.copiedField.set(field);
+      window.setTimeout(() => this.copiedField.set(null), 2000);
+    } catch {
+      this.paymentError.set('Could not copy to clipboard.');
+    }
+  }
+
+  async SimulateOrchestraPayment(): Promise<void> {
+    await this.FinishOrchestraPayment();
+  }
+
+  CancelOrchestraWait(): void {
+    this.StopOrchestraPoll();
+    this.orchestraConfirming = false;
+    this.paymentPhase.set('idle');
+    this.paymentError.set(null);
+  }
+
+  private async PayWithOrchestra(session: CheckoutSession): Promise<void> {
+    if (this.selectedMethod() === 'deposit' && !this.selectedSource()) {
+      this.paymentError.set('Select a source chain to continue');
+      return;
+    }
+
+    this.paymentPhase.set('processing');
+    try {
+      const source = this.selectedSource();
+      const result = await this.checkoutSessionService.StartOrchestraPayment(
+        session.url_slug,
+        this.selectedMethod() === 'deposit'
+          ? {
+              method: 'deposit',
+              source_chain: source?.chain,
+              source_asset: source?.asset,
+            }
+          : { method: 'cashapp' }
+      );
+      this.ApplyOrchestraResult(result);
+      this.paymentPhase.set('awaiting_deposit');
+      this.StartOrchestraPoll();
+    } catch (error) {
+      this.HandlePaymentError(error, 'idle');
+    }
+  }
+
+  private ResumeOrchestraIfNeeded(session: CheckoutSession): void {
+    const orchestra = (session as OrchestraCheckoutSession).orchestra;
+    if (!orchestra || this.IsSubscription()) return;
+    this.orchestraPayment.set(orchestra);
+    this.selectedMethod.set(
+      orchestra.method === 'cashapp' ? 'cashapp' : 'deposit'
+    );
+    const match = this.OrchestraSources().find(
+      (source) =>
+        source.chain === orchestra.source_chain &&
+        source.asset === orchestra.source_asset
+    );
+    if (match) this.selectedSource.set(match);
+    this.paymentPhase.set('awaiting_deposit');
+    this.StartOrchestraPoll();
+  }
+
+  private ApplyOrchestraResult(result: OrchestraCheckoutResponse): void {
+    const session = result.checkout_session;
+    const intent = session.orchestra ?? null;
+    this.checkoutSession.set({ ...session, orchestra: intent });
+    this.orchestraPayment.set(intent);
+  }
+
+  private StartOrchestraPoll(): void {
+    this.StopOrchestraPoll();
+    const generation = ++this.orchestraPollGeneration;
+    this.orchestraPoll = setInterval(() => {
+      void this.PollOrchestraStatus(generation);
+    }, 3000);
+  }
+
+  private StopOrchestraPoll(): void {
+    if (this.orchestraPoll) {
+      clearInterval(this.orchestraPoll);
+      this.orchestraPoll = null;
+    }
+    this.orchestraPollGeneration += 1;
+  }
+
+  private async PollOrchestraStatus(generation: number): Promise<void> {
+    const session = this.checkoutSession();
+    if (!session || generation !== this.orchestraPollGeneration) return;
+    try {
+      const result = await this.checkoutSessionService.GetOrchestraPayment(
+        session.url_slug
+      );
+      if (generation !== this.orchestraPollGeneration) return;
+      this.ApplyOrchestraResult(result);
+      const status = result.checkout_session.orchestra?.status ?? null;
+      if (this.IsOrchestraFailed(status)) {
+        this.StopOrchestraPoll();
+        this.paymentError.set('This payment expired or failed. Try again.');
+        this.paymentPhase.set('idle');
+        return;
+      }
+      if (this.IsSimulatedSettlement()) return;
+      if (this.IsOrchestraComplete(status)) {
+        await this.FinishOrchestraPayment();
+      }
+    } catch {
+      // Keep waiting; the next poll will retry.
+    }
+  }
+
+  private async FinishOrchestraPayment(): Promise<void> {
+    const session = this.checkoutSession();
+    if (!session || this.orchestraConfirming) return;
+    this.orchestraConfirming = true;
+    this.StopOrchestraPoll();
+    this.paymentPhase.set('processing');
+    try {
+      const completed =
+        await this.checkoutSessionService.ConfirmOrchestraPayment(
+          session.url_slug
+        );
+      this.CompletePayment(completed);
+    } catch (error) {
+      this.orchestraConfirming = false;
+      this.HandlePaymentError(error, 'awaiting_deposit');
+      this.StartOrchestraPoll();
+    }
+  }
+
+  private IsOrchestraComplete(status: string | null): boolean {
+    return /^(completed|complete|succeeded|paid|settled)$/i.test(status ?? '');
+  }
+
+  private IsOrchestraFailed(status: string | null): boolean {
+    return /^(failed|expired|canceled|cancelled)$/i.test(status ?? '');
+  }
+
+  private EnsureSelectedSource(): void {
+    if (this.selectedSource()) return;
+    const first = this.OrchestraSources()[0];
+    if (first) this.selectedSource.set(first);
+  }
+
+  private SourceKey(source: OrchestraSource): string {
+    return `${source.chain}:${source.asset}`;
+  }
+
+  private SourceDisplayLabel(
+    chain?: string | null,
+    asset?: string | null
+  ): string {
+    const match = this.OrchestraSources().find(
+      (source) => source.chain === chain && source.asset === asset
+    );
+    if (match) return match.label;
+    if (!chain && !asset) return 'another chain';
+    const network = chain
+      ? chain.charAt(0).toUpperCase() + chain.slice(1)
+      : 'chain';
+    return `${(asset || 'usdc').toUpperCase()} on ${network}`;
   }
 
   private PayWithMobileWallet(
@@ -809,6 +1098,7 @@ export class CheckoutComponent implements OnInit {
   }
 
   readonly FormatAmount = FormatUsdcAmount;
+  readonly FormatStableAmount = FormatStableAmount;
 
   DiscountAmount(): number {
     return this.checkoutSession()?.total_details?.amount_discount ?? 0;
@@ -839,6 +1129,10 @@ export class CheckoutComponent implements OnInit {
     switch (this.paymentPhase()) {
       case 'awaiting_wallet':
         return 'Confirm in wallet';
+      case 'awaiting_deposit':
+        return this.selectedMethod() === 'cashapp'
+          ? 'Waiting for Cash App'
+          : 'Waiting for deposit';
       default:
         return 'Processing';
     }
@@ -851,6 +1145,17 @@ export class CheckoutComponent implements OnInit {
   }
 
   MethodDetailLabel(): string {
+    if (this.selectedMethod() === 'cashapp') {
+      return this.IsSimulatedSettlement()
+        ? 'Paying with test Cash App'
+        : 'Paying with Cash App';
+    }
+    if (this.selectedMethod() === 'deposit') {
+      return `Paying with ${this.SourceDisplayLabel(
+        this.selectedSource()?.chain,
+        this.selectedSource()?.asset
+      )}`;
+    }
     if (this.IsSimulatedSettlement()) {
       return this.IsSubscription()
         ? 'Subscribing with test USDC'
@@ -863,6 +1168,12 @@ export class CheckoutComponent implements OnInit {
 
   MethodHelpText(): string {
     const amount = this.FormatAmount(this.checkoutSession()?.amount_total);
+    if (this.selectedMethod() === 'cashapp') {
+      return `Open Cash App to pay ${amount}. No Solana wallet required.`;
+    }
+    if (this.selectedMethod() === 'deposit') {
+      return `Send ${amount} from another chain. We convert it to USDC on Solana for the merchant.`;
+    }
     if (this.IsSimulatedSettlement()) {
       return this.IsSubscription()
         ? `Approve in the test wallet to start a ${amount} USDC subscription. No real wallet required.`

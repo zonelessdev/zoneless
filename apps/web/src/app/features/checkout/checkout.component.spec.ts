@@ -27,10 +27,15 @@ describe('CheckoutComponent mobile wallet handoff', () => {
   const configService = {
     IsSimulatedSettlement: jest.fn(() => false),
     LoadConfig: jest.fn().mockResolvedValue({}),
+    OrchestraEnabled: jest.fn(() => false),
+    OrchestraSources: jest.fn(() => []),
   };
   const checkoutSessionService = {
     PreparePayment: jest.fn(),
     ConfirmPayment: jest.fn(),
+    StartOrchestraPayment: jest.fn(),
+    GetOrchestraPayment: jest.fn(),
+    ConfirmOrchestraPayment: jest.fn(),
   };
   const checkoutSession = {
     id: 'cs_test',
@@ -108,6 +113,7 @@ describe('CheckoutComponent mobile wallet handoff', () => {
   });
 
   afterEach(() => {
+    component.ngOnDestroy();
     jest.restoreAllMocks();
     jest.clearAllMocks();
   });
@@ -309,5 +315,40 @@ describe('CheckoutComponent mobile wallet handoff', () => {
     expect(component.simulatedWalletOpen()).toBe(true);
     expect(walletService.Connect).not.toHaveBeenCalled();
     expect(component.NeedsMobileWalletHandoff()).toBe(false);
+  });
+
+  it('starts Cash App orchestra without connecting a Solana wallet', async () => {
+    configService.OrchestraEnabled.mockReturnValue(true);
+    component.selectedMethod.set('cashapp');
+    checkoutSessionService.StartOrchestraPayment.mockResolvedValue({
+      object: 'checkout.orchestra',
+      checkout_session: {
+        ...checkoutSession,
+        orchestra: {
+          method: 'cashapp',
+          source_chain: 'bitcoin',
+          source_asset: 'btc',
+          quote_id: null,
+          operation_id: null,
+          deposit_address: 'cashapp-address',
+          deposit_memo: null,
+          cash_app_url: 'https://cash.app/pay',
+          amount_in: '1000000',
+          estimated_out: '1000000',
+          expires_at: null,
+          status: 'pending',
+        },
+      },
+    });
+
+    await component.Pay();
+
+    expect(walletService.Connect).not.toHaveBeenCalled();
+    expect(checkoutSessionService.StartOrchestraPayment).toHaveBeenCalledWith(
+      checkoutSession.url_slug,
+      { method: 'cashapp' }
+    );
+    expect(component.paymentPhase()).toBe('awaiting_deposit');
+    expect(component.IsBusy()).toBe(true);
   });
 });

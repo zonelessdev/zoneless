@@ -1,5 +1,6 @@
 import { Price } from './Price';
 import { CustomerAddress, CustomerDiscount, CustomerTaxRate } from './Customer';
+import { OrchestraIntent } from './Orchestra';
 
 /**
  * Stripe-compatible Checkout Session object for Zoneless.
@@ -503,6 +504,13 @@ export interface CheckoutSession {
     privacy_url: string | null;
     icon_url: string | null;
   } | null;
+
+  /**
+   * Flashnet Orchestra pay-in intent for Cash App / deposit rails.
+   * Native solana:USDC checkout does not use this field.
+   * @zoneless_extension
+   */
+  orchestra?: OrchestraIntent | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

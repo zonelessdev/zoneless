@@ -108,6 +108,8 @@ function BuildConfigFromEnv(): AppConfig {
     appSecret: process.env.APP_SECRET || '',
     livemode,
     settlement_rail: ResolveSettlementRail(livemode),
+    orchestraApiUrl: process.env.ORCHESTRA_API_URL || '',
+    orchestraApiKey: process.env.ORCHESTRA_API_KEY || '',
   };
 }
 
@@ -153,6 +155,19 @@ export function GetCheckoutFeePayerSecretKey(): string | null {
 /** True when TRANSACTION_FEE_PAYER_KEY is configured. */
 export function IsCheckoutFeeSponsored(): boolean {
   return !!GetCheckoutFeePayerSecretKey();
+}
+
+/**
+ * Live Flashnet Orchestra: both credentials set and settlement is not simulated.
+ * When unset or simulated, pay-in/payout use an in-process stand-in.
+ */
+export function IsOrchestraLive(): boolean {
+  const { orchestraApiUrl, orchestraApiKey, settlement_rail } = GetAppConfig();
+  return (
+    !!orchestraApiUrl &&
+    !!orchestraApiKey &&
+    settlement_rail !== 'simulated'
+  );
 }
 
 /**

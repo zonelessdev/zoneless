@@ -24,6 +24,7 @@
   .info-label {
     font-size: $font-size-med;
     opacity: $dimmed;
+    min-width: 76px;
   }
 
   .info-logo {
@@ -36,6 +37,11 @@
     font-size: $font-size-med;
     font-weight: 600;
   }
+}
+
+.wallet-select {
+  flex: 1;
+  min-width: 0;
 }
 
 .field-with-status {

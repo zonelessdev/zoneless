@@ -20,7 +20,11 @@ jest.mock('../modules/AppConfig', () => ({
     dashboardUrl: 'http://localhost:4200',
     livemode: false,
     appSecret: 'test-secret',
+    settlement_rail: 'simulated',
+    orchestraApiUrl: '',
+    orchestraApiKey: '',
   })),
+  IsOrchestraLive: jest.fn(() => false),
 }));
 jest.mock('../modules/chains/Settlement', () => ({
   GetSettlement: () => ({

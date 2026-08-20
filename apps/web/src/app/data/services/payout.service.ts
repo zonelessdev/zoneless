@@ -50,4 +50,8 @@ export class PayoutService {
   async CancelPayout(payoutId: string): Promise<Payout> {
     return this.api.Call<Payout>('POST', `payouts/${payoutId}/cancel`);
   }
+
+  async SyncPayout(payoutId: string): Promise<Payout> {
+    return this.api.Call<Payout>('POST', `payouts/${payoutId}/sync`);
+  }
 }

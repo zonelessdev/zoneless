@@ -352,6 +352,79 @@
   font-size: $font-size-small;
 }
 
+.checkout-waiting {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: $spacing;
+}
+
+.waiting-state {
+  padding: $spacing-extra-large 0;
+}
+
+.waiting-animation {
+  display: flex;
+  justify-content: center;
+}
+
+.waiting-title {
+  margin: 0;
+  font-family: $title-font;
+  font-size: $font-size-large;
+  font-weight: $title-weight;
+  color: $checkout-heading;
+}
+
+.waiting-subtitle {
+  max-width: 360px;
+  margin: 0;
+  color: $checkout-label;
+  font-size: $font-size;
+  line-height: 1.5;
+}
+
+.waiting-address {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-extra-small;
+  padding: $spacing;
+  border: 1px solid $checkout-muted-border;
+  border-radius: $checkout-field-radius;
+  background-color: $background-color;
+  text-align: left;
+}
+
+.waiting-address-label {
+  font-size: $font-size-small;
+  color: $checkout-label;
+}
+
+.waiting-address-value {
+  font-family: monospace;
+  font-size: $font-size;
+  color: $checkout-heading;
+  overflow-wrap: anywhere;
+}
+
+.checkout-copy-button {
+  align-self: flex-start;
+  margin-top: $spacing-extra-small;
+  background: none;
+  border: none;
+  padding: 0;
+  color: $checkout-label;
+  font-size: $font-size-small;
+  cursor: pointer;
+
+  &:hover {
+    color: $checkout-heading;
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Mobile
 // -----------------------------------------------------------------------------

@@ -8,6 +8,7 @@ import {
 import { ApiService } from '../../core';
 import { ExternalWallet } from '@zoneless/shared-types';
 import { SettingsCardRow } from '../../shared';
+import { FormatAssetLabel, FormatNetworkLabel } from '../../utils';
 
 /**
  * Input type for creating an external wallet.
@@ -106,14 +107,11 @@ export class ExternalWalletService {
   }
 
   private GetNetworkDisplay(): string {
-    const wallet = this.wallet();
-    if (!wallet?.network) return 'Solana';
-    return wallet.network.charAt(0).toUpperCase() + wallet.network.slice(1);
+    return FormatNetworkLabel(this.wallet()?.network);
   }
 
   private GetCurrencyDisplay(): string {
-    const wallet = this.wallet();
-    return wallet?.currency?.toUpperCase() || 'USDC';
+    return FormatAssetLabel(this.wallet()?.currency);
   }
 
   GetSettingsCardRows(): SettingsCardRow[] {
@@ -122,12 +120,12 @@ export class ExternalWalletService {
 
     return [
       {
-        label: 'Network',
+        label: 'Chain',
         value: this.GetNetworkDisplay(),
         type: 'text',
       },
       {
-        label: 'Currency',
+        label: 'Asset',
         value: this.GetCurrencyDisplay(),
         type: 'text',
       },

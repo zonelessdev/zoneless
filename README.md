@@ -195,6 +195,8 @@ zoneless/
 └── nx.json
 ```
 
+Optional Cash App and other-chain stables (settling to USDC on Solana) are documented in [docs/orchestra.md](./docs/orchestra.md). Native `solana:USDC` is unchanged.
+
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup, style guidelines, and the pull request process.
