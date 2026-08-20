@@ -85,6 +85,17 @@ export class AccountService {
   }
 
   /**
+   * Platform-only: waive hosted document identity verification.
+   */
+  async WaiveIdentityDocument(accountId: string): Promise<Account> {
+    return this.api.Call<Account>(
+      'POST',
+      `accounts/${accountId}/waive_identity_document`,
+      {}
+    );
+  }
+
+  /**
    * Platform-only: reject a connected account.
    */
   async RejectAccount(

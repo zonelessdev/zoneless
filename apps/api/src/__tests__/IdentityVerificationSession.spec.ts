@@ -14,7 +14,11 @@ import {
   IdentityVerificationSession,
   Person,
 } from '@zoneless/shared-types';
-import { IDENTITY_REQUIREMENT_FIELDS } from '@zoneless/shared-schemas';
+import {
+  IDENTITY_DOCUMENT_WAIVED,
+  IDENTITY_DOCUMENT_WAIVER_METADATA_KEY,
+  IDENTITY_REQUIREMENT_FIELDS,
+} from '@zoneless/shared-schemas';
 import {
   CreateMockDatabase,
   DeterministicId,
@@ -797,6 +801,33 @@ describe('Identity volume threshold gating', () => {
       IDENTITY_REQUIREMENT_FIELDS.verificationDocument
     );
     expect(evaluation.eventuallyDue).not.toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+  });
+
+  it('waives document IDV and keeps it cleared after later volume evals', async () => {
+    mockDb.Aggregate.mockResolvedValue([{ gross: 250_000 }]);
+
+    await module.EvaluateAndApply(connectedId);
+    expect(
+      storedAccounts.get(connectedId)?.requirements?.currently_due
+    ).toContain(IDENTITY_REQUIREMENT_FIELDS.verificationDocument);
+
+    const waived = await module.WaiveIdentityDocument(connectedId);
+
+    expect(waived.metadata?.[IDENTITY_DOCUMENT_WAIVER_METADATA_KEY]).toBe(
+      IDENTITY_DOCUMENT_WAIVED
+    );
+    expect(waived.requirements?.currently_due).not.toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+    expect(waived.requirements?.eventually_due).not.toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+
+    const evaluation = await module.EvaluateAndApply(connectedId);
+    expect(evaluation.blocking).toBe(false);
+    expect(evaluation.currentlyDue).not.toContain(
       IDENTITY_REQUIREMENT_FIELDS.verificationDocument
     );
   });

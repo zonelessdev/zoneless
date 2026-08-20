@@ -481,6 +481,9 @@ router.post(
       accountId,
     });
 
+    if (enabled) {
+      await identityLiteModule.EvaluateAndApply(accountId);
+    }
     const account = enabled
       ? await accountModule.PayoutsEnabled(accountId)
       : await accountModule.PayoutsDisabled(accountId);
@@ -507,6 +510,28 @@ router.post(
     const populatedAccount = await PopulateAccountResources(account, true);
 
     Logger.info('Identity approved successfully', { accountId });
+
+    res.json(populatedAccount);
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /v1/accounts/:id/waive_identity_document - Skip hosted document IDV
+// Zoneless extension: operator accepts risk for this connected account
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/:id/waive_identity_document',
+  RequirePlatform(),
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const accountId = req.params.id;
+    await RequirePlatformOwnedAccount(accountId, req.user.account);
+
+    Logger.info('Waiving identity document requirement', { accountId });
+
+    const account = await identityLiteModule.WaiveIdentityDocument(accountId);
+    const populatedAccount = await PopulateAccountResources(account, true);
+
+    Logger.info('Identity document requirement waived', { accountId });
 
     res.json(populatedAccount);
   })

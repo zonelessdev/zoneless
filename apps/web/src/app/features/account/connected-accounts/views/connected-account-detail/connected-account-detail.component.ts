@@ -98,6 +98,7 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
   account: WritableSignal<Account | null> = signal(null);
   loading: WritableSignal<boolean> = signal(false);
   approvingIdentity: WritableSignal<boolean> = signal(false);
+  waivingIdentityDocument: WritableSignal<boolean> = signal(false);
   activeTab: WritableSignal<DetailTab> = signal('overview');
   detailPanel: WritableSignal<DetailPanel> = signal('main');
   moneyMovementTab: WritableSignal<MoneyMovementTab> = signal('payouts');
@@ -596,6 +597,34 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
       console.error('Failed to dismiss identity review:', error);
     } finally {
       this.approvingIdentity.set(false);
+    }
+  }
+
+  CanWaiveIdentityDocument(): boolean {
+    const state = this.identityDocumentState();
+    return (
+      state === 'currently_due' ||
+      state === 'pending' ||
+      state === 'eventually_due'
+    );
+  }
+
+  async OnWaiveIdentityDocument(): Promise<void> {
+    const account = this.account();
+    if (!account || this.waivingIdentityDocument()) return;
+
+    this.waivingIdentityDocument.set(true);
+    try {
+      const updated = await this.accountService.WaiveIdentityDocument(
+        account.id
+      );
+      this.account.set(updated);
+      this.actions.SetActiveAccount(updated);
+      this.actions.events$.next({ type: 'updated', account: updated });
+    } catch (error) {
+      console.error('Failed to waive identity verification:', error);
+    } finally {
+      this.waivingIdentityDocument.set(false);
     }
   }
 

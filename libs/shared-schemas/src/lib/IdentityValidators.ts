@@ -393,6 +393,11 @@ export const IDENTITY_UNDER_REVIEW = 'under_review';
 export const IDENTITY_LITE_REVIEW_METADATA_KEY = 'identity_lite_review';
 export const IDENTITY_LITE_REVIEW_DISMISSED = 'dismissed';
 
+/** Account.metadata key: operator waived hosted document IDV for this account */
+export const IDENTITY_DOCUMENT_WAIVER_METADATA_KEY =
+  'identity_verification_document';
+export const IDENTITY_DOCUMENT_WAIVED = 'waived';
+
 /** Error codes for non-blocking lite review signals */
 export const IDENTITY_REVIEW_ERROR_CODES: ReadonlySet<string> = new Set([
   IDENTITY_ERROR_CODES.disposableEmail,

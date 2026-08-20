@@ -45,6 +45,8 @@ import {
   CheckPhoneNumber,
   CheckPostalCode,
   CountriesCompatible,
+  IDENTITY_DOCUMENT_WAIVED,
+  IDENTITY_DOCUMENT_WAIVER_METADATA_KEY,
   IDENTITY_ERROR_CODES,
   IDENTITY_LITE_REVIEW_DISMISSED,
   IDENTITY_LITE_REVIEW_METADATA_KEY,
@@ -212,6 +214,54 @@ export class IdentityLiteModule {
     });
 
     await this.EvaluateAndApply(accountId, null, { skipReview: true });
+
+    const updated = await this.accountModule.GetAccount(accountId);
+    if (!updated) {
+      throw new AppError(
+        ERRORS.ACCOUNT_NOT_FOUND.message,
+        ERRORS.ACCOUNT_NOT_FOUND.status,
+        ERRORS.ACCOUNT_NOT_FOUND.type
+      );
+    }
+
+    return updated;
+  }
+
+  /**
+   * Platform operator waives hosted document IDV for one connected account.
+   * Persists across later volume-threshold evaluations until verification
+   * completes or the waiver metadata is removed.
+   */
+  async WaiveIdentityDocument(accountId: string): Promise<AccountType> {
+    const account = await this.accountModule.GetAccount(accountId);
+    if (!account) {
+      throw new AppError(
+        ERRORS.ACCOUNT_NOT_FOUND.message,
+        ERRORS.ACCOUNT_NOT_FOUND.status,
+        ERRORS.ACCOUNT_NOT_FOUND.type
+      );
+    }
+
+    if (IsRejectedAccountReason(account.requirements?.disabled_reason)) {
+      throw new AppError(
+        'Cannot waive identity verification for a rejected account',
+        400,
+        'invalid_request_error'
+      );
+    }
+
+    await this.accountModule.UpdateAccount(accountId, {
+      metadata: {
+        ...account.metadata,
+        [IDENTITY_DOCUMENT_WAIVER_METADATA_KEY]: IDENTITY_DOCUMENT_WAIVED,
+      },
+    });
+
+    await this.EvaluateAndApply(accountId);
+    const restored = await this.RestorePayoutsIfEligible(accountId);
+    if (restored) {
+      return restored;
+    }
 
     const updated = await this.accountModule.GetAccount(accountId);
     if (!updated) {
@@ -458,7 +508,10 @@ export class IdentityLiteModule {
     const docField = IDENTITY_REQUIREMENT_FIELDS.verificationDocument;
     const verificationStatus = person.verification?.status ?? 'unverified';
 
-    if (verificationStatus === 'verified') {
+    if (
+      verificationStatus === 'verified' ||
+      this.IsDocumentVerificationWaived(account)
+    ) {
       evaluation.currentlyDue = evaluation.currentlyDue.filter(
         (f) => f !== docField
       );
@@ -737,6 +790,13 @@ export class IdentityLiteModule {
     return (
       account.metadata?.[IDENTITY_LITE_REVIEW_METADATA_KEY] ===
       IDENTITY_LITE_REVIEW_DISMISSED
+    );
+  }
+
+  private IsDocumentVerificationWaived(account: AccountType): boolean {
+    return (
+      account.metadata?.[IDENTITY_DOCUMENT_WAIVER_METADATA_KEY] ===
+      IDENTITY_DOCUMENT_WAIVED
     );
   }
 
