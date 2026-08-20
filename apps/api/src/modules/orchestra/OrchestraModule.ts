@@ -28,13 +28,14 @@ import {
   CentsToFiatUsd,
   CentsToUsdcSmallest,
   IsNativeSolanaUsdc,
-  IsOrchestraPayinSource,
-  IsOrchestraPayoutDest,
-  NormalizeAsset,
-  NormalizeChain,
-  SimulatedDepositAddress,
-  ToFlashnetAsset,
-  UsdcSmallestToCents,
+    IsOrchestraPayinSource,
+    IsOrchestraPayoutDest,
+    NormalizeAsset,
+    NormalizeChain,
+    RefreshOrchestraRoutes,
+    SimulatedDepositAddress,
+    ToFlashnetAsset,
+    UsdcSmallestToCents,
 } from './OrchestraRails';
 
 const TERMINAL_STATUSES = new Set(['completed', 'failed', 'refunded']);
@@ -76,6 +77,7 @@ export class OrchestraModule {
     );
 
     const method = input.method;
+    await RefreshOrchestraRoutes(this.client);
     const sourceChain =
       method === 'deposit'
         ? NormalizeChain(input.source_chain || '')
@@ -301,6 +303,8 @@ export class OrchestraModule {
     if (IsNativeSolanaUsdc(destWallet.network, destWallet.currency)) {
       return null;
     }
+
+    await RefreshOrchestraRoutes(this.client);
 
     if (!IsOrchestraPayoutDest(destWallet.network, destWallet.currency)) {
       throw new AppError(

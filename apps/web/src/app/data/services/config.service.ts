@@ -11,6 +11,7 @@ export interface OrchestraSource {
 
 export interface OrchestraPublicConfig {
   enabled: boolean;
+  live?: boolean;
   sources: OrchestraSource[];
 }
 
@@ -172,6 +173,10 @@ export class ConfigService {
    */
   OrchestraEnabled(): boolean {
     return this.OrchestraConfig()?.enabled === true;
+  }
+
+  OrchestraLive(): boolean {
+    return this.OrchestraConfig()?.live === true;
   }
 
   OrchestraSources(): OrchestraSource[] {

@@ -235,6 +235,10 @@ select.checkout-field-control {
   img {
     width: 20px;
     height: 20px;
+
+    &.checkout-cashapp-logo {
+      border-radius: 22%;
+    }
   }
 }
 
@@ -272,7 +276,16 @@ select.checkout-field-control {
   flex-shrink: 0;
   line-height: 1;
   background-color: $checkout-pay-button-bg;
-  color: $checkout-pay-button-fg;
+  color: $checkout-pay-button-fg !important;
+  text-decoration: none;
+
+  &:link,
+  &:visited,
+  &:hover,
+  &:active {
+    color: $checkout-pay-button-fg !important;
+    text-decoration: none;
+  }
   cursor: pointer;
   box-sizing: border-box;
 

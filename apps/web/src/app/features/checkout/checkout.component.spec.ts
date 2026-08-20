@@ -10,6 +10,10 @@ import {
 import { ConfigService } from '../../data/services/config.service';
 import { CheckoutComponent } from './checkout.component';
 
+jest.mock('./util/cashapp-qr', () => ({
+  BuildCashAppQrDataUrl: jest.fn(async () => 'data:image/png;base64,qr'),
+}));
+
 describe('CheckoutComponent mobile wallet handoff', () => {
   const signMobileTransaction = jest.fn();
   const signAndSendMobileTransaction = jest.fn();
@@ -28,6 +32,7 @@ describe('CheckoutComponent mobile wallet handoff', () => {
     IsSimulatedSettlement: jest.fn(() => false),
     LoadConfig: jest.fn().mockResolvedValue({}),
     OrchestraEnabled: jest.fn(() => false),
+    OrchestraLive: jest.fn(() => false),
     OrchestraSources: jest.fn(() => []),
   };
   const checkoutSessionService = {
@@ -350,5 +355,8 @@ describe('CheckoutComponent mobile wallet handoff', () => {
     );
     expect(component.paymentPhase()).toBe('awaiting_deposit');
     expect(component.IsBusy()).toBe(true);
+    expect(component.ShowCashAppQr()).toBe(true);
+    expect(component.cashAppQrDataUrl()).toBe('data:image/png;base64,qr');
+    expect(component.OrchestraDepositAddress()).toBeNull();
   });
 });

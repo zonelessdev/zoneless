@@ -23,7 +23,7 @@ import {
   SOLANA_NETWORK,
   TEST_WALLET_DATA,
   ValidateWalletAddress,
-  WALLET_CURRENCIES,
+  CurrencyOptionsForNetwork,
   WALLET_NETWORKS,
 } from '../../../utils';
 
@@ -61,9 +61,6 @@ export class ExternalWalletFormComponent implements OnInit, OnChanges {
   validationStatus: WritableSignal<'none' | 'valid' | 'invalid'> =
     signal('none');
   showWalletGuide: WritableSignal<boolean> = signal(false);
-
-  readonly networkOptions = WALLET_NETWORKS;
-  readonly currencyOptions = WALLET_CURRENCIES;
 
   ngOnInit(): void {
     this.InitializeForm();
@@ -107,11 +104,49 @@ export class ExternalWalletFormComponent implements OnInit, OnChanges {
 
   OnNetworkChange(value: string): void {
     this.network.set(value.toLowerCase());
+    const allowed = this.CurrencyOptions();
+    if (!allowed.some((option) => option.value === this.currency())) {
+      this.currency.set(allowed[0]?.value ?? 'usdc');
+    }
     if (!this.IsSolanaNetwork()) {
       this.showWalletGuide.set(false);
     }
     this.ValidateWalletAddress();
     this.EmitFormChange();
+  }
+
+  CurrencyOptions(): { value: string; label: string }[] {
+    const fromDestinations = this.PayoutDestinations()
+      .filter((destination) => destination.chain === this.network())
+      .map((destination) => ({
+        value: destination.asset,
+        label: destination.asset.toUpperCase(),
+      }));
+    if (fromDestinations.length > 0) return fromDestinations;
+    return CurrencyOptionsForNetwork(this.network());
+  }
+
+  NetworkOptions(): { value: string; label: string }[] {
+    const dests = this.PayoutDestinations();
+    if (
+      dests.length <= 1 &&
+      this.configService.OrchestraSources().length === 0
+    ) {
+      return [...WALLET_NETWORKS];
+    }
+    const seen = new Set<string>();
+    const options: { value: string; label: string }[] = [];
+    for (const dest of dests) {
+      if (seen.has(dest.chain)) continue;
+      seen.add(dest.chain);
+      options.push({
+        value: dest.chain,
+        label:
+          WALLET_NETWORKS.find((option) => option.value === dest.chain)
+            ?.label ?? dest.chain.charAt(0).toUpperCase() + dest.chain.slice(1),
+      });
+    }
+    return options;
   }
 
   OnCurrencyChange(value: string): void {
@@ -175,7 +210,7 @@ export class ExternalWalletFormComponent implements OnInit, OnChanges {
 
   NetworkLabel(): string {
     return (
-      this.networkOptions.find((option) => option.value === this.network())
+      this.NetworkOptions().find((option) => option.value === this.network())
         ?.label ?? 'Solana'
     );
   }
@@ -205,5 +240,25 @@ export class ExternalWalletFormComponent implements OnInit, OnChanges {
   private EmitFormChange(): void {
     this.formChange.emit(this.GetFormData());
     this.validationChange.emit(this.IsValid());
+  }
+
+  private PayoutDestinations(): {
+    chain: string;
+    asset: string;
+    label: string;
+  }[] {
+    const destinations = [
+      { chain: 'solana', asset: 'usdc', label: 'USDC on Solana' },
+      ...this.configService.OrchestraSources(),
+    ];
+    const seen = new Set<string>();
+    const unique: { chain: string; asset: string; label: string }[] = [];
+    for (const destination of destinations) {
+      const key = `${destination.chain}:${destination.asset}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(destination);
+    }
+    return unique;
   }
 }

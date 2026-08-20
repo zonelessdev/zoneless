@@ -54,6 +54,7 @@ import {
   FormatUsdcAmount,
   GetCheckoutSubmitLabel,
 } from './util/checkout-format';
+import { BuildCashAppQrDataUrl } from './util/cashapp-qr';
 import {
   BuildMobileWalletOptions,
   IsMobileBrowser,
@@ -144,6 +145,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   selectedSource: WritableSignal<OrchestraSource | null> = signal(null);
   orchestraPayment: WritableSignal<CheckoutSessionOrchestra | null> =
     signal(null);
+  cashAppQrDataUrl: WritableSignal<string | null> = signal(null);
   copiedField: WritableSignal<string | null> = signal(null);
   simulatedWalletOpen: WritableSignal<boolean> = signal(false);
   mobileWalletHandoffRequested: WritableSignal<boolean> = signal(false);
@@ -433,6 +435,10 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     return this.configService.OrchestraEnabled();
   }
 
+  OrchestraLive(): boolean {
+    return this.configService.OrchestraLive();
+  }
+
   OrchestraSources(): OrchestraSource[] {
     return this.configService.OrchestraSources();
   }
@@ -472,7 +478,12 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     return this.orchestraPayment()?.cash_app_url ?? null;
   }
 
+  ShowCashAppQr(): boolean {
+    return this.selectedMethod() === 'cashapp' && !!this.cashAppQrDataUrl();
+  }
+
   OrchestraDepositAddress(): string | null {
+    if (this.selectedMethod() === 'cashapp') return null;
     return this.orchestraPayment()?.deposit_address ?? null;
   }
 
@@ -507,7 +518,9 @@ export class CheckoutComponent implements OnInit, OnDestroy {
 
   WaitingSubtitle(): string {
     if (this.selectedMethod() === 'cashapp') {
-      return 'Open Cash App to approve this payment. We will complete checkout once it arrives.';
+      return this.ShowCashAppQr()
+        ? 'Scan this code with your phone to pay in Cash App. We will complete checkout once it arrives.'
+        : 'Open Cash App to approve this payment. We will complete checkout once it arrives.';
     }
     return 'Send the amount below to the deposit address. We will complete checkout once it arrives.';
   }
@@ -529,6 +542,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   CancelOrchestraWait(): void {
     this.StopOrchestraPoll();
     this.orchestraConfirming = false;
+    this.cashAppQrDataUrl.set(null);
     this.paymentPhase.set('idle');
     this.paymentError.set(null);
   }
@@ -553,6 +567,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
           : { method: 'cashapp' }
       );
       this.ApplyOrchestraResult(result);
+      await this.RefreshCashAppQr();
       this.paymentPhase.set('awaiting_deposit');
       this.StartOrchestraPoll();
     } catch (error) {
@@ -575,6 +590,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     if (match) this.selectedSource.set(match);
     this.paymentPhase.set('awaiting_deposit');
     this.StartOrchestraPoll();
+    void this.RefreshCashAppQr();
   }
 
   private ApplyOrchestraResult(result: OrchestraCheckoutResponse): void {
@@ -582,6 +598,24 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     const intent = session.orchestra ?? null;
     this.checkoutSession.set({ ...session, orchestra: intent });
     this.orchestraPayment.set(intent);
+  }
+
+  private IsMobileCheckout(): boolean {
+    if (typeof navigator === 'undefined') return false;
+    return IsMobileBrowser(navigator.userAgent, navigator.maxTouchPoints);
+  }
+
+  private async RefreshCashAppQr(): Promise<void> {
+    const url = this.OrchestraCashAppUrl();
+    if (!url || this.IsMobileCheckout()) {
+      this.cashAppQrDataUrl.set(null);
+      return;
+    }
+    try {
+      this.cashAppQrDataUrl.set(await BuildCashAppQrDataUrl(url));
+    } catch {
+      this.cashAppQrDataUrl.set(null);
+    }
   }
 
   private StartOrchestraPoll(): void {
@@ -616,7 +650,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         this.paymentPhase.set('idle');
         return;
       }
-      if (this.IsSimulatedSettlement()) return;
+      if (!this.OrchestraLive()) return;
       if (this.IsOrchestraComplete(status)) {
         await this.FinishOrchestraPayment();
       }
@@ -1146,9 +1180,9 @@ export class CheckoutComponent implements OnInit, OnDestroy {
 
   MethodDetailLabel(): string {
     if (this.selectedMethod() === 'cashapp') {
-      return this.IsSimulatedSettlement()
-        ? 'Paying with test Cash App'
-        : 'Paying with Cash App';
+      return this.OrchestraLive()
+        ? 'Paying with Cash App'
+        : 'Paying with test Cash App';
     }
     if (this.selectedMethod() === 'deposit') {
       return `Paying with ${this.SourceDisplayLabel(

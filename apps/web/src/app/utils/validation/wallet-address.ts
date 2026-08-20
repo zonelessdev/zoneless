@@ -5,8 +5,8 @@ export const WALLET_NETWORKS = [
   { value: 'base', label: 'Base' },
   { value: 'arbitrum', label: 'Arbitrum' },
   { value: 'ethereum', label: 'Ethereum' },
-  { value: 'optimism', label: 'Optimism' },
   { value: 'polygon', label: 'Polygon' },
+  { value: 'hyperevm', label: 'HyperEVM' },
   { value: 'tron', label: 'Tron' },
 ] as const;
 
@@ -15,12 +15,26 @@ export const WALLET_CURRENCIES = [
   { value: 'usdt', label: 'USDT' },
 ] as const;
 
+export function CurrencyOptionsForNetwork(
+  network: string
+): { value: string; label: string }[] {
+  const normalized = network.toLowerCase();
+  if (normalized === 'tron') {
+    return WALLET_CURRENCIES.filter((option) => option.value === 'usdt');
+  }
+  if (normalized === 'hyperevm') {
+    return WALLET_CURRENCIES.filter((option) => option.value === 'usdc');
+  }
+  return [...WALLET_CURRENCIES];
+}
+
 const EVM_NETWORKS = new Set([
   'base',
   'arbitrum',
   'ethereum',
   'optimism',
   'polygon',
+  'hyperevm',
 ]);
 
 const EVM_ADDRESS = /^0x[a-fA-F0-9]{40}$/;

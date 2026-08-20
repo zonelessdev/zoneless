@@ -131,16 +131,31 @@
         class="checkout-waiting waiting-state"
         aria-labelledby="checkout-waiting-title"
       >
+        @if (!ShowCashAppQr()) {
         <div class="waiting-animation">
           <app-loader size="large"></app-loader>
         </div>
+        }
         <h1 id="checkout-waiting-title" class="waiting-title">
           {{ WaitingTitle() }}
         </h1>
         <p class="waiting-subtitle">{{ WaitingSubtitle() }}</p>
 
-        @if (selectedMethod() === 'cashapp') { @if (OrchestraCashAppUrl(); as
-        cashAppUrl) {
+        @if (selectedMethod() === 'cashapp') {
+        @if (ShowCashAppQr()) {
+        <div class="cashapp-qr">
+          <img
+            class="cashapp-qr-code"
+            [src]="cashAppQrDataUrl()"
+            alt="Scan to pay with Cash App"
+          />
+          <img
+            class="cashapp-qr-logo"
+            src="/assets/images/logos/cash-app.png"
+            alt=""
+          />
+        </div>
+        } @if (OrchestraCashAppUrl(); as cashAppUrl) {
         <a
           class="checkout-pay-button"
           [href]="cashAppUrl"
@@ -185,7 +200,7 @@
             {{ copiedField() === 'memo' ? 'Copied' : 'Copy' }}
           </button>
         </div>
-        } @if (IsSimulatedSettlement()) {
+        } @if (!OrchestraLive()) {
         <button
           type="button"
           class="checkout-pay-button"
@@ -520,7 +535,11 @@
               [disabled]="IsBusy()"
               (change)="SelectMethod('cashapp')"
             />
-            <img src="/assets/icons/account_balance_wallet.svg" alt="" />
+            <img
+              class="checkout-cashapp-logo"
+              src="/assets/images/logos/cash-app.png"
+              alt=""
+            />
             Cash App
           </label>
           } @if (ShowDepositMethod()) {

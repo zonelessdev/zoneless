@@ -14,6 +14,8 @@ interface RateLimitStore {
 }
 
 interface RateLimitOptions {
+  /** Prefix so auth / API / strict counters do not share one bucket. */
+  name: string;
   windowMs: number; // Time window in milliseconds
   maxRequests: number; // Max requests per window
   keyGenerator?: (req: Request) => string; // Custom key generator
@@ -38,13 +40,14 @@ setInterval(() => {
  */
 export function RateLimiter(options: RateLimitOptions) {
   const {
+    name,
     windowMs,
     maxRequests,
     keyGenerator = (req: Request) => req.ip || 'unknown',
   } = options;
 
   return (req: Request, res: Response, next: NextFunction) => {
-    const key = keyGenerator(req);
+    const key = `${name}:${keyGenerator(req)}`;
     const now = Date.now();
 
     // Initialize or reset if window expired
@@ -88,24 +91,28 @@ export function RateLimiter(options: RateLimitOptions) {
 export const RateLimiters = {
   // Standard API rate limit: 5000 requests per 15 minutes
   standard: RateLimiter({
+    name: 'standard',
     windowMs: 15 * 60 * 1000,
     maxRequests: 5000,
   }),
 
   // Strict rate limit for sensitive operations: 100 requests per minute
   strict: RateLimiter({
+    name: 'strict',
     windowMs: 60 * 1000,
     maxRequests: 100,
   }),
 
   // Auth rate limit: 100 attempts per 15 minutes
   auth: RateLimiter({
+    name: 'auth',
     windowMs: 15 * 60 * 1000,
     maxRequests: 100,
   }),
 
   // Rate limit by API key instead of IP
   byApiKey: RateLimiter({
+    name: 'apiKey',
     windowMs: 15 * 60 * 1000,
     maxRequests: 10000,
     keyGenerator: (req: Request) => {

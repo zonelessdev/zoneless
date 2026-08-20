@@ -106,7 +106,7 @@
         [ngModel]="network()"
         (ngModelChange)="OnNetworkChange($event)"
       >
-        @for (option of networkOptions; track option.value) {
+        @for (option of NetworkOptions(); track option.value) {
         <option [value]="option.value">{{ option.label }}</option>
         }
       </select>
@@ -118,7 +118,7 @@
         [ngModel]="currency()"
         (ngModelChange)="OnCurrencyChange($event)"
       >
-        @for (option of currencyOptions; track option.value) {
+        @for (option of CurrencyOptions(); track option.value) {
         <option [value]="option.value">{{ option.label }}</option>
         }
       </select>

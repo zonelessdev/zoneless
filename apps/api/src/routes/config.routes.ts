@@ -26,7 +26,10 @@ import {
   IsOrchestraLive,
 } from '../modules/AppConfig';
 import { SolanaExplorerUrl } from '../modules/chains/Solana';
-import { ListOrchestraPayinSources } from '../modules/orchestra/OrchestraRails';
+import {
+  ListOrchestraPayinSources,
+  RefreshOrchestraRoutes,
+} from '../modules/orchestra/OrchestraRails';
 
 const router = express.Router();
 
@@ -38,11 +41,16 @@ const apiKeyModule = new ApiKeyModule(db);
 /**
  * Helper to build PublicConfig from a platform account.
  */
-function BuildPublicConfig(platformAccount: Account | null): PublicConfig {
+async function BuildPublicConfig(
+  platformAccount: Account | null
+): Promise<PublicConfig> {
+  await RefreshOrchestraRoutes();
   const { livemode, settlement_rail } = GetAppConfig();
   const settlement = settlement_rail ?? 'simulated';
+  const orchestraLive = IsOrchestraLive();
   const orchestra = {
-    enabled: IsOrchestraLive() || settlement === 'simulated',
+    enabled: orchestraLive || settlement === 'simulated',
+    live: orchestraLive,
     sources: ListOrchestraPayinSources(),
   };
 
@@ -150,7 +158,7 @@ router.get(
       }
     }
 
-    res.json(BuildPublicConfig(platformAccount));
+    res.json(await BuildPublicConfig(platformAccount));
   })
 );
 

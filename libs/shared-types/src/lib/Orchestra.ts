@@ -3,7 +3,7 @@ import type { CheckoutSession } from './CheckoutSession';
 export type OrchestraMethod = 'cashapp' | 'deposit';
 
 export interface OrchestraSource {
-  chain: string; // internal id: base, arbitrum, ethereum, optimism, polygon, tron, solana
+  chain: string; // base, arbitrum, ethereum, polygon, hyperevm, tron, solana
   asset: string; // usdc | usdt
   label: string; // "USDC on Base"
 }

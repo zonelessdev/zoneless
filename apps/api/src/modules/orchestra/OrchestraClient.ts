@@ -8,6 +8,7 @@
 import { GetAppConfig, IsOrchestraLive } from '../AppConfig';
 import { AppError } from '../../utils/AppError';
 import { ERRORS } from '../../utils/Errors';
+import { Logger } from '../../utils/Logger';
 
 export { IsOrchestraLive };
 
@@ -36,6 +37,25 @@ export interface OrchestraQuoteInput {
 export interface OrchestraStatusInput {
   orderId?: string;
   quoteId?: string;
+}
+
+export interface OrchestraRouteEndpoint {
+  chain?: string;
+  asset?: string;
+  assetDisplayName?: string;
+  chainDisplayName?: string;
+  contractAddress?: string | null;
+  decimals?: number;
+  chainId?: string | number | null;
+}
+
+export interface OrchestraRoute {
+  sourceChain: string;
+  sourceAsset: string;
+  destinationChain: string;
+  destinationAsset: string;
+  source?: OrchestraRouteEndpoint;
+  destination?: OrchestraRouteEndpoint;
 }
 
 /** Normalized partner order — Flashnet field names stay inside this client. */
@@ -103,6 +123,18 @@ function Unavailable(): AppError {
   );
 }
 
+function ReadPartnerError(body: string): string | null {
+  try {
+    const parsed = JSON.parse(body) as {
+      error?: { message?: string };
+      message?: string;
+    };
+    return parsed.error?.message || parsed.message || null;
+  } catch {
+    return null;
+  }
+}
+
 export class OrchestraClient {
   private readonly apiUrl: string;
   private readonly apiKey: string;
@@ -151,6 +183,19 @@ export class OrchestraClient {
     );
   }
 
+  async ListRoutes(): Promise<OrchestraRoute[]> {
+    const payload = await this.RequestJson('/v1/orchestration/routes', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+    });
+    const data = AsRecord(payload);
+    const routes = data?.routes;
+    if (!Array.isArray(routes)) return [];
+    return routes as OrchestraRoute[];
+  }
+
   async GetOrderStatus(
     input: OrchestraStatusInput
   ): Promise<OrchestraPartnerOrder> {
@@ -185,30 +230,34 @@ export class OrchestraClient {
     body: Record<string, unknown>,
     idempotencyKey: string
   ): Promise<OrchestraPartnerOrder> {
-    return this.Request(path, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-        'X-Idempotency-Key': idempotencyKey,
-      },
-      body: JSON.stringify(body),
-    });
+    return NormalizeOrder(
+      await this.RequestJson(path, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'X-Idempotency-Key': idempotencyKey,
+        },
+        body: JSON.stringify(body),
+      })
+    );
   }
 
   private async GetJson(path: string): Promise<OrchestraPartnerOrder> {
-    return this.Request(path, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-    });
+    return NormalizeOrder(
+      await this.RequestJson(path, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+      })
+    );
   }
 
-  private async Request(
+  private async RequestJson(
     path: string,
     init: RequestInit
-  ): Promise<OrchestraPartnerOrder> {
+  ): Promise<unknown> {
     if (!this.apiUrl || !this.apiKey) {
       throw Unavailable();
     }
@@ -219,9 +268,20 @@ export class OrchestraClient {
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
       if (!response.ok) {
-        throw Unavailable();
+        const body = await response.text();
+        Logger.warn('Orchestra request failed', {
+          url: `${this.apiUrl}${path}`,
+          status: response.status,
+          body: body.slice(0, 500),
+        });
+        const partnerMessage = ReadPartnerError(body);
+        throw new AppError(
+          partnerMessage || ERRORS.ORCHESTRA_UNAVAILABLE.message,
+          ERRORS.ORCHESTRA_UNAVAILABLE.status,
+          ERRORS.ORCHESTRA_UNAVAILABLE.type
+        );
       }
-      return NormalizeOrder(await response.json());
+      return await response.json();
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw Unavailable();

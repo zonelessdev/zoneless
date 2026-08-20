@@ -158,16 +158,12 @@ export function IsCheckoutFeeSponsored(): boolean {
 }
 
 /**
- * Live Flashnet Orchestra: both credentials set and settlement is not simulated.
- * When unset or simulated, pay-in/payout use an in-process stand-in.
+ * Live Flashnet Orchestra: server credentials are set.
+ * Settlement rail is independent — simulated Solana can still use live Cash App.
  */
 export function IsOrchestraLive(): boolean {
-  const { orchestraApiUrl, orchestraApiKey, settlement_rail } = GetAppConfig();
-  return (
-    !!orchestraApiUrl &&
-    !!orchestraApiKey &&
-    settlement_rail !== 'simulated'
-  );
+  const { orchestraApiUrl, orchestraApiKey } = GetAppConfig();
+  return !!orchestraApiUrl && !!orchestraApiKey;
 }
 
 /**

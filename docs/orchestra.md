@@ -6,7 +6,7 @@ Ledger stays USDC on Solana. Conversion happens only at the Flashnet edge.
 
 ## Demo without Flashnet credentials
 
-`SETTLEMENT_RAIL=simulated` (the test default). Leave `ORCHESTRA_API_KEY` unset.
+`SETTLEMENT_RAIL=simulated` (the test default). Leave `ORCHESTRA_API_KEY` unset for fake rails, or set a Flashnet server key to use real Cash App / xchain while Solana stays simulated.
 
 1. Create a **payment-mode** Checkout Session or Payment Link.
 2. Open `/c/{slug}`. Methods: Solana wallet, Cash App, Other chain.
@@ -30,11 +30,13 @@ Pay-in destination is always the platform Solana USDC wallet. Checkout never tal
 
 Cash App onramps require at least $1.00 (Flashnet's floor).
 
-## Stables (v1)
+## Stables
 
-Pay-in sources: Cash App, plus `base/usdc`, `arbitrum/usdc`, `ethereum/usdc`, `optimism/usdc`, `polygon/usdc`, `tron/usdt`.
+Pay-in and payout pairs come from Flashnet `GET /v1/orchestration/routes`, not a hardcoded chain×asset grid. We keep USDC/USDT pairs that route **both ways** with `solana:USDC` and use 6 decimals (the ledger unit).
 
-Payout dests: the same list. `solana/usdc` stays on the native batch path.
+That is why Optimism USDT is omitted: Flashnet lists it only against Bitcoin / Lightning / Spark, not Solana. BSC USDT is omitted because it is 18 decimals.
+
+When Orchestra is live, the API refreshes this list on config and quote. Simulated mode uses the last snapshot of that table. `solana/usdc` payouts stay on the native batch path.
 
 Xchain quotes are exact-in / variable. Checkout copy is “send X on Base to deliver ~$10”.
 

@@ -88,6 +88,8 @@ export interface PublicConfig {
    */
   orchestra: {
     enabled: boolean;
+    /** True when a Flashnet server key is configured (real Cash App / xchain). */
+    live: boolean;
     sources: OrchestraSource[];
   };
 }

@@ -11,7 +11,11 @@ import { OrchestraModule } from '../modules/orchestra/OrchestraModule';
 import {
   CentsToFiatUsd,
   CentsToUsdcSmallest,
+  DeriveOrchestraStableSources,
   IsNativeSolanaUsdc,
+  IsOrchestraPayoutDest,
+  ListOrchestraPayinSources,
+  ResetOrchestraRouteCache,
   UsdcSmallestToCents,
 } from '../modules/orchestra/OrchestraRails';
 import {
@@ -191,6 +195,91 @@ describe('Orchestra', () => {
 
     it('floors partial smallest units when converting back to cents', () => {
       expect(UsdcSmallestToCents('10009999')).toBe(1000);
+    });
+  });
+
+  describe('Rails', () => {
+    afterEach(() => {
+      ResetOrchestraRouteCache();
+    });
+
+    it('uses Flashnet pairs that route both ways with solana:USDC', () => {
+      const sources = ListOrchestraPayinSources();
+      expect(
+        sources.some(
+          (source) => source.chain === 'base' && source.asset === 'usdt'
+        )
+      ).toBe(true);
+      expect(
+        sources.some(
+          (source) => source.chain === 'tron' && source.asset === 'usdt'
+        )
+      ).toBe(true);
+      expect(
+        sources.some(
+          (source) => source.chain === 'optimism' && source.asset === 'usdt'
+        )
+      ).toBe(false);
+      expect(IsOrchestraPayoutDest('base', 'usdt')).toBe(true);
+      expect(IsOrchestraPayoutDest('optimism', 'usdt')).toBe(false);
+      expect(IsOrchestraPayoutDest('solana', 'usdt')).toBe(true);
+    });
+
+    it('drops stables that do not route to solana:USDC', () => {
+      const sources = DeriveOrchestraStableSources([
+        {
+          sourceChain: 'optimism',
+          sourceAsset: 'USDT',
+          destinationChain: 'lightning',
+          destinationAsset: 'BTC',
+          source: {
+            decimals: 6,
+            chainId: '10',
+            contractAddress: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58',
+            chainDisplayName: 'Optimism',
+          },
+        },
+        {
+          sourceChain: 'base',
+          sourceAsset: 'USDT',
+          destinationChain: 'solana',
+          destinationAsset: 'USDC',
+          source: {
+            decimals: 6,
+            chainId: '8453',
+            contractAddress: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2',
+            chainDisplayName: 'Base',
+          },
+        },
+        {
+          sourceChain: 'solana',
+          sourceAsset: 'USDC',
+          destinationChain: 'base',
+          destinationAsset: 'USDT',
+          destination: {
+            decimals: 6,
+            chainId: '8453',
+            contractAddress: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2',
+            chainDisplayName: 'Base',
+          },
+        },
+        {
+          sourceChain: 'bsc',
+          sourceAsset: 'USDT',
+          destinationChain: 'solana',
+          destinationAsset: 'USDC',
+          source: {
+            decimals: 18,
+            chainId: '56',
+            contractAddress: '0x55d398326f99059fF775485246999027B3197955',
+            chainDisplayName: 'BNB',
+          },
+        },
+      ]);
+
+      expect(sources).toEqual([
+        { chain: 'base', asset: 'usdt', label: 'USDT on Base' },
+      ]);
     });
   });
 

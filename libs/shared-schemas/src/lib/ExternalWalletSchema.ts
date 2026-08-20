@@ -9,6 +9,7 @@ const ALLOWED_NETWORKS = new Set([
   'ethereum',
   'optimism',
   'polygon',
+  'hyperevm',
   'tron',
 ]);
 const EVM_NETWORKS = new Set([
@@ -17,6 +18,7 @@ const EVM_NETWORKS = new Set([
   'ethereum',
   'optimism',
   'polygon',
+  'hyperevm',
 ]);
 
 function IsValidWalletAddress(network: string, address: string): boolean {
@@ -86,11 +88,11 @@ export const CreateExternalWalletSchema = z
       return;
     }
 
-    if ((network === 'solana' || EVM_NETWORKS.has(network)) && currency !== 'usdc') {
+    if (network === 'solana' && currency !== 'usdc' && currency !== 'usdt') {
       ctx.addIssue({
         code: 'custom',
         path: ['currency'],
-        message: 'This network only supports usdc',
+        message: 'Solana wallets must use usdc or usdt',
       });
       return;
     }
