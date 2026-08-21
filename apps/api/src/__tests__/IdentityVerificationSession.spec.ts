@@ -800,6 +800,42 @@ describe('Identity volume threshold gating', () => {
       IDENTITY_REQUIREMENT_FIELDS.verificationDocument
     );
   });
+
+  it('refresh clears document currently_due when volume is now under threshold', async () => {
+    mockDb.Aggregate.mockResolvedValue([{ gross: 250_000 }]);
+    await module.EvaluateAndApply(connectedId);
+    expect(
+      storedAccounts.get(connectedId)?.requirements?.currently_due
+    ).toContain(IDENTITY_REQUIREMENT_FIELDS.verificationDocument);
+
+    mockDb.Aggregate.mockResolvedValue([{ gross: 50_000 }]);
+    const refreshed = await module.RefreshIdentityRequirements(connectedId);
+
+    expect(refreshed.requirements?.currently_due).not.toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+    expect(refreshed.requirements?.eventually_due).toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+
+    mockDb.Aggregate.mockResolvedValue([{ gross: 250_000 }]);
+    const evaluation = await module.EvaluateAndApply(connectedId);
+    expect(evaluation.blocking).toBe(true);
+    expect(evaluation.currentlyDue).toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+  });
+
+  it('refresh keeps document currently_due when still over threshold', async () => {
+    mockDb.Aggregate.mockResolvedValue([{ gross: 250_000 }]);
+    await module.EvaluateAndApply(connectedId);
+
+    const refreshed = await module.RefreshIdentityRequirements(connectedId);
+
+    expect(refreshed.requirements?.currently_due).toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+  });
 });
 
 describe('AccountModule identity settings merge', () => {

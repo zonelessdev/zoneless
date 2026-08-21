@@ -481,6 +481,9 @@ router.post(
       accountId,
     });
 
+    if (enabled) {
+      await identityLiteModule.EvaluateAndApply(accountId);
+    }
     const account = enabled
       ? await accountModule.PayoutsEnabled(accountId)
       : await accountModule.PayoutsDisabled(accountId);
@@ -507,6 +510,30 @@ router.post(
     const populatedAccount = await PopulateAccountResources(account, true);
 
     Logger.info('Identity approved successfully', { accountId });
+
+    res.json(populatedAccount);
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /v1/accounts/:id/refresh_identity - Rebuild currently_due from live rules
+// Zoneless extension: does not persist an IDV exemption
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/:id/refresh_identity',
+  RequirePlatform(),
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const accountId = req.params.id;
+    await RequirePlatformOwnedAccount(accountId, req.user.account);
+
+    Logger.info('Refreshing identity requirements', { accountId });
+
+    const account = await identityLiteModule.RefreshIdentityRequirements(
+      accountId
+    );
+    const populatedAccount = await PopulateAccountResources(account, true);
+
+    Logger.info('Identity requirements refreshed', { accountId });
 
     res.json(populatedAccount);
   })

@@ -226,6 +226,49 @@ export class IdentityLiteModule {
   }
 
   /**
+   * Platform operator rebuilds currently_due from live person + threshold
+   * rules. Does not persist an exemption — a later volume crossing can put
+   * document IDV back on currently_due.
+   */
+  async RefreshIdentityRequirements(accountId: string): Promise<AccountType> {
+    const account = await this.accountModule.GetAccount(accountId);
+    if (!account) {
+      throw new AppError(
+        ERRORS.ACCOUNT_NOT_FOUND.message,
+        ERRORS.ACCOUNT_NOT_FOUND.status,
+        ERRORS.ACCOUNT_NOT_FOUND.type
+      );
+    }
+
+    if (IsRejectedAccountReason(account.requirements?.disabled_reason)) {
+      throw new AppError(
+        'Cannot refresh identity requirements for a rejected account',
+        400,
+        'invalid_request_error'
+      );
+    }
+
+    const evaluation = await this.EvaluateAndApply(accountId);
+    if (!evaluation.blocking) {
+      const restored = await this.RestorePayoutsIfEligible(accountId);
+      if (restored) {
+        return restored;
+      }
+    }
+
+    const updated = await this.accountModule.GetAccount(accountId);
+    if (!updated) {
+      throw new AppError(
+        ERRORS.ACCOUNT_NOT_FOUND.message,
+        ERRORS.ACCOUNT_NOT_FOUND.status,
+        ERRORS.ACCOUNT_NOT_FOUND.type
+      );
+    }
+
+    return updated;
+  }
+
+  /**
    * Assert the account may attach a wallet / enable payouts.
    * Hosted document IDV does not block wallet attach — payouts are
    * soft-paused separately when that requirement is currently_due.

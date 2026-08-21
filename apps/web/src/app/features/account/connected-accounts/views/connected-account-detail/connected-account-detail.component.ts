@@ -98,6 +98,7 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
   account: WritableSignal<Account | null> = signal(null);
   loading: WritableSignal<boolean> = signal(false);
   approvingIdentity: WritableSignal<boolean> = signal(false);
+  refreshingIdentity: WritableSignal<boolean> = signal(false);
   activeTab: WritableSignal<DetailTab> = signal('overview');
   detailPanel: WritableSignal<DetailPanel> = signal('main');
   moneyMovementTab: WritableSignal<MoneyMovementTab> = signal('payouts');
@@ -304,6 +305,15 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
         title: `View Dashboard as ${name}`,
         external: true,
         action: () => this.OnViewDashboard(),
+      },
+      {
+        title: 'Refresh identity checks',
+        section: 'Actions',
+        action: () => void this.OnRefreshIdentityChecks(),
+        hidden: (account: Account) =>
+          (account.requirements?.currently_due?.length ?? 0) === 0 ||
+          this.actions.IsAccountRejected(account),
+        disabled: () => this.refreshingIdentity(),
       },
       {
         title: 'Pause payouts',
@@ -596,6 +606,25 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
       console.error('Failed to dismiss identity review:', error);
     } finally {
       this.approvingIdentity.set(false);
+    }
+  }
+
+  async OnRefreshIdentityChecks(): Promise<void> {
+    const account = this.account();
+    if (!account || this.refreshingIdentity()) return;
+
+    this.refreshingIdentity.set(true);
+    try {
+      const updated = await this.accountService.RefreshIdentityRequirements(
+        account.id
+      );
+      this.account.set(updated);
+      this.actions.SetActiveAccount(updated);
+      this.actions.events$.next({ type: 'updated', account: updated });
+    } catch (error) {
+      console.error('Failed to refresh identity requirements:', error);
+    } finally {
+      this.refreshingIdentity.set(false);
     }
   }
 

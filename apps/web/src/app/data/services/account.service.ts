@@ -85,6 +85,17 @@ export class AccountService {
   }
 
   /**
+   * Platform-only: rebuild currently_due from live identity rules.
+   */
+  async RefreshIdentityRequirements(accountId: string): Promise<Account> {
+    return this.api.Call<Account>(
+      'POST',
+      `accounts/${accountId}/refresh_identity`,
+      {}
+    );
+  }
+
+  /**
    * Platform-only: reject a connected account.
    */
   async RejectAccount(
