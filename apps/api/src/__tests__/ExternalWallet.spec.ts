@@ -105,6 +105,38 @@ describe('ExternalWalletModule', () => {
         })
       ).rejects.toThrow('Account not found');
     });
+
+    it('accepts USDT on Base', async () => {
+      mockDb.Get = jest.fn().mockResolvedValue({
+        id: 'acct_z_1',
+        platform_account: 'acct_z_platform',
+      });
+
+      const wallet = await module.CreateExternalWallet('acct_z_1', {
+        wallet_address: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
+        network: 'base',
+        currency: 'usdt',
+      });
+
+      expect(wallet.network).toBe('base');
+      expect(wallet.currency).toBe('usdt');
+    });
+
+    it('accepts USDT on Solana', async () => {
+      mockDb.Get = jest.fn().mockResolvedValue({
+        id: 'acct_z_1',
+        platform_account: 'acct_z_platform',
+      });
+
+      const wallet = await module.CreateExternalWallet('acct_z_1', {
+        wallet_address: VALID_WALLET,
+        network: 'solana',
+        currency: 'usdt',
+      });
+
+      expect(wallet.network).toBe('solana');
+      expect(wallet.currency).toBe('usdt');
+    });
   });
 
   describe('GetExternalWallet', () => {

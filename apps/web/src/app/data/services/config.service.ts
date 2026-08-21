@@ -2,6 +2,23 @@ import { Injectable, inject, signal, WritableSignal } from '@angular/core';
 import { ApiService } from '../../core';
 import { PublicConfig, SetupStatus } from '@zoneless/shared-types';
 
+/** Orchestra rails advertised by GET /v1/config. Local until shared-types lands. */
+export interface OrchestraSource {
+  chain: string;
+  asset: string;
+  label: string;
+}
+
+export interface OrchestraPublicConfig {
+  enabled: boolean;
+  live?: boolean;
+  sources: OrchestraSource[];
+}
+
+type PublicConfigWithOrchestra = PublicConfig & {
+  orchestra?: OrchestraPublicConfig;
+};
+
 @Injectable({
   providedIn: 'root',
 })
@@ -148,6 +165,26 @@ export class ConfigService {
    */
   IsSimulatedSettlement(): boolean {
     return this.config()?.settlement === 'simulated';
+  }
+
+  /**
+   * True in simulated test mode (picker always shows locally) or when
+   * Orchestra is configured on the instance.
+   */
+  OrchestraEnabled(): boolean {
+    return this.OrchestraConfig()?.enabled === true;
+  }
+
+  OrchestraLive(): boolean {
+    return this.OrchestraConfig()?.live === true;
+  }
+
+  OrchestraSources(): OrchestraSource[] {
+    return this.OrchestraConfig()?.sources ?? [];
+  }
+
+  private OrchestraConfig(): OrchestraPublicConfig | undefined {
+    return (this.config() as PublicConfigWithOrchestra | null)?.orchestra;
   }
 
   /**

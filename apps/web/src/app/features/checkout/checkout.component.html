@@ -126,6 +126,98 @@
           </button>
         </div>
       </section>
+      } @else if (IsAwaitingDeposit()) {
+      <section
+        class="checkout-waiting waiting-state"
+        aria-labelledby="checkout-waiting-title"
+      >
+        @if (!ShowCashAppQr()) {
+        <div class="waiting-animation">
+          <app-loader size="large"></app-loader>
+        </div>
+        }
+        <h1 id="checkout-waiting-title" class="waiting-title">
+          {{ WaitingTitle() }}
+        </h1>
+        <p class="waiting-subtitle">{{ WaitingSubtitle() }}</p>
+
+        @if (selectedMethod() === 'cashapp') {
+        @if (ShowCashAppQr()) {
+        <div class="cashapp-qr">
+          <img
+            class="cashapp-qr-code"
+            [src]="cashAppQrDataUrl()"
+            alt="Scan to pay with Cash App"
+          />
+          <img
+            class="cashapp-qr-logo"
+            src="/assets/images/logos/cash-app.png"
+            alt=""
+          />
+        </div>
+        } @if (OrchestraCashAppUrl(); as cashAppUrl) {
+        <a
+          class="checkout-pay-button"
+          [href]="cashAppUrl"
+          target="_blank"
+          rel="noopener"
+        >
+          Open in Cash App
+        </a>
+        } } @if (selectedMethod() === 'deposit') {
+        <div class="waiting-address">
+          <span class="waiting-address-label">Send</span>
+          <span class="waiting-address-value">{{
+            OrchestraAmountLabel()
+          }}</span>
+          <span class="waiting-address-label">{{
+            OrchestraSourceLabel()
+          }}</span>
+        </div>
+        } @if (OrchestraDepositAddress(); as depositAddress) {
+        <div class="waiting-address">
+          <span class="waiting-address-label">Deposit address</span>
+          <span class="waiting-address-value" [title]="depositAddress">{{
+            ShortAddress(depositAddress)
+          }}</span>
+          <button
+            type="button"
+            class="checkout-copy-button"
+            (click)="CopyDepositField(depositAddress, 'address')"
+          >
+            {{ copiedField() === 'address' ? 'Copied' : 'Copy' }}
+          </button>
+        </div>
+        } @if (OrchestraDepositMemo(); as memo) {
+        <div class="waiting-address">
+          <span class="waiting-address-label">Memo</span>
+          <span class="waiting-address-value">{{ memo }}</span>
+          <button
+            type="button"
+            class="checkout-copy-button"
+            (click)="CopyDepositField(memo, 'memo')"
+          >
+            {{ copiedField() === 'memo' ? 'Copied' : 'Copy' }}
+          </button>
+        </div>
+        } @if (!OrchestraLive()) {
+        <button
+          type="button"
+          class="checkout-pay-button"
+          (click)="SimulateOrchestraPayment()"
+        >
+          Simulate payment
+        </button>
+        }
+
+        <button
+          type="button"
+          class="simulated-wallet-decline"
+          (click)="CancelOrchestraWait()"
+        >
+          Go back
+        </button>
+      </section>
       } @else if (IsComplete()) {
       <div class="checkout-confirmation">
         <img
@@ -423,15 +515,69 @@
         <div class="checkout-section-label">Payment method</div>
         <div class="checkout-method-box">
           <label class="checkout-method-option">
-            <input type="radio" name="payment-method" checked />
+            <input
+              type="radio"
+              name="payment-method"
+              [checked]="selectedMethod() === 'solana'"
+              [disabled]="IsBusy()"
+              (change)="SelectMethod('solana')"
+            />
             <img src="/assets/images/logos/usdc.svg" alt="" />
-            USDC
+            Solana wallet
           </label>
+
+          @if (ShowCashAppMethod()) {
+          <label class="checkout-method-option">
+            <input
+              type="radio"
+              name="payment-method"
+              [checked]="selectedMethod() === 'cashapp'"
+              [disabled]="IsBusy()"
+              (change)="SelectMethod('cashapp')"
+            />
+            <img
+              class="checkout-cashapp-logo"
+              src="/assets/images/logos/cash-app.png"
+              alt=""
+            />
+            Cash App
+          </label>
+          } @if (ShowDepositMethod()) {
+          <label class="checkout-method-option">
+            <input
+              type="radio"
+              name="payment-method"
+              [checked]="selectedMethod() === 'deposit'"
+              [disabled]="IsBusy()"
+              (change)="SelectMethod('deposit')"
+            />
+            <img src="/assets/icons/globe.svg" alt="" />
+            Other chain
+          </label>
+          }
 
           <div class="checkout-method-detail">
             <div class="checkout-method-detail-label">
               {{ MethodDetailLabel() }}
             </div>
+            @if (selectedMethod() === 'deposit') {
+            <label class="checkout-field">
+              <select
+                class="checkout-field-control"
+                name="orchestraSource"
+                [ngModel]="SelectedSourceKey()"
+                [disabled]="IsBusy()"
+                (ngModelChange)="OnSourceChange($event)"
+              >
+                @for (source of OrchestraSources(); track source.chain + ':' +
+                source.asset) {
+                <option [value]="source.chain + ':' + source.asset">
+                  {{ source.label }}
+                </option>
+                }
+              </select>
+            </label>
+            }
             <div class="checkout-method-detail-help">
               {{ MethodHelpText() }}
             </div>

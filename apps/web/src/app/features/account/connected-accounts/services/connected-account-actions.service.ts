@@ -12,6 +12,8 @@ import type {
   Balance,
   ExternalWallet,
   LoginLink,
+  Payout,
+  PayoutBatchBroadcastResponse,
   PayoutBatchBuildResponse,
 } from '@zoneless/shared-types';
 import type { CreateAccountInput } from '@zoneless/shared-schemas';
@@ -28,7 +30,18 @@ import {
   TransferService,
 } from '../../../../data';
 import { SolanaWalletService } from '../../../../core';
-import { GetCountryName } from '../../../../utils';
+import {
+  FormatDestinationLabel,
+  GetCountryName,
+  IsSolanaUsdcDestination,
+} from '../../../../utils';
+
+type OrchestraBroadcastResponse = Omit<
+  PayoutBatchBroadcastResponse,
+  'status'
+> & {
+  status: 'paid' | 'failed' | 'in_transit';
+};
 
 export type CreateConnectedAccountStep = 'summary' | 'edit-details' | 'success';
 
@@ -381,10 +394,14 @@ export class ConnectedAccountActionsService {
 
   FormatWalletLabel(wallet: ExternalWallet | null): string {
     if (!wallet) return 'No external wallet';
-    const network = wallet.network
-      ? wallet.network.charAt(0).toUpperCase() + wallet.network.slice(1)
-      : 'Solana';
-    return `${network} wallet •••• ${wallet.last4}`;
+    return FormatDestinationLabel(wallet.network, wallet.currency);
+  }
+
+  NeedsPayoutConversionNote(
+    wallet: ExternalWallet | null = this.GetDefaultWallet()
+  ): boolean {
+    if (!wallet) return false;
+    return !IsSolanaUsdcDestination(wallet.network, wallet.currency);
   }
 
   // ── Add funds ────────────────────────────────────────────────────────────
@@ -575,6 +592,18 @@ export class ConnectedAccountActionsService {
         return;
       }
 
+      if (result.status === 'in_transit') {
+        const payoutId = this.payoutCreatedId() || result.payouts[0]?.id || '';
+        const synced = await this.WaitForOrchestraPayout(payoutId);
+        if (synced.status === 'failed') {
+          this.ClearPayoutRetryState();
+          this.payoutError.set(
+            synced.failure_message || 'Failed to process payout.'
+          );
+          return;
+        }
+      }
+
       this.ClearPayoutRetryState();
       await this.ClosePayout();
     } catch (err) {
@@ -705,7 +734,32 @@ export class ConnectedAccountActionsService {
       payouts: buildResult.payouts.map((payout) => payout.id),
       blockhash: buildResult.blockhash,
       last_valid_block_height: buildResult.last_valid_block_height,
-    });
+    }) as Promise<OrchestraBroadcastResponse>;
+  }
+
+  private async WaitForOrchestraPayout(payoutId: string): Promise<Payout> {
+    if (!payoutId) {
+      throw new Error('Payout is converting but no payout id was returned.');
+    }
+
+    const deadline = Date.now() + 60_000;
+    let payout = await this.payoutService.SyncPayout(payoutId);
+    while (
+      payout.status !== 'paid' &&
+      payout.status !== 'failed' &&
+      Date.now() < deadline
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      payout = await this.payoutService.SyncPayout(payoutId);
+    }
+
+    if (payout.status === 'paid' || payout.status === 'failed') {
+      return payout;
+    }
+
+    throw new Error(
+      'Payout is still converting. Check this payout again in a minute.'
+    );
   }
 
   private ResetPayoutSigner(): void {

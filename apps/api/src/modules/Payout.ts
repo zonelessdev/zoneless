@@ -15,7 +15,12 @@ import { ExternalWalletModule } from './ExternalWallet';
 import { AccountModule } from './Account';
 import { GetSettlement, IsSimulatedSettlement } from './chains/Settlement';
 import { GetPlatformAccountId } from './PlatformAccess';
-import { GetAppConfig } from './AppConfig';
+import { GetAppConfig, IsOrchestraLive } from './AppConfig';
+import { OrchestraModule } from './orchestra/OrchestraModule';
+import {
+  IsNativeSolanaUsdc,
+  IsOrchestraPayoutDest,
+} from './orchestra/OrchestraRails';
 import { GenerateId } from '../utils/IdGenerator';
 import { Now } from '../utils/Timestamp';
 import { AppError } from '../utils/AppError';
@@ -74,10 +79,16 @@ export class PayoutModule {
   private readonly balanceModule: BalanceModule;
   private readonly balanceTransactionModule: BalanceTransactionModule;
   private readonly solana: ReturnType<typeof GetSettlement>;
+  private orchestraModule: OrchestraModule | null;
 
-  constructor(db: Database, eventService?: EventService) {
+  constructor(
+    db: Database,
+    eventService?: EventService,
+    orchestraModule?: OrchestraModule
+  ) {
     this.db = db;
     this.eventService = eventService || null;
+    this.orchestraModule = orchestraModule || null;
     this.accountModule = new AccountModule(db);
     this.externalWalletModule = new ExternalWalletModule(db);
     this.balanceModule = new BalanceModule(db);
@@ -205,13 +216,23 @@ export class PayoutModule {
         wallets.find((w) => w.default_for_currency === true) || wallets[0];
     }
 
-    // Verify the wallet address is valid on the Solana network
-    const walletExists = await this.solana.CheckWalletExists(
-      wallet.wallet_address
-    );
-    if (!walletExists) {
+    if (
+      !IsOrchestraPayoutDest(wallet.network, wallet.currency) &&
+      IsNativeSolanaUsdc(wallet.network, wallet.currency)
+    ) {
+      const walletExists = await this.solana.CheckWalletExists(
+        wallet.wallet_address
+      );
+      if (!walletExists) {
+        throw new AppError(
+          'Destination wallet address is not valid on the Solana network',
+          400,
+          'invalid_request_error'
+        );
+      }
+    } else if (!IsOrchestraPayoutDest(wallet.network, wallet.currency)) {
       throw new AppError(
-        'Destination wallet address is not valid on the Solana network',
+        'Unsupported payout destination',
         400,
         'invalid_request_error'
       );
@@ -637,9 +658,11 @@ export class PayoutModule {
       payouts.push(payout);
     }
 
-    // Build recipients list from payouts
-    const recipients: { destinationAddress: string; amountInCents: number }[] =
-      [];
+    const destKinds: Array<'native' | 'orchestra'> = [];
+    const walletsByPayoutId = new Map<
+      string,
+      { wallet_address: string; network: string; currency: string }
+    >();
 
     for (const payout of payouts) {
       const wallet = await this.externalWalletModule.GetExternalWallet(
@@ -654,18 +677,67 @@ export class PayoutModule {
         );
       }
 
-      recipients.push({
-        destinationAddress: wallet.wallet_address,
-        amountInCents: payout.amount,
-      });
+      walletsByPayoutId.set(payout.id, wallet);
+
+      if (IsNativeSolanaUsdc(wallet.network, wallet.currency)) {
+        destKinds.push('native');
+      } else if (IsOrchestraPayoutDest(wallet.network, wallet.currency)) {
+        destKinds.push('orchestra');
+      } else {
+        throw new AppError(
+          'Unsupported payout destination',
+          400,
+          'invalid_request_error'
+        );
+      }
     }
 
-    // Get the platform's wallet public key from ExternalWallet
+    const hasOrchestra = destKinds.includes('orchestra');
+    const hasNative = destKinds.includes('native');
+    if (hasOrchestra && (payouts.length !== 1 || hasNative)) {
+      throw new AppError(
+        'Orchestra payouts must be built one at a time and cannot be mixed with native solana:USDC dests',
+        400,
+        'invalid_request_error'
+      );
+    }
+
+    let orchestraIntent = null;
+    const recipients: { destinationAddress: string; amountInCents: number }[] =
+      [];
+
+    if (hasOrchestra) {
+      orchestraIntent = await this.GetOrchestraModule().PreparePayout(
+        platformAccountId,
+        payouts[0]
+      );
+      if (!orchestraIntent?.deposit_address) {
+        throw new AppError(
+          'Orchestra did not return a deposit address for this payout',
+          ERRORS.INVALID_REQUEST.status,
+          ERRORS.INVALID_REQUEST.type
+        );
+      }
+      recipients.push({
+        destinationAddress: orchestraIntent.deposit_address,
+        amountInCents: payouts[0].amount,
+      });
+      const refreshed = await this.GetPayout(payouts[0].id);
+      if (refreshed) payouts[0] = refreshed;
+    } else {
+      for (const payout of payouts) {
+        const wallet = walletsByPayoutId.get(payout.id)!;
+        recipients.push({
+          destinationAddress: wallet.wallet_address,
+          amountInCents: payout.amount,
+        });
+      }
+    }
+
     const platformWalletPublicKey = await this.GetPlatformWalletPublicKey(
       platformAccountId
     );
 
-    // Build the unsigned transaction
     const transactionData = await this.solana.BuildBatchPayoutTransaction(
       platformWalletPublicKey,
       recipients
@@ -682,6 +754,7 @@ export class PayoutModule {
       payouts,
       total_amount: totalAmount,
       recipients_count: transactionData.recipients_count,
+      ...(orchestraIntent ? { orchestra: orchestraIntent } : {}),
     };
   }
 
@@ -764,21 +837,39 @@ export class PayoutModule {
     const updatedPayouts: PayoutType[] = [];
 
     if (result.status === 'paid') {
-      // Success: mark all payouts as paid
+      const hasOrchestra = payouts.some((payout) => !!payout.orchestra);
+
       for (const payout of payouts) {
-        await this.MarkPayoutPaid(payout, {
-          network: IsSimulatedSettlement() ? 'simulated' : 'solana',
-          blockchain_tx: result.signature,
-          gas_fee: 0, // Fee was paid by platform, not deducted from payout
-          gas_fee_currency: 'sol',
-          viewer_url: result.viewer_url,
-        });
+        if (payout.orchestra) {
+          await this.MarkPayoutFundingInTransit(payout, {
+            network: payout.orchestra.destination_chain,
+            blockchain_tx: result.signature,
+            viewer_url: result.viewer_url,
+          });
+        } else {
+          await this.MarkPayoutPaid(payout, {
+            network: IsSimulatedSettlement() ? 'simulated' : 'solana',
+            blockchain_tx: result.signature,
+            gas_fee: 0,
+            gas_fee_currency: 'sol',
+            viewer_url: result.viewer_url,
+          });
+        }
 
         const updatedPayout = await this.GetPayout(payout.id);
         if (updatedPayout) {
           updatedPayouts.push(updatedPayout);
         }
       }
+
+      return {
+        object: 'payout_batch_broadcast',
+        signature: result.signature,
+        status: hasOrchestra ? 'in_transit' : 'paid',
+        viewer_url: result.viewer_url,
+        payouts: updatedPayouts,
+        failure_message: result.failure_message,
+      };
     } else {
       // Failed: mark all payouts as failed and refund balances
       for (const payout of payouts) {
@@ -803,6 +894,134 @@ export class PayoutModule {
       payouts: updatedPayouts,
       failure_message: result.failure_message,
     };
+  }
+
+  /**
+   * Refresh an Orchestra payout after the funding tx. Native dests are a no-op.
+   */
+  async SyncPayout(
+    platformAccountId: string,
+    payoutId: string
+  ): Promise<PayoutType> {
+    const payout = await this.RequirePlatformPayout(platformAccountId, payoutId);
+
+    if (!payout.orchestra) {
+      return payout;
+    }
+
+    if (payout.status === 'paid' || payout.status === 'canceled') {
+      return payout;
+    }
+
+    if (!IsOrchestraLive()) {
+      await this.MarkPayoutPaid(payout, {
+        network: payout.orchestra.destination_chain,
+        blockchain_tx:
+          typeof payout.metadata?.blockchain_tx === 'string'
+            ? payout.metadata.blockchain_tx
+            : `orch_sim:${payout.id}`,
+        gas_fee: 0,
+        gas_fee_currency: 'sol',
+        viewer_url:
+          typeof payout.metadata?.viewer_url === 'string'
+            ? payout.metadata.viewer_url
+            : '',
+      });
+      return (await this.GetPayout(payout.id)) ?? payout;
+    }
+
+    const order = await this.GetOrchestraModule().RefreshPayoutStatus(payout);
+    if (!order) {
+      return payout;
+    }
+
+    if (order.status === 'completed') {
+      await this.MarkPayoutPaid(payout, {
+        network: payout.orchestra.destination_chain,
+        blockchain_tx:
+          typeof payout.metadata?.blockchain_tx === 'string'
+            ? payout.metadata.blockchain_tx
+            : order.id ?? payout.id,
+        gas_fee: 0,
+        gas_fee_currency: 'sol',
+        viewer_url:
+          typeof payout.metadata?.viewer_url === 'string'
+            ? payout.metadata.viewer_url
+            : '',
+      });
+    } else if (order.status === 'failed' || order.status === 'refunded') {
+      await this.MarkPayoutFailed(
+        payout,
+        'blockchain_error',
+        'Orchestra payout failed'
+      );
+    }
+
+    return (await this.GetPayout(payout.id)) ?? payout;
+  }
+
+  private GetOrchestraModule(): OrchestraModule {
+    if (!this.orchestraModule) {
+      this.orchestraModule = new OrchestraModule(this.db);
+    }
+    return this.orchestraModule;
+  }
+
+  private async RequirePlatformPayout(
+    platformAccountId: string,
+    payoutId: string
+  ): Promise<PayoutType> {
+    const payout = await this.GetPayout(payoutId);
+    if (!payout) {
+      throw new AppError(
+        ERRORS.PAYOUT_NOT_FOUND.message,
+        ERRORS.PAYOUT_NOT_FOUND.status,
+        ERRORS.PAYOUT_NOT_FOUND.type
+      );
+    }
+
+    const payoutAccount = await this.accountModule.GetAccount(payout.account);
+    if (!payoutAccount) {
+      throw new AppError(
+        ERRORS.ACCOUNT_NOT_FOUND.message,
+        ERRORS.ACCOUNT_NOT_FOUND.status,
+        ERRORS.ACCOUNT_NOT_FOUND.type
+      );
+    }
+
+    if (GetPlatformAccountId(payoutAccount) !== platformAccountId) {
+      throw new AppError(
+        `Payout ${payoutId} does not belong to your platform`,
+        403,
+        'permission_denied'
+      );
+    }
+
+    return payout;
+  }
+
+  /**
+   * Funding tx landed; Orchestra swap is still in flight.
+   */
+  private async MarkPayoutFundingInTransit(
+    payout: PayoutType,
+    response: {
+      network: string;
+      blockchain_tx: string;
+      viewer_url: string;
+    }
+  ): Promise<void> {
+    const orchestra = payout.orchestra
+      ? { ...payout.orchestra, status: 'processing' }
+      : payout.orchestra;
+
+    await this.db.Update('Payouts', payout.id, {
+      status: 'in_transit',
+      orchestra,
+      'metadata.network': response.network,
+      'metadata.blockchain_tx': response.blockchain_tx,
+      'metadata.viewer_url': response.viewer_url,
+    });
   }
 
   /**

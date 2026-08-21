@@ -211,6 +211,24 @@ router.post(
 );
 
 /**
+ * POST /v1/payouts/:id/sync
+ * Refresh an Orchestra payout after the funding transaction. Native dests
+ * are a no-op. Platform authentication is required.
+ */
+router.post(
+  '/:id/sync',
+  RequirePlatform(),
+  requirePayoutOwnership,
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const payout = await payoutModule.SyncPayout(
+      req.user.account,
+      req.params.id
+    );
+    res.json(payout);
+  })
+);
+
+/**
  * POST /v1/payouts/:id
  * Update a payout's metadata.
  *

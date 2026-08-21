@@ -16,8 +16,12 @@ import { InvoiceItemModule } from '../modules/InvoiceItem';
 import { InvoiceModule } from '../modules/Invoice';
 import { SubscriptionModule } from '../modules/Subscription';
 
+import { OrchestraModule } from '../modules/orchestra/OrchestraModule';
 import { ValidateRequest } from '../middleware/ValidateRequest';
-import { PrepareCheckoutPaymentSchema } from '@zoneless/shared-schemas';
+import {
+  PrepareCheckoutPaymentSchema,
+  StartOrchestraPayinSchema,
+} from '@zoneless/shared-schemas';
 
 const router = express.Router();
 
@@ -81,6 +85,12 @@ const checkoutPaymentModule = new CheckoutPaymentModule(
   customerModule,
   subscriptionModule
 );
+const orchestraModule = new OrchestraModule(
+  db,
+  checkoutSessionModule,
+  externalWalletModule,
+  checkoutPaymentModule
+);
 
 /**
  * POST /v1/payment_pages/from_payment_link/:urlSlug
@@ -93,6 +103,47 @@ router.post(
   AsyncHandler(async (req: express.Request, res: express.Response) => {
     const session = await paymentLinkModule.OpenPaymentLink(req.params.urlSlug);
     res.status(201).json(session);
+  })
+);
+
+/**
+ * POST /v1/payment_pages/:urlSlug/orchestra
+ * Start a Cash App or deposit pay-in. Public: url_slug is the credential.
+ */
+router.post(
+  '/:urlSlug/orchestra',
+  ValidateRequest(StartOrchestraPayinSchema),
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const result = await orchestraModule.StartPayin(req.params.urlSlug, {
+      method: req.body.method,
+      source_chain: req.body.source_chain,
+      source_asset: req.body.source_asset,
+    });
+    res.json(result);
+  })
+);
+
+/**
+ * GET /v1/payment_pages/:urlSlug/orchestra
+ * Current Orchestra pay-in intent, refreshing live status when configured.
+ */
+router.get(
+  '/:urlSlug/orchestra',
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const result = await orchestraModule.GetPayin(req.params.urlSlug);
+    res.json(result);
+  })
+);
+
+/**
+ * POST /v1/payment_pages/:urlSlug/orchestra/confirm
+ * Complete checkout after Orchestra reports the pay-in settled.
+ */
+router.post(
+  '/:urlSlug/orchestra/confirm',
+  AsyncHandler(async (req: express.Request, res: express.Response) => {
+    const session = await orchestraModule.ConfirmPayin(req.params.urlSlug);
+    res.json(session);
   })
 );
 

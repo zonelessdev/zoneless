@@ -6,6 +6,7 @@ export * from './Config';
 export * from './Customer';
 export * from './LoginLink';
 export * from './Operator';
+export * from './Orchestra';
 export * from './ApiKey';
 export * from './ApiResponse';
 export * from './AuthenticatedUser';

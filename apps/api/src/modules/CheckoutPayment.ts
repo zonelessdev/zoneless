@@ -590,28 +590,57 @@ export class CheckoutPaymentModule {
       );
     }
 
-    // Stripe order: charge.succeeded → payment_intent.succeeded →
-    // checkout.session.completed.
-    const charge = await this.CreateCheckoutCharge(session, {
-      amount: verification.amount_cents,
+    return this.CompleteVerifiedPayment(session, {
+      amount_cents: verification.amount_cents,
       signature,
-      payerAddress: verification.payer_address,
+      payer_address: verification.payer_address ?? '',
+    });
+  }
+
+  /**
+   * Success half of a verified one-time payment: charge → PI → complete
+   * session → ledger. Shared by on-chain confirm and Orchestra pay-in.
+   */
+  async CompleteVerifiedPayment(
+    session: CheckoutSession,
+    details: {
+      amount_cents: number;
+      signature: string;
+      payer_address: string;
+    }
+  ): Promise<CheckoutSession> {
+    if (session.status === 'complete') {
+      if (session.amount_total && details.signature) {
+        await this.RecordPaymentOnLedger(
+          session,
+          details.amount_cents || session.amount_total,
+          details.payer_address || session.payment_details?.payer_wallet || null,
+          details.signature
+        );
+      }
+      return this.SanitizeCheckoutSession(session);
+    }
+
+    const charge = await this.CreateCheckoutCharge(session, {
+      amount: details.amount_cents,
+      signature: details.signature,
+      payerAddress: details.payer_address,
       outcome: 'succeeded',
     });
 
     await this.MarkPaymentIntentSucceeded(session, {
-      amountReceived: verification.amount_cents,
+      amountReceived: details.amount_cents,
       latestCharge: charge?.id ?? null,
     });
 
     if (this.ShouldCreateCheckoutCustomer(session) && this.customerModule) {
-      await this.EnsureCheckoutCustomer(session, verification.payer_address);
+      await this.EnsureCheckoutCustomer(session, details.payer_address);
     }
 
     const completedSession =
       await this.checkoutSessionModule.CompleteCheckoutSession(session.id, {
-        transaction_signature: signature,
-        payer_wallet: verification.payer_address,
+        transaction_signature: details.signature,
+        payer_wallet: details.payer_address,
       });
 
     if (completedSession.payment_link && this.paymentLinkModule) {
@@ -622,9 +651,9 @@ export class CheckoutPaymentModule {
 
     const balanceTransaction = await this.RecordPaymentOnLedger(
       completedSession,
-      verification.amount_cents,
-      verification.payer_address,
-      signature
+      details.amount_cents,
+      details.payer_address,
+      details.signature
     );
 
     if (charge && this.chargeModule) {
@@ -636,7 +665,7 @@ export class CheckoutPaymentModule {
 
     Logger.info('Checkout session completed via payment', {
       checkoutSessionId: completedSession.id,
-      signature,
+      signature: details.signature,
       chargeId: charge?.id,
     });
 

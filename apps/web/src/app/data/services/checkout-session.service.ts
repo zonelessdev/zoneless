@@ -6,6 +6,34 @@ import {
   UpdateCheckoutSessionInput,
 } from '@zoneless/shared-schemas';
 
+export type OrchestraCheckoutMethod = 'cashapp' | 'deposit';
+
+/** Orchestra fields on a hosted checkout session. Local until shared-types lands. */
+export interface CheckoutSessionOrchestra {
+  method: OrchestraCheckoutMethod;
+  source_chain: string;
+  source_asset: string;
+  quote_id: string | null;
+  operation_id: string | null;
+  deposit_address: string | null;
+  deposit_memo: string | null;
+  cash_app_url: string | null;
+  amount_in: string | null;
+  estimated_out: string | null;
+  expires_at: string | null;
+  status: string | null;
+}
+
+export type OrchestraCheckoutSession = CheckoutSession & {
+  orchestra?: CheckoutSessionOrchestra;
+};
+
+export interface OrchestraCheckoutResponse {
+  object: string;
+  checkout_session: OrchestraCheckoutSession;
+  intent?: unknown;
+}
+
 /** Unsigned payment transaction returned by the public prepare endpoint. */
 export interface CheckoutPaymentTransaction {
   object: 'checkout.payment_transaction';
@@ -188,6 +216,37 @@ export class CheckoutSessionService {
       'POST',
       `payment_pages/${urlSlug}/confirm`,
       payload
+    );
+  }
+
+  async StartOrchestraPayment(
+    urlSlug: string,
+    payload: {
+      method: OrchestraCheckoutMethod;
+      source_chain?: string;
+      source_asset?: string;
+    }
+  ): Promise<OrchestraCheckoutResponse> {
+    return this.api.Call<OrchestraCheckoutResponse>(
+      'POST',
+      `payment_pages/${urlSlug}/orchestra`,
+      payload
+    );
+  }
+
+  async GetOrchestraPayment(
+    urlSlug: string
+  ): Promise<OrchestraCheckoutResponse> {
+    return this.api.Call<OrchestraCheckoutResponse>(
+      'GET',
+      `payment_pages/${urlSlug}/orchestra`
+    );
+  }
+
+  async ConfirmOrchestraPayment(urlSlug: string): Promise<CheckoutSession> {
+    return this.api.Call<CheckoutSession>(
+      'POST',
+      `payment_pages/${urlSlug}/orchestra/confirm`
     );
   }
 }

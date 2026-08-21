@@ -16,6 +16,7 @@ export * from './InvoiceSchema';
 
 export * from './PaymentIntentSchema';
 export * from './PaymentLinkSchema';
+export * from './OrchestraSchema';
 export * from './PayoutSchema';
 export * from './PersonSchema';
 export * from './PriceSchema';

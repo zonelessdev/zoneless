@@ -20,8 +20,16 @@ import { AsyncHandler } from '../utils/AsyncHandler';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
 import { VerifyToken } from '../utils/Token';
-import { GetJwtSecret, GetAppConfig } from '../modules/AppConfig';
+import {
+  GetJwtSecret,
+  GetAppConfig,
+  IsOrchestraLive,
+} from '../modules/AppConfig';
 import { SolanaExplorerUrl } from '../modules/chains/Solana';
+import {
+  ListOrchestraPayinSources,
+  RefreshOrchestraRoutes,
+} from '../modules/orchestra/OrchestraRails';
 
 const router = express.Router();
 
@@ -33,9 +41,18 @@ const apiKeyModule = new ApiKeyModule(db);
 /**
  * Helper to build PublicConfig from a platform account.
  */
-function BuildPublicConfig(platformAccount: Account | null): PublicConfig {
+async function BuildPublicConfig(
+  platformAccount: Account | null
+): Promise<PublicConfig> {
+  await RefreshOrchestraRoutes();
   const { livemode, settlement_rail } = GetAppConfig();
   const settlement = settlement_rail ?? 'simulated';
+  const orchestraLive = IsOrchestraLive();
+  const orchestra = {
+    enabled: orchestraLive || settlement === 'simulated',
+    live: orchestraLive,
+    sources: ListOrchestraPayinSources(),
+  };
 
   if (!platformAccount) {
     return {
@@ -46,6 +63,7 @@ function BuildPublicConfig(platformAccount: Account | null): PublicConfig {
       privacy_url: '',
       livemode,
       settlement,
+      orchestra,
     };
   }
 
@@ -60,6 +78,7 @@ function BuildPublicConfig(platformAccount: Account | null): PublicConfig {
     privacy_url: platformAccount.settings?.privacy_url || '',
     livemode,
     settlement,
+    orchestra,
   };
 }
 
@@ -139,7 +158,7 @@ router.get(
       }
     }
 
-    res.json(BuildPublicConfig(platformAccount));
+    res.json(await BuildPublicConfig(platformAccount));
   })
 );
 
