@@ -85,12 +85,12 @@ export class AccountService {
   }
 
   /**
-   * Platform-only: waive hosted document identity verification.
+   * Platform-only: rebuild currently_due from live identity rules.
    */
-  async WaiveIdentityDocument(accountId: string): Promise<Account> {
+  async RefreshIdentityRequirements(accountId: string): Promise<Account> {
     return this.api.Call<Account>(
       'POST',
-      `accounts/${accountId}/waive_identity_document`,
+      `accounts/${accountId}/refresh_identity`,
       {}
     );
   }

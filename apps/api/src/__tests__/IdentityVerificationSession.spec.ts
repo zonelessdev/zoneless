@@ -14,11 +14,7 @@ import {
   IdentityVerificationSession,
   Person,
 } from '@zoneless/shared-types';
-import {
-  IDENTITY_DOCUMENT_WAIVED,
-  IDENTITY_DOCUMENT_WAIVER_METADATA_KEY,
-  IDENTITY_REQUIREMENT_FIELDS,
-} from '@zoneless/shared-schemas';
+import { IDENTITY_REQUIREMENT_FIELDS } from '@zoneless/shared-schemas';
 import {
   CreateMockDatabase,
   DeterministicId,
@@ -805,29 +801,38 @@ describe('Identity volume threshold gating', () => {
     );
   });
 
-  it('waives document IDV and keeps it cleared after later volume evals', async () => {
+  it('refresh clears document currently_due when volume is now under threshold', async () => {
     mockDb.Aggregate.mockResolvedValue([{ gross: 250_000 }]);
-
     await module.EvaluateAndApply(connectedId);
     expect(
       storedAccounts.get(connectedId)?.requirements?.currently_due
     ).toContain(IDENTITY_REQUIREMENT_FIELDS.verificationDocument);
 
-    const waived = await module.WaiveIdentityDocument(connectedId);
+    mockDb.Aggregate.mockResolvedValue([{ gross: 50_000 }]);
+    const refreshed = await module.RefreshIdentityRequirements(connectedId);
 
-    expect(waived.metadata?.[IDENTITY_DOCUMENT_WAIVER_METADATA_KEY]).toBe(
-      IDENTITY_DOCUMENT_WAIVED
-    );
-    expect(waived.requirements?.currently_due).not.toContain(
+    expect(refreshed.requirements?.currently_due).not.toContain(
       IDENTITY_REQUIREMENT_FIELDS.verificationDocument
     );
-    expect(waived.requirements?.eventually_due).not.toContain(
+    expect(refreshed.requirements?.eventually_due).toContain(
       IDENTITY_REQUIREMENT_FIELDS.verificationDocument
     );
 
+    mockDb.Aggregate.mockResolvedValue([{ gross: 250_000 }]);
     const evaluation = await module.EvaluateAndApply(connectedId);
-    expect(evaluation.blocking).toBe(false);
-    expect(evaluation.currentlyDue).not.toContain(
+    expect(evaluation.blocking).toBe(true);
+    expect(evaluation.currentlyDue).toContain(
+      IDENTITY_REQUIREMENT_FIELDS.verificationDocument
+    );
+  });
+
+  it('refresh keeps document currently_due when still over threshold', async () => {
+    mockDb.Aggregate.mockResolvedValue([{ gross: 250_000 }]);
+    await module.EvaluateAndApply(connectedId);
+
+    const refreshed = await module.RefreshIdentityRequirements(connectedId);
+
+    expect(refreshed.requirements?.currently_due).toContain(
       IDENTITY_REQUIREMENT_FIELDS.verificationDocument
     );
   });

@@ -516,22 +516,24 @@ router.post(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /v1/accounts/:id/waive_identity_document - Skip hosted document IDV
-// Zoneless extension: operator accepts risk for this connected account
+// POST /v1/accounts/:id/refresh_identity - Rebuild currently_due from live rules
+// Zoneless extension: does not persist an IDV exemption
 // ─────────────────────────────────────────────────────────────────────────────
 router.post(
-  '/:id/waive_identity_document',
+  '/:id/refresh_identity',
   RequirePlatform(),
   AsyncHandler(async (req: express.Request, res: express.Response) => {
     const accountId = req.params.id;
     await RequirePlatformOwnedAccount(accountId, req.user.account);
 
-    Logger.info('Waiving identity document requirement', { accountId });
+    Logger.info('Refreshing identity requirements', { accountId });
 
-    const account = await identityLiteModule.WaiveIdentityDocument(accountId);
+    const account = await identityLiteModule.RefreshIdentityRequirements(
+      accountId
+    );
     const populatedAccount = await PopulateAccountResources(account, true);
 
-    Logger.info('Identity document requirement waived', { accountId });
+    Logger.info('Identity requirements refreshed', { accountId });
 
     res.json(populatedAccount);
   })

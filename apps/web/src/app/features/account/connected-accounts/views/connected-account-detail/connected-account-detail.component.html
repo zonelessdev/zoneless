@@ -34,25 +34,13 @@
         <span>{{ identityDocumentMissingLabel() }}</span>
       </div>
     </div>
-    <div class="flex gap-small">
-      <button
-        type="button"
-        class="action-button"
-        (click)="OnRequestInformation()"
-      >
-        Request information
-      </button>
-      @if (CanWaiveIdentityDocument()) {
-      <button
-        type="button"
-        class="action-button action-button-dainty outline"
-        [disabled]="waivingIdentityDocument()"
-        (click)="OnWaiveIdentityDocument()"
-      >
-        {{ waivingIdentityDocument() ? 'Waiving…' : 'Waive verification' }}
-      </button>
-      }
-    </div>
+    <button
+      type="button"
+      class="action-button"
+      (click)="OnRequestInformation()"
+    >
+      Request information
+    </button>
   </div>
 
   <div class="view-section">
@@ -374,29 +362,18 @@
     </div>
 
     <div class="view-section">
-      <div class="flex align-vert-start space-between gap-small">
+      <div class="flex align-vert-start space-between">
         <h2 class="section-title">Identity requirements</h2>
-        <div class="flex gap-small">
-          @if (CanWaiveIdentityDocument()) {
-          <button
-            type="button"
-            class="action-button action-button-dainty outline"
-            [disabled]="waivingIdentityDocument()"
-            (click)="OnWaiveIdentityDocument()"
-          >
-            {{ waivingIdentityDocument() ? 'Waiving…' : 'Waive verification' }}
-          </button>
-          } @if (NeedsIdentityReview()) {
-          <button
-            type="button"
-            class="action-button action-button-dainty outline"
-            [disabled]="approvingIdentity()"
-            (click)="OnApproveIdentity()"
-          >
-            {{ approvingIdentity() ? 'Dismissing…' : 'Dismiss review' }}
-          </button>
-          }
-        </div>
+        @if (NeedsIdentityReview()) {
+        <button
+          type="button"
+          class="action-button action-button-dainty outline"
+          [disabled]="approvingIdentity()"
+          (click)="OnApproveIdentity()"
+        >
+          {{ approvingIdentity() ? 'Dismissing…' : 'Dismiss review' }}
+        </button>
+        }
       </div>
       @if (GetIdentityStatusLabel(); as statusLabel) {
       <div class="mb">
