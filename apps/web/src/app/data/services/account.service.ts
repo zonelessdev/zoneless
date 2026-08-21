@@ -7,6 +7,7 @@ import {
   UpdateAccountInput,
 } from '@zoneless/shared-schemas';
 import { SettingsCardRow } from '../../shared';
+import { FormatBusinessType, IsBusinessAccount } from '../../utils';
 
 @Injectable({
   providedIn: 'root',
@@ -223,6 +224,42 @@ export class AccountService {
   }
 
   /**
+   * Display title for the connected-account type card.
+   */
+  GetAccountTypeTitle(account: Account | null): string {
+    if (!account) return 'Account type';
+    if (IsBusinessAccount(account)) {
+      return (
+        account.business_profile?.name?.trim() ||
+        FormatBusinessType(account.business_type)
+      );
+    }
+    return 'Individual';
+  }
+
+  GetAccountTypeCardRows(account: Account | null): SettingsCardRow[] {
+    if (!account) return [];
+
+    const rows: SettingsCardRow[] = [
+      {
+        label: 'Type',
+        value: FormatBusinessType(account.business_type),
+        type: 'text',
+      },
+    ];
+
+    if (IsBusinessAccount(account)) {
+      rows.push({
+        label: 'Legal business name',
+        value: account.business_profile?.name?.trim() || '—',
+        type: 'text',
+      });
+    }
+
+    return rows;
+  }
+
+  /**
    * Display title for the Business details settings card.
    */
   GetBusinessDetailsTitle(account: Account | null): string {
@@ -284,8 +321,13 @@ export class AccountService {
         type: 'text',
       },
       {
-        label: 'Workflow ID',
+        label: 'KYC workflow ID',
         value: providerSettings?.workflow_id?.trim() || '—',
+        type: 'text',
+      },
+      {
+        label: 'KYB workflow ID',
+        value: providerSettings?.kyb_workflow_id?.trim() || '—',
         type: 'text',
       },
       {

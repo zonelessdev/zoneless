@@ -142,7 +142,10 @@ select {
   cursor: pointer;
   border-radius: $border-radius-small;
   font-family: $text-font;
-  height: 33px; /*Forces to same height as an input*/
+  box-sizing: border-box;
+  min-height: 36px;
+  height: auto;
+  line-height: 1.3;
 }
 
 option {

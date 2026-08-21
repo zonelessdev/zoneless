@@ -51,6 +51,11 @@ export class DiditProvider implements IdentityVerificationProvider {
       body.metadata = input.metadata;
     }
 
+    const expectedDetails = CompactExpectedDetails(input.expectedDetails);
+    if (expectedDetails) {
+      body.expected_details = expectedDetails;
+    }
+
     const response = await fetch(`${DIDIT_API_BASE}/session/`, {
       method: 'POST',
       headers: {
@@ -272,6 +277,18 @@ function ShortenFloats(obj: unknown): unknown {
     return obj;
   }
   return obj;
+}
+
+function CompactExpectedDetails(
+  details: ProviderCreateSessionInput['expectedDetails']
+): Record<string, string> | null {
+  if (!details) return null;
+  const compacted: Record<string, string> = {};
+  const companyName = details.company_name?.trim();
+  const registryCountry = details.registry_country?.trim();
+  if (companyName) compacted.company_name = companyName;
+  if (registryCountry) compacted.registry_country = registryCountry;
+  return Object.keys(compacted).length > 0 ? compacted : null;
 }
 
 export const diditProvider = new DiditProvider();

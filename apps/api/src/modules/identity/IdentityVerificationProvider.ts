@@ -12,6 +12,11 @@ import {
   IdentityVerificationSessionType,
 } from '@zoneless/shared-types';
 
+export interface ProviderExpectedDetails {
+  company_name?: string;
+  registry_country?: string;
+}
+
 export interface ProviderCreateSessionInput {
   /** Provider workflow / flow ID */
   workflowId: string;
@@ -23,6 +28,8 @@ export interface ProviderCreateSessionInput {
   email?: string | null;
   phone?: string | null;
   metadata?: Record<string, string>;
+  /** Prefill for KYB company registry search */
+  expectedDetails?: ProviderExpectedDetails;
 }
 
 export interface ProviderSession {

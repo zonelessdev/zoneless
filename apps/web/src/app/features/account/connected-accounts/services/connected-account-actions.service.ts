@@ -28,7 +28,7 @@ import {
   TransferService,
 } from '../../../../data';
 import { SolanaWalletService } from '../../../../core';
-import { GetCountryName } from '../../../../utils';
+import { FormatBusinessType, GetCountryName } from '../../../../utils';
 
 export type CreateConnectedAccountStep = 'summary' | 'edit-details' | 'success';
 
@@ -288,16 +288,7 @@ export class ConnectedAccountActionsService {
   }
 
   GetBusinessTypeLabel(type: BusinessType = this.businessType()): string {
-    switch (type) {
-      case 'individual':
-        return 'Individual';
-      case 'company':
-        return 'Company';
-      case 'non_profit':
-        return 'Non-profit';
-      case 'government_entity':
-        return 'Government entity';
-    }
+    return FormatBusinessType(type);
   }
 
   GetCapabilitiesLabel(): string {

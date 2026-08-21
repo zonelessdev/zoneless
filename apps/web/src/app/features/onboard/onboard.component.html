@@ -85,7 +85,15 @@
             [showErrors]="showPersonErrors()"
             (formChange)="OnPersonFormChange()"
             (validationChange)="OnPersonValidationChange($event)"
-          ></app-person-form>
+          >
+            <app-account-type-form
+              #onboardAccountTypeForm
+              mode="onboard"
+              [account]="accountService.account()"
+              [showErrors]="showPersonErrors()"
+              (validationChange)="OnAccountTypeValidationChange($event)"
+            ></app-account-type-form>
+          </app-person-form>
 
           <div class="form-navigation">
             @if(apiError()){
@@ -144,9 +152,32 @@
           <p>Take a moment to review your information.</p>
 
           <div class="review-cards">
+            <!-- Account Type Card -->
+            <div class="review-section">
+              <div class="review-section-title">Account type</div>
+              <app-settings-card
+                [title]="
+                  accountService.GetAccountTypeTitle(accountService.account())
+                "
+                [rows]="
+                  accountService.GetAccountTypeCardRows(
+                    accountService.account()
+                  )
+                "
+                [showEditButton]="true"
+                (editClicked)="OnEditAccountTypeClick()"
+              ></app-settings-card>
+            </div>
+
             <!-- Personal Details Card -->
             <div class="review-section">
-              <div class="review-section-title">Personal details</div>
+              <div class="review-section-title">
+                {{
+                  ShowBusinessDetails()
+                    ? 'Account representative'
+                    : 'Personal details'
+                }}
+              </div>
               <app-settings-card
                 [title]="personService.GetFullName(personService.person())"
                 [rows]="
@@ -249,6 +280,25 @@
       </div>
     </div>
   </div>
+
+  <!-- Edit Account Type Slide Panel -->
+  <app-slide-panel
+    [isOpen]="editAccountTypePanelOpen()"
+    title="Edit account type"
+    [loading]="editAccountTypeLoading()"
+    submitLabel="Save"
+    [submitDisabled]="false"
+    (closed)="OnEditAccountTypePanelClosed()"
+    (submitted)="OnEditAccountTypeSubmit()"
+  >
+    <app-account-type-form
+      #editAccountTypeForm
+      mode="edit"
+      [account]="accountService.account()"
+      [isOpen]="editAccountTypePanelOpen()"
+      [showErrors]="editAccountTypeShowErrors()"
+    ></app-account-type-form>
+  </app-slide-panel>
 
   <!-- Edit Person Slide Panel -->
   <app-slide-panel

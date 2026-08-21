@@ -20,6 +20,7 @@ import {
 import {
   PageLoaderComponent,
   LoaderComponent,
+  AccountTypeFormComponent,
   PersonFormComponent,
   ExternalWalletFormComponent,
   SettingsCardComponent,
@@ -27,6 +28,7 @@ import {
   PlatformLogoComponent,
 } from '../../shared';
 import { GetFormBlockingIdentityRequirements } from '@zoneless/shared-schemas';
+import { IsBusinessAccount } from '../../utils';
 
 enum OnboardStep {
   PERSON = 1,
@@ -43,6 +45,7 @@ enum OnboardStep {
   imports: [
     PageLoaderComponent,
     LoaderComponent,
+    AccountTypeFormComponent,
     PersonFormComponent,
     ExternalWalletFormComponent,
     SettingsCardComponent,
@@ -54,7 +57,7 @@ enum OnboardStep {
 export class OnboardComponent implements OnInit {
   private readonly meta = inject(MetaService);
   private readonly router = inject(Router);
-  private readonly accountService = inject(AccountService);
+  readonly accountService = inject(AccountService);
   private readonly accountLinkService = inject(AccountLinkService);
   readonly personService = inject(PersonService);
   readonly externalWalletService = inject(ExternalWalletService);
@@ -63,8 +66,12 @@ export class OnboardComponent implements OnInit {
   @ViewChild(PersonFormComponent) personForm!: PersonFormComponent;
   @ViewChild(ExternalWalletFormComponent)
   walletForm!: ExternalWalletFormComponent;
+  @ViewChild('onboardAccountTypeForm')
+  accountTypeForm!: AccountTypeFormComponent;
   @ViewChild('editPersonForm') editPersonForm!: PersonFormComponent;
   @ViewChild('editWalletForm') editWalletForm!: ExternalWalletFormComponent;
+  @ViewChild('editAccountTypeForm')
+  editAccountTypeForm!: AccountTypeFormComponent;
 
   readonly STEPS = OnboardStep;
 
@@ -80,6 +87,7 @@ export class OnboardComponent implements OnInit {
   showWalletErrors: WritableSignal<boolean> = signal(false);
 
   personFormValid: WritableSignal<boolean> = signal(false);
+  accountTypeFormValid: WritableSignal<boolean> = signal(true);
   walletFormValid: WritableSignal<boolean> = signal(false);
 
   // Edit panel state
@@ -90,6 +98,10 @@ export class OnboardComponent implements OnInit {
   editWalletPanelOpen: WritableSignal<boolean> = signal(false);
   editWalletLoading: WritableSignal<boolean> = signal(false);
   editWalletShowErrors: WritableSignal<boolean> = signal(false);
+
+  editAccountTypePanelOpen: WritableSignal<boolean> = signal(false);
+  editAccountTypeLoading: WritableSignal<boolean> = signal(false);
+  editAccountTypeShowErrors: WritableSignal<boolean> = signal(false);
 
   private tokenExchanged = false;
   private initRetries = 0;
@@ -188,6 +200,14 @@ export class OnboardComponent implements OnInit {
     this.personFormValid.set(isValid);
   }
 
+  OnAccountTypeValidationChange(isValid: boolean): void {
+    this.accountTypeFormValid.set(isValid);
+  }
+
+  ShowBusinessDetails(): boolean {
+    return IsBusinessAccount(this.accountService.account());
+  }
+
   OnWalletValidationChange(isValid: boolean): void {
     this.walletFormValid.set(isValid);
   }
@@ -216,7 +236,7 @@ export class OnboardComponent implements OnInit {
   IsStepValid(step: number): boolean {
     switch (step) {
       case OnboardStep.PERSON:
-        return this.personFormValid();
+        return this.personFormValid() && this.accountTypeFormValid();
       case OnboardStep.WALLET:
         return this.walletFormValid();
       case OnboardStep.FINISH:
@@ -264,9 +284,19 @@ export class OnboardComponent implements OnInit {
       const account = this.accountService.account();
       const person = this.personService.person();
 
-      if (!account || !person || !this.personForm) {
+      if (!account || !person || !this.personForm || !this.accountTypeForm) {
         throw new Error('Account or person not found');
       }
+
+      if (!this.accountTypeForm.ValidateAll()) {
+        this.showPersonErrors.set(true);
+        throw new Error('Please complete your account type details');
+      }
+
+      await this.accountService.UpdateAccount(
+        account.id,
+        this.accountTypeForm.GetUpdateData()
+      );
 
       const updateData = this.personForm.GetUpdateData();
       const updated = await this.personService.UpdatePerson(
@@ -391,6 +421,44 @@ export class OnboardComponent implements OnInit {
       console.error('Failed to update person:', error);
     } finally {
       this.editPersonLoading.set(false);
+    }
+  }
+
+  OnEditAccountTypeClick(): void {
+    this.editAccountTypeShowErrors.set(false);
+    this.editAccountTypePanelOpen.set(true);
+  }
+
+  OnEditAccountTypePanelClosed(): void {
+    this.editAccountTypePanelOpen.set(false);
+    this.editAccountTypeShowErrors.set(false);
+  }
+
+  async OnEditAccountTypeSubmit(): Promise<void> {
+    if (!this.editAccountTypeForm) return;
+
+    this.editAccountTypeShowErrors.set(true);
+
+    if (!this.editAccountTypeForm.ValidateAll()) {
+      return;
+    }
+
+    const account = this.accountService.account();
+    if (!account) return;
+
+    this.editAccountTypeLoading.set(true);
+
+    try {
+      await this.accountService.UpdateAccount(
+        account.id,
+        this.editAccountTypeForm.GetUpdateData()
+      );
+      this.editAccountTypePanelOpen.set(false);
+      this.editAccountTypeShowErrors.set(false);
+    } catch (error) {
+      console.error('Failed to update account type:', error);
+    } finally {
+      this.editAccountTypeLoading.set(false);
     }
   }
 

@@ -120,8 +120,18 @@
 </div>
 }
 
-<!-- Personal Details Card (connected accounts only) -->
+<!-- Account type + personal details (connected accounts only) -->
 @if (!authService.isPlatform()) {
+<div class="view-section">
+  <div class="settings-section-title">Account type</div>
+  <app-settings-card
+    [title]="accountService.GetAccountTypeTitle(accountService.account())"
+    [rows]="accountService.GetAccountTypeCardRows(accountService.account())"
+    [showEditButton]="true"
+    (editClicked)="OnEditAccountTypeClick()"
+  ></app-settings-card>
+</div>
+
 <div class="view-section">
   <div class="settings-section-title">Personal details</div>
   <app-settings-card
@@ -227,8 +237,26 @@
 </app-slide-panel>
 }
 
-<!-- Edit Person Slide Panel -->
+<!-- Edit Account Type + Person Slide Panels -->
 @if (!authService.isPlatform()) {
+<app-slide-panel
+  [isOpen]="editAccountTypePanelOpen()"
+  title="Edit account type"
+  [loading]="editAccountTypeLoading()"
+  submitLabel="Save"
+  [submitDisabled]="false"
+  (closed)="OnEditAccountTypePanelClosed()"
+  (submitted)="OnEditAccountTypeSubmit()"
+>
+  <app-account-type-form
+    #editAccountTypeForm
+    mode="edit"
+    [account]="accountService.account()"
+    [isOpen]="editAccountTypePanelOpen()"
+    [showErrors]="editAccountTypeShowErrors()"
+  ></app-account-type-form>
+</app-slide-panel>
+
 <app-slide-panel
   [isOpen]="editPersonPanelOpen()"
   title="Edit personal details"

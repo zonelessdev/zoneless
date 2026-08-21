@@ -12,7 +12,7 @@ import { Account, Person } from '@zoneless/shared-types';
 import { StatusChipComponent } from '../../../../shared';
 import { AccountService } from '../../../../data/services/account.service';
 import { PersonService } from '../../../../data/services/person.service';
-import { GetCountryName } from '../../../../utils';
+import { FormatBusinessType, GetCountryName } from '../../../../utils';
 import { GetAccountStatus } from '../../connected-accounts/util/connected-account-display';
 
 @Component({
@@ -80,10 +80,7 @@ export class ConnectedAccountDetailComponent {
 
   GetBusinessType(): string | null {
     if (!this.account.business_type) return null;
-    return this.account.business_type
-      .split('_')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+    return FormatBusinessType(this.account.business_type);
   }
 
   GetChargesEnabled(): boolean {

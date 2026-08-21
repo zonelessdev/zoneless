@@ -437,8 +437,14 @@ export interface AccountIdentityDiditSettings {
    */
   api_key?: string | null;
 
-  /** Didit workflow ID used when creating verification sessions */
+  /** Didit KYC workflow ID used for individual verification sessions */
   workflow_id?: string | null;
+
+  /**
+   * Didit KYB workflow ID used for company / non-profit / government accounts.
+   * When unset, business accounts fall back to workflow_id.
+   */
+  kyb_workflow_id?: string | null;
 
   /**
    * Didit webhook destination shared secret.

@@ -1,3 +1,4 @@
+export * from './account-type-form/account-type-form.component';
 export * from './person-form/person-form.component';
 export * from './external-wallet-form/external-wallet-form.component';
 export * from './business-profile-form/business-profile-form.component';

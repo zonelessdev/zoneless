@@ -1,0 +1,44 @@
+<div class="account-type-form">
+  <div class="field-group">
+    <div class="field-title">Account type</div>
+    <p class="field-help">
+      Choose whether you are signing up as an individual or a registered
+      business.
+    </p>
+    <div class="field">
+      <select
+        [ngModel]="accountType()"
+        (ngModelChange)="OnAccountTypeChange($event)"
+        name="account-type"
+      >
+        <option value="individual">Individual</option>
+        <option value="company">Company</option>
+      </select>
+    </div>
+  </div>
+
+  @if (IsBusiness()) {
+  <div class="field-group">
+    <div class="field-title">Legal business name</div>
+    <p class="field-help">
+      Enter the name exactly as it appears on government or tax records.
+    </p>
+    <div class="field">
+      <input
+        [ngModel]="businessName()"
+        (ngModelChange)="OnBusinessNameChange($event)"
+        class="field-value"
+        type="text"
+        placeholder="Acme Inc."
+        name="legal-business-name"
+        autocomplete="organization"
+        [maxlength]="NAME_MAX_LENGTH"
+        [class.field-error]="showErrors && businessNameError()"
+      />
+      @if (showErrors && businessNameError()) {
+      <div class="error">{{ businessNameError() }}</div>
+      }
+    </div>
+  </div>
+  }
+</div>
