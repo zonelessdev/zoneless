@@ -26,6 +26,7 @@ import {
   TelemetryService,
 } from '../../../data';
 import {
+  AccountTypeFormComponent,
   BusinessProfileFormComponent,
   ExternalWalletFormComponent,
   IdentitySettingsFormComponent,
@@ -48,6 +49,7 @@ import {
   selector: 'app-settings',
   imports: [
     SlidePanelComponent,
+    AccountTypeFormComponent,
     PersonFormComponent,
     ExternalWalletFormComponent,
     BusinessProfileFormComponent,
@@ -65,6 +67,8 @@ export class SettingsComponent implements OnInit {
   editBusinessForm!: BusinessProfileFormComponent;
   @ViewChild('editIdentityForm')
   editIdentityForm!: IdentitySettingsFormComponent;
+  @ViewChild('editAccountTypeForm')
+  editAccountTypeForm!: AccountTypeFormComponent;
 
   readonly personService = inject(PersonService);
   readonly externalWalletService = inject(ExternalWalletService);
@@ -102,6 +106,11 @@ export class SettingsComponent implements OnInit {
   editIdentityPanelOpen: WritableSignal<boolean> = signal(false);
   editIdentityLoading: WritableSignal<boolean> = signal(false);
   editIdentityShowErrors: WritableSignal<boolean> = signal(false);
+
+  // Edit account type panel (connected accounts)
+  editAccountTypePanelOpen: WritableSignal<boolean> = signal(false);
+  editAccountTypeLoading: WritableSignal<boolean> = signal(false);
+  editAccountTypeShowErrors: WritableSignal<boolean> = signal(false);
 
   telemetrySaving: WritableSignal<boolean> = signal(false);
 
@@ -304,6 +313,44 @@ export class SettingsComponent implements OnInit {
       console.error('Failed to update identity settings:', error);
     } finally {
       this.editIdentityLoading.set(false);
+    }
+  }
+
+  OnEditAccountTypeClick(): void {
+    this.editAccountTypeShowErrors.set(false);
+    this.editAccountTypePanelOpen.set(true);
+  }
+
+  OnEditAccountTypePanelClosed(): void {
+    this.editAccountTypePanelOpen.set(false);
+    this.editAccountTypeShowErrors.set(false);
+  }
+
+  async OnEditAccountTypeSubmit(): Promise<void> {
+    if (!this.editAccountTypeForm) return;
+
+    this.editAccountTypeShowErrors.set(true);
+
+    if (!this.editAccountTypeForm.ValidateAll()) {
+      return;
+    }
+
+    const account = this.GetAccount();
+    if (!account) return;
+
+    this.editAccountTypeLoading.set(true);
+
+    try {
+      await this.accountService.UpdateAccount(
+        account.id,
+        this.editAccountTypeForm.GetUpdateData()
+      );
+      this.editAccountTypePanelOpen.set(false);
+      this.editAccountTypeShowErrors.set(false);
+    } catch (error) {
+      console.error('Failed to update account type:', error);
+    } finally {
+      this.editAccountTypeLoading.set(false);
     }
   }
 

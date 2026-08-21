@@ -103,6 +103,7 @@ const IdentityDiditSettingsSchema = z
   .object({
     api_key: z.string().min(1).max(512).nullable(),
     workflow_id: z.string().min(1).max(255).nullable(),
+    kyb_workflow_id: z.string().min(1).max(255).nullable(),
     webhook_secret: z.string().min(1).max(512).nullable(),
   })
   .partial();

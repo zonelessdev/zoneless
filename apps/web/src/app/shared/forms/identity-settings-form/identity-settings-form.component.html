@@ -34,9 +34,10 @@
   </div>
 
   <div class="field">
-    <div class="field-title">Workflow ID</div>
+    <div class="field-title">KYC workflow ID</div>
     <p class="field-help">
-      The published Didit workflow used for KYC verification sessions.
+      The published Didit workflow used for individual KYC verification
+      sessions.
     </p>
     <input
       [ngModel]="workflowId()"
@@ -51,6 +52,25 @@
     @if (showErrors && workflowIdError()) {
     <div class="error">{{ workflowIdError() }}</div>
     }
+  </div>
+
+  <div class="field">
+    <div class="field-title">
+      KYB workflow ID <span class="field-optional">Optional</span>
+    </div>
+    <p class="field-help">
+      The published Didit workflow used for company verification sessions. When
+      unset, business accounts use the KYC workflow.
+    </p>
+    <input
+      [ngModel]="kybWorkflowId()"
+      (ngModelChange)="OnKybWorkflowIdChange($event)"
+      class="field-value"
+      type="text"
+      placeholder="550e8400-e29b-41d4-a716-446655440000"
+      name="didit-kyb-workflow-id"
+      autocomplete="off"
+    />
   </div>
 
   <div class="field">

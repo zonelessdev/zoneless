@@ -1,0 +1,17 @@
+@use '../../../styles/base.scss' as *;
+@use '../../../styles/forms.scss' as *;
+
+.account-type-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing;
+  margin-bottom: $spacing;
+}
+
+.field-group {
+  margin-bottom: $spacing-small;
+}
+
+select {
+  width: 100%;
+}

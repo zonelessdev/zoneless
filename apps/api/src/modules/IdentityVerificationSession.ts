@@ -15,7 +15,10 @@ import { AccountModule } from './Account';
 import { PersonModule } from './Person';
 import { IdentityLiteModule } from './identity/IdentityLite';
 import { GetAppConfig } from './AppConfig';
-import { ResolveIdentityProvider } from './identity/ResolveIdentityProvider';
+import {
+  ResolveIdentityProvider,
+  SelectIdentityWorkflow,
+} from './identity/ResolveIdentityProvider';
 import { DecryptIdentitySecret } from './identity/IdentitySettingsCrypto';
 import { GenerateId } from '../utils/IdGenerator';
 import { Now } from '../utils/Timestamp';
@@ -95,17 +98,24 @@ export class IdentityVerificationSessionModule {
     );
 
     const resolved = ResolveIdentityProvider(platformAccount);
+    const selected = SelectIdentityWorkflow(resolved, relatedAccount);
     const sessionId = GenerateId('vs_z');
 
     const providerSession = await resolved.provider.CreateSession(
       resolved.apiKey,
       {
-        workflowId: resolved.workflowId,
+        workflowId: selected.workflowId,
         vendorData: sessionId,
         callbackUrl: validated.return_url,
         email: validated.provided_details?.email,
         phone: validated.provided_details?.phone,
         metadata: validated.metadata,
+        expectedDetails: selected.isKyb
+          ? {
+              company_name: relatedAccount.business_profile?.name ?? undefined,
+              registry_country: relatedAccount.country || undefined,
+            }
+          : undefined,
       }
     );
 

@@ -14,6 +14,11 @@ import {
   IdentityVerificationSession,
   Person,
 } from '@zoneless/shared-types';
+import {
+  IsBusinessAccount,
+  ResolvedIdentityProvider,
+  SelectIdentityWorkflow,
+} from '../modules/identity/ResolveIdentityProvider';
 import { IDENTITY_REQUIREMENT_FIELDS } from '@zoneless/shared-schemas';
 import {
   CreateMockDatabase,
@@ -71,6 +76,69 @@ describe('IdentitySettingsCrypto', () => {
     expect(redacted.settings?.identity?.didit?.api_key_set).toBe(true);
     expect(redacted.settings?.identity?.didit?.webhook_secret_set).toBe(true);
     expect(redacted.settings?.identity?.didit?.workflow_id).toBe('wf_123');
+    expect(encrypted?.didit?.kyb_workflow_id).toBeUndefined();
+  });
+
+  it('persists kyb_workflow_id without encrypting it', () => {
+    const encrypted = EncryptIdentitySettings({
+      provider: 'didit',
+      didit: {
+        api_key: 'didit_live_key',
+        workflow_id: 'wf_kyc',
+        kyb_workflow_id: 'wf_kyb',
+        webhook_secret: 'whsec_abc',
+      },
+    });
+
+    expect(encrypted?.didit?.workflow_id).toBe('wf_kyc');
+    expect(encrypted?.didit?.kyb_workflow_id).toBe('wf_kyb');
+  });
+});
+
+describe('SelectIdentityWorkflow', () => {
+  function BuildResolved(
+    kybWorkflowId: string | null = 'wf_kyb'
+  ): ResolvedIdentityProvider {
+    return {
+      provider: {} as never,
+      apiKey: 'key',
+      workflowId: 'wf_kyc',
+      kybWorkflowId,
+      webhookSecret: null,
+    };
+  }
+
+  it('uses the KYC workflow for individuals', () => {
+    expect(
+      SelectIdentityWorkflow(BuildResolved(), {
+        business_type: 'individual',
+      } as Account)
+    ).toEqual({ workflowId: 'wf_kyc', isKyb: false });
+  });
+
+  it('uses the KYB workflow for companies when configured', () => {
+    expect(
+      SelectIdentityWorkflow(BuildResolved(), {
+        business_type: 'company',
+      } as Account)
+    ).toEqual({ workflowId: 'wf_kyb', isKyb: true });
+  });
+
+  it('falls back to the KYC workflow when kyb_workflow_id is unset', () => {
+    expect(
+      SelectIdentityWorkflow(BuildResolved(null), {
+        business_type: 'company',
+      } as Account)
+    ).toEqual({ workflowId: 'wf_kyc', isKyb: false });
+  });
+
+  it('treats non_profit and government_entity as business accounts', () => {
+    expect(IsBusinessAccount({ business_type: 'non_profit' })).toBe(true);
+    expect(IsBusinessAccount({ business_type: 'government_entity' })).toBe(
+      true
+    );
+    expect(IsBusinessAccount({ business_type: 'individual' })).toBe(false);
+    expect(IsBusinessAccount(null)).toBe(false);
   });
 });
 
@@ -359,6 +427,71 @@ describe('IdentityVerificationSessionModule', () => {
         }),
       })
     );
+    const createBody = JSON.parse(
+      (global.fetch as jest.Mock).mock.calls[0][1].body
+    );
+    expect(createBody.workflow_id).toBe('wf_test');
+    expect(createBody.expected_details).toBeUndefined();
+  });
+
+  it('uses the KYB workflow and expected_details for company accounts', async () => {
+    const platform = storedAccounts.get(platformId)!;
+    platform.settings = {
+      identity: EncryptIdentitySettings({
+        provider: 'didit',
+        didit: {
+          api_key: 'didit_key',
+          workflow_id: 'wf_test',
+          kyb_workflow_id: 'wf_kyb',
+          webhook_secret: 'whsec_test',
+        },
+      }),
+    };
+    storedAccounts.set(platformId, platform);
+
+    const connected = storedAccounts.get(connectedId)!;
+    connected.business_type = 'company';
+    connected.business_profile = {
+      name: "Ben's Business",
+      mcc: null,
+      product_description: null,
+      support_email: null,
+      support_phone: null,
+      support_url: null,
+      url: null,
+    };
+    storedAccounts.set(connectedId, connected);
+
+    await sessionModule.Create(platformId, {
+      type: 'document',
+      related_account: connectedId,
+    });
+
+    const createBody = JSON.parse(
+      (global.fetch as jest.Mock).mock.calls[0][1].body
+    );
+    expect(createBody.workflow_id).toBe('wf_kyb');
+    expect(createBody.expected_details).toEqual({
+      company_name: "Ben's Business",
+      registry_country: 'US',
+    });
+  });
+
+  it('falls back to the KYC workflow for companies without kyb_workflow_id', async () => {
+    const connected = storedAccounts.get(connectedId)!;
+    connected.business_type = 'company';
+    storedAccounts.set(connectedId, connected);
+
+    await sessionModule.Create(platformId, {
+      type: 'document',
+      related_account: connectedId,
+    });
+
+    const createBody = JSON.parse(
+      (global.fetch as jest.Mock).mock.calls[0][1].body
+    );
+    expect(createBody.workflow_id).toBe('wf_test');
+    expect(createBody.expected_details).toBeUndefined();
   });
 
   it('cancels a session and sets person back to unverified', async () => {
@@ -941,6 +1074,7 @@ describe('AccountModule identity settings merge', () => {
           didit: {
             api_key: 'plain_key',
             workflow_id: 'wf_1',
+            kyb_workflow_id: 'wf_kyb_1',
             webhook_secret: 'plain_secret',
           },
           rules: { payout_volume_threshold_cents: 1000 },
@@ -950,6 +1084,7 @@ describe('AccountModule identity settings merge', () => {
 
     expect(updated.settings?.identity?.didit?.api_key).not.toBe('plain_key');
     expect(updated.settings?.identity?.didit?.workflow_id).toBe('wf_1');
+    expect(updated.settings?.identity?.didit?.kyb_workflow_id).toBe('wf_kyb_1');
     expect(
       DecryptIdentitySecret(updated.settings?.identity?.didit?.api_key)
     ).toBe('plain_key');

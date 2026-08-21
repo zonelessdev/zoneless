@@ -20,6 +20,7 @@ import { GetDiditWebhookUrl } from './didit-webhook-url';
 export interface IdentitySettingsFormData {
   apiKey: string;
   workflowId: string;
+  kybWorkflowId: string;
   webhookSecret: string;
   /** Dollars string for the default payout volume threshold */
   payoutVolumeThreshold: string;
@@ -61,6 +62,8 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
   workflowId: WritableSignal<string> = signal('');
   workflowIdError: WritableSignal<string> = signal('');
 
+  kybWorkflowId: WritableSignal<string> = signal('');
+
   webhookSecret: WritableSignal<string> = signal('');
   webhookSecretError: WritableSignal<string> = signal('');
   webhookSecretConfigured: WritableSignal<boolean> = signal(false);
@@ -96,6 +99,7 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
     this.apiKeyConfigured.set(!!providerSettings?.api_key_set);
     this.webhookSecretConfigured.set(!!providerSettings?.webhook_secret_set);
     this.workflowId.set(providerSettings?.workflow_id?.trim() || '');
+    this.kybWorkflowId.set(providerSettings?.kyb_workflow_id?.trim() || '');
 
     const cents = rules?.payout_volume_threshold_cents;
     this.payoutVolumeThreshold.set(
@@ -135,6 +139,11 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
     this.workflowId.set(value);
     this.ValidateWorkflowId();
     this.ValidateThresholdRequiresProvider();
+    this.EmitFormChange();
+  }
+
+  OnKybWorkflowIdChange(value: string): void {
+    this.kybWorkflowId.set(value);
     this.EmitFormChange();
   }
 
@@ -226,6 +235,7 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
     return {
       apiKey: this.apiKey(),
       workflowId: this.workflowId(),
+      kybWorkflowId: this.kybWorkflowId(),
       webhookSecret: this.webhookSecret(),
       payoutVolumeThreshold: this.payoutVolumeThreshold(),
       countryThresholds: this.countryThresholds(),
@@ -240,9 +250,11 @@ export class IdentitySettingsFormComponent implements OnInit, OnChanges {
     const providerCredentials: {
       api_key?: string;
       workflow_id: string | null;
+      kyb_workflow_id: string | null;
       webhook_secret?: string;
     } = {
       workflow_id: this.workflowId().trim() || null,
+      kyb_workflow_id: this.kybWorkflowId().trim() || null,
     };
 
     const apiKey = this.apiKey().trim();
