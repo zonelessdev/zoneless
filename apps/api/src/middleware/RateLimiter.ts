@@ -22,6 +22,7 @@ interface RateLimitOptions {
 }
 
 const store: RateLimitStore = {};
+let limiterId = 0;
 
 // Clean up expired entries periodically
 setInterval(() => {
@@ -42,9 +43,10 @@ export function RateLimiter(options: RateLimitOptions) {
     maxRequests,
     keyGenerator = (req: Request) => req.ip || 'unknown',
   } = options;
+  const id = ++limiterId;
 
   return (req: Request, res: Response, next: NextFunction) => {
-    const key = keyGenerator(req);
+    const key = `${id}:${keyGenerator(req)}`;
     const now = Date.now();
 
     // Initialize or reset if window expired
