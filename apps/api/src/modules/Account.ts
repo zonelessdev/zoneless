@@ -559,10 +559,18 @@ export class AccountModule {
           },
         };
       case 'in_review':
-        // pending_verification[0] exists ⇒ array is non-empty
-        // OR person verification is pending (handled client-side for chips;
-        // list filter focuses on soft-review pending_verification).
+        // Lite-review flags only. KYC-due / payouts-off accounts are Restricted
+        // even when pending_verification also lists the document.
         return {
+          payouts_enabled: true,
+          'requirements.disabled_reason': {
+            operator: QueryOperators['not-in'],
+            value: rejectedReasons,
+          },
+          'requirements.currently_due.0': {
+            operator: QueryOperators.exists,
+            value: false,
+          },
           'requirements.pending_verification.0': {
             operator: QueryOperators.exists,
             value: true,

@@ -7,22 +7,17 @@ export function GetAccountStatus(account: Account): string {
     return 'rejected';
   }
 
-  // Document submitted / provider processing — Stripe "In review"
-  if (account.individual?.verification?.status === 'pending') {
-    return 'in_review';
-  }
-
   const currentlyDue = account.requirements?.currently_due ?? [];
-  if (currentlyDue.length > 0) {
+  if (currentlyDue.length > 0 || !account.payouts_enabled) {
     return 'restricted';
   }
 
-  // Soft lite-review signals (duplicates, country mismatch, etc.)
+  // Soft lite-review only — payouts still on, operator can dismiss or reject
   if ((account.requirements?.pending_verification?.length ?? 0) > 0) {
     return 'in_review';
   }
 
-  return account.payouts_enabled ? 'enabled' : 'restricted';
+  return 'enabled';
 }
 
 export function FormatPayoutSchedule(account: Account): string {
