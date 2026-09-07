@@ -408,6 +408,11 @@
           }
         </ul>
       </div>
+      } @if (diditSessionId(); as sessionId) {
+      <div class="mb">
+        <div class="bolded mb-small">Didit session</div>
+        <div><app-copy-text [text]="sessionId"></app-copy-text></div>
+      </div>
       } @if ( !GetIdentityStatusLabel() && GetCurrentlyDue().length === 0 &&
       GetPendingVerification().length === 0 && GetRequirementErrors().length ===
       0 ) {
