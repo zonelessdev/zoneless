@@ -200,6 +200,36 @@ export class DiditProvider implements IdentityVerificationProvider {
     }
   }
 
+  /**
+   * Console reviewer actions from the Didit dashboard.
+   * Automatic onboarding declines omit `trigger`.
+   * @see https://docs.didit.me/integration/webhooks
+   */
+  IsManualDeclineTrigger(trigger: unknown): boolean {
+    return trigger === 'manual_review' || trigger === 'manual_step_update';
+  }
+
+  /**
+   * Hard-reject only for a human Didit decline, not an automatic IDV fail.
+   *
+   * Documented console signal: webhook `trigger` of `manual_review` /
+   * `manual_step_update`. Didit marks `trigger` optional and has omitted it
+   * on real console declines, so we also treat a session that was already
+   * verified (Approved → Declined) as a console override.
+   *
+   * Do not use `decision.reviews`: that feed includes SYSTEM / automatic
+   * STATUS_UPDATED rows, not only human reviewers.
+   */
+  IsManualDiditDecline(input: {
+    trigger?: unknown;
+    previousSessionStatus?: string | null;
+  }): boolean {
+    if (this.IsManualDeclineTrigger(input.trigger)) {
+      return true;
+    }
+    return input.previousSessionStatus === 'verified';
+  }
+
   private VerifySignatureV2(
     body: Record<string, unknown>,
     signatureHeader: string,

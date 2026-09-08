@@ -38,6 +38,7 @@ import {
   CreateIdentityVerificationSessionInput,
   CreateIdentityVerificationSessionSchema,
   IDENTITY_ERROR_CODES,
+  IsRejectedAccountReason,
   UpdateIdentityVerificationSessionInput,
   UpdateIdentityVerificationSessionSchema,
 } from '@zoneless/shared-schemas';
@@ -427,12 +428,16 @@ export class IdentityVerificationSessionModule {
 
     const providerStatus =
       typeof body.status === 'string' ? body.status : 'Not Started';
-    await this.ApplyProviderStatus(session, providerStatus);
+    await this.ApplyProviderStatus(session, providerStatus, {
+      trigger: body.trigger,
+      decision: body.decision,
+    });
   }
 
   private async ApplyProviderStatus(
     session: IdentityVerificationSessionType,
-    providerStatus: string
+    providerStatus: string,
+    webhook?: { trigger?: unknown; decision?: unknown }
   ): Promise<void> {
     if (session.status === 'canceled' || session.redaction) {
       return;
@@ -520,6 +525,26 @@ export class IdentityVerificationSessionModule {
       }
     }
 
+    if (
+      mapped === 'requires_input' &&
+      providerStatus.toLowerCase() === 'declined'
+    ) {
+      const isManualDecline = diditProvider.IsManualDiditDecline({
+        trigger: webhook?.trigger,
+        previousSessionStatus: previousStatus,
+      });
+      Logger.info('Didit decline received', {
+        sessionId: session.id,
+        accountId: session.related_account,
+        trigger: webhook?.trigger ?? null,
+        previousSessionStatus: previousStatus,
+        isManualDecline,
+      });
+      if (isManualDecline) {
+        await this.RejectAccountOnDiditDecline(session.related_account);
+      }
+    }
+
     await this.identityLiteModule.EvaluateAndApply(session.related_account);
 
     if (mapped === 'verified') {
@@ -538,6 +563,17 @@ export class IdentityVerificationSessionModule {
         );
       }
     }
+  }
+
+  private async RejectAccountOnDiditDecline(accountId: string): Promise<void> {
+    const account = await this.accountModule.GetAccount(accountId);
+    if (!account) {
+      return;
+    }
+    if (IsRejectedAccountReason(account.requirements?.disabled_reason)) {
+      return;
+    }
+    await this.accountModule.RejectAccount(accountId, { reason: 'fraud' });
   }
 
   private EventTypeForStatus(

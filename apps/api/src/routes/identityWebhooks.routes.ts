@@ -25,6 +25,7 @@ router.post(
       sessionId: body.session_id,
       status: body.status,
       webhookType: body.webhook_type,
+      trigger: body.trigger,
     });
 
     await sessionModule.HandleDiditWebhook(body, {

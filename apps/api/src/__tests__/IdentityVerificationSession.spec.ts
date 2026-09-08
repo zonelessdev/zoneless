@@ -37,6 +37,42 @@ jest.mock('../utils/Timestamp', () => ({
 
 const TEST_ENCRYPTION_KEY = 'a'.repeat(64);
 
+async function HandleSignedDiditWebhook(
+  sessionModule: IdentityVerificationSessionModule,
+  providerSessionId: string | null,
+  overrides: { status: string; trigger?: string }
+): Promise<void> {
+  const body: Record<string, unknown> = {
+    timestamp: GetFixedTimestamp(),
+    session_id: providerSessionId,
+    status: overrides.status,
+    webhook_type: 'status.updated',
+  };
+  if (overrides.trigger) {
+    body.trigger = overrides.trigger;
+  }
+  const canonical = [
+    body.timestamp,
+    body.session_id,
+    body.status,
+    body.webhook_type,
+  ].join(':');
+  const signature = createHmac('sha256', 'whsec_test')
+    .update(canonical)
+    .digest('hex');
+
+  const realNow = Date.now;
+  Date.now = () => GetFixedTimestamp() * 1000;
+  try {
+    await sessionModule.HandleDiditWebhook(body, {
+      signatureSimple: signature,
+      timestamp: String(GetFixedTimestamp()),
+    });
+  } finally {
+    Date.now = realNow;
+  }
+}
+
 jest.mock('../modules/AppConfig', () => ({
   GetAppConfig: jest.fn(() => ({
     dashboardUrl: 'http://localhost:4200',
@@ -150,6 +186,26 @@ describe('DiditProvider', () => {
     expect(provider.MapStatus('Declined')).toBe('requires_input');
     expect(provider.MapStatus('In Progress')).toBe('processing');
     expect(provider.MapStatus('Not Started')).toBe('requires_input');
+  });
+
+  it('treats console reviewer triggers as manual declines', () => {
+    expect(provider.IsManualDeclineTrigger('manual_review')).toBe(true);
+    expect(provider.IsManualDeclineTrigger('manual_step_update')).toBe(true);
+    expect(provider.IsManualDeclineTrigger('ongoing_monitoring')).toBe(false);
+    expect(provider.IsManualDeclineTrigger(undefined)).toBe(false);
+    expect(provider.IsManualDeclineTrigger(null)).toBe(false);
+  });
+
+  it('treats an already-verified session decline as manual', () => {
+    expect(
+      provider.IsManualDiditDecline({ previousSessionStatus: 'verified' })
+    ).toBe(true);
+    expect(
+      provider.IsManualDiditDecline({ previousSessionStatus: 'processing' })
+    ).toBe(false);
+    expect(
+      provider.IsManualDiditDecline({ previousSessionStatus: 'requires_input' })
+    ).toBe(false);
   });
 
   it('verifies X-Signature-Simple webhooks', () => {
@@ -585,6 +641,90 @@ describe('IdentityVerificationSessionModule', () => {
     expect(storedPersons.get(personId)?.verification?.details_code).toBe(
       'verification_failed'
     );
+    expect(storedAccounts.get(connectedId)?.requirements?.disabled_reason).toBe(
+      null
+    );
+    expect(storedAccounts.get(connectedId)?.payouts_enabled).toBe(true);
+    expect(storedAccounts.get(connectedId)?.charges_enabled).toBe(true);
+  });
+
+  it('rejects the account when an approved session is later declined', async () => {
+    const session = await sessionModule.Create(platformId, {
+      type: 'document',
+      related_account: connectedId,
+    });
+
+    await HandleSignedDiditWebhook(sessionModule, session.provider_session_id, {
+      status: 'Approved',
+    });
+    expect(storedSessions.get(session.id)?.status).toBe('verified');
+
+    await HandleSignedDiditWebhook(sessionModule, session.provider_session_id, {
+      status: 'Declined',
+    });
+
+    expect(storedAccounts.get(connectedId)?.requirements?.disabled_reason).toBe(
+      'rejected.fraud'
+    );
+    expect(storedAccounts.get(connectedId)?.payouts_enabled).toBe(false);
+  });
+
+  it('rejects the account on a Didit dashboard decline', async () => {
+    const session = await sessionModule.Create(platformId, {
+      type: 'document',
+      related_account: connectedId,
+    });
+
+    await HandleSignedDiditWebhook(sessionModule, session.provider_session_id, {
+      status: 'Declined',
+      trigger: 'manual_review',
+    });
+
+    expect(storedSessions.get(session.id)?.status).toBe('requires_input');
+    expect(storedPersons.get(personId)?.verification?.status).toBe(
+      'unverified'
+    );
+    expect(storedAccounts.get(connectedId)?.requirements?.disabled_reason).toBe(
+      'rejected.fraud'
+    );
+    expect(storedAccounts.get(connectedId)?.payouts_enabled).toBe(false);
+    expect(storedAccounts.get(connectedId)?.charges_enabled).toBe(false);
+  });
+
+  it('does not reject the account on abandoned Didit sessions', async () => {
+    const session = await sessionModule.Create(platformId, {
+      type: 'document',
+      related_account: connectedId,
+    });
+
+    await HandleSignedDiditWebhook(sessionModule, session.provider_session_id, {
+      status: 'Abandoned',
+    });
+
+    expect(storedSessions.get(session.id)?.status).toBe('requires_input');
+    expect(storedAccounts.get(connectedId)?.requirements?.disabled_reason).toBe(
+      null
+    );
+    expect(storedAccounts.get(connectedId)?.payouts_enabled).toBe(true);
+    expect(storedAccounts.get(connectedId)?.charges_enabled).toBe(true);
+  });
+
+  it('does not reject the account on expired Didit sessions', async () => {
+    const session = await sessionModule.Create(platformId, {
+      type: 'document',
+      related_account: connectedId,
+    });
+
+    await HandleSignedDiditWebhook(sessionModule, session.provider_session_id, {
+      status: 'Expired',
+    });
+
+    expect(storedSessions.get(session.id)?.status).toBe('requires_input');
+    expect(storedAccounts.get(connectedId)?.requirements?.disabled_reason).toBe(
+      null
+    );
+    expect(storedAccounts.get(connectedId)?.payouts_enabled).toBe(true);
+    expect(storedAccounts.get(connectedId)?.charges_enabled).toBe(true);
   });
 });
 
