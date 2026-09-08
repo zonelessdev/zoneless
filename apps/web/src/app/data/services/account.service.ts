@@ -163,7 +163,8 @@ export class AccountService {
   }
 
   /**
-   * Search connected accounts by email, name, or account id.
+   * Search connected accounts by email, name, account id, or
+   * verification session id (`vs_z...` or Didit session id).
    */
   async SearchConnectedAccounts(
     query: string,

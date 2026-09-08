@@ -415,11 +415,12 @@ export class AccountModule {
   }
 
   /**
-   * Search connected accounts by email, name, or account id.
-   * Zoneless extension — not part of Stripe's Accounts API.
+   * Search connected accounts by email, name, account id, or verification
+   * session id. Zoneless extension — not part of Stripe's Accounts API.
    *
-   * Matches account email / business name / display name / id, plus person
-   * email / first name / last name / full name under the same platform.
+   * Matches account email / business name / display name / id, person
+   * email / first name / last name / full name, and verification sessions
+   * (`vs_z...` or Didit `provider_session_id`) under the same platform.
    */
   async SearchAccounts(
     platformAccountId: string,
@@ -500,6 +501,28 @@ export class AccountModule {
       for (const hit of personHits) {
         if (hit.account && hit.account !== platformAccountId) {
           accountIds.add(hit.account);
+        }
+      }
+    }
+
+    if (accountIds.size <= limit) {
+      const sessionHits = await this.db.Aggregate<{ related_account: string }>(
+        'VerificationSessions',
+        [
+          {
+            $match: {
+              platform_account: platformAccountId,
+              $or: [{ id: regex }, { provider_session_id: regex }],
+            },
+          },
+          { $project: { related_account: 1 } },
+          { $limit: limit + 1 },
+        ]
+      );
+
+      for (const hit of sessionHits) {
+        if (hit.related_account && hit.related_account !== platformAccountId) {
+          accountIds.add(hit.related_account);
         }
       }
     }

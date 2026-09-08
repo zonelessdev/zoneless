@@ -435,7 +435,8 @@ describe('AccountModule', () => {
       mockDb.Aggregate = jest
         .fn()
         .mockResolvedValueOnce([{ id: 'acct_z_connected' }])
-        .mockResolvedValueOnce([{ account: 'acct_z_connected' }]);
+        .mockResolvedValueOnce([{ account: 'acct_z_connected' }])
+        .mockResolvedValueOnce([]);
       mockDb.Get = jest.fn().mockResolvedValue(matched);
 
       const result = await accountModule.SearchAccounts(
@@ -443,7 +444,7 @@ describe('AccountModule', () => {
         'kurniawan.anto7@gmail.com'
       );
 
-      expect(mockDb.Aggregate).toHaveBeenCalledTimes(2);
+      expect(mockDb.Aggregate).toHaveBeenCalledTimes(3);
       expect(mockDb.Aggregate).toHaveBeenNthCalledWith(
         1,
         'Accounts',
@@ -452,6 +453,11 @@ describe('AccountModule', () => {
       expect(mockDb.Aggregate).toHaveBeenNthCalledWith(
         2,
         'Persons',
+        expect.any(Array)
+      );
+      expect(mockDb.Aggregate).toHaveBeenNthCalledWith(
+        3,
+        'VerificationSessions',
         expect.any(Array)
       );
       expect(result.data).toEqual([matched]);
@@ -483,6 +489,97 @@ describe('AccountModule', () => {
       expect(mockDb.Aggregate).toHaveBeenCalledTimes(1);
       expect(result.data).toHaveLength(1);
       expect(result.has_more).toBe(true);
+    });
+
+    it('should return the related account for a verification session id', async () => {
+      const matched = {
+        id: 'acct_z_connected',
+        created: 1700000000,
+        platform_account: 'acct_z_platform',
+      } as Account;
+
+      mockDb.Aggregate = jest
+        .fn()
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ related_account: 'acct_z_connected' }]);
+      mockDb.Get = jest.fn().mockResolvedValue(matched);
+
+      const result = await accountModule.SearchAccounts(
+        'acct_z_platform',
+        '21d342ef-6572-47ee-b305-39b233c0d2a2'
+      );
+
+      expect(mockDb.Aggregate).toHaveBeenNthCalledWith(
+        3,
+        'VerificationSessions',
+        [
+          {
+            $match: {
+              platform_account: 'acct_z_platform',
+              $or: [
+                {
+                  id: {
+                    $regex: '21d342ef-6572-47ee-b305-39b233c0d2a2',
+                    $options: 'i',
+                  },
+                },
+                {
+                  provider_session_id: {
+                    $regex: '21d342ef-6572-47ee-b305-39b233c0d2a2',
+                    $options: 'i',
+                  },
+                },
+              ],
+            },
+          },
+          { $project: { related_account: 1 } },
+          { $limit: 11 },
+        ]
+      );
+      expect(result.data).toEqual([matched]);
+      expect(result.has_more).toBe(false);
+    });
+
+    it('should return the related account for a Zoneless verification session id', async () => {
+      const matched = {
+        id: 'acct_z_connected',
+        created: 1700000000,
+        platform_account: 'acct_z_platform',
+      } as Account;
+
+      mockDb.Aggregate = jest
+        .fn()
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ related_account: 'acct_z_connected' }]);
+      mockDb.Get = jest.fn().mockResolvedValue(matched);
+
+      const result = await accountModule.SearchAccounts(
+        'acct_z_platform',
+        'vs_z_abc123'
+      );
+
+      expect(mockDb.Aggregate).toHaveBeenNthCalledWith(
+        3,
+        'VerificationSessions',
+        expect.arrayContaining([
+          expect.objectContaining({
+            $match: expect.objectContaining({
+              $or: [
+                { id: { $regex: 'vs_z_abc123', $options: 'i' } },
+                {
+                  provider_session_id: {
+                    $regex: 'vs_z_abc123',
+                    $options: 'i',
+                  },
+                },
+              ],
+            }),
+          }),
+        ])
+      );
+      expect(result.data).toEqual([matched]);
     });
   });
 });
