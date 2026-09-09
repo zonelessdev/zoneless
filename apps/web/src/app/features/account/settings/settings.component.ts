@@ -44,6 +44,7 @@ import {
   GetIdentityDocumentTaskTitle,
   NeedsIdentityDocumentRemediation,
 } from '../connected-accounts/util/identity-requirements';
+import { IsRejectedAccountReason } from '@zoneless/shared-schemas';
 
 @Component({
   selector: 'app-settings',
@@ -118,11 +119,14 @@ export class SettingsComponent implements OnInit {
   identityVerificationStarting: WritableSignal<boolean> = signal(false);
   identityVerificationError: WritableSignal<string> = signal('');
 
-  readonly showIdentityTask = computed(
-    () =>
+  readonly showIdentityTask = computed(() => {
+    const account = this.accountService.account();
+    return (
       !this.authService.isPlatform() &&
-      NeedsIdentityDocumentRemediation(this.accountService.account())
-  );
+      !IsRejectedAccountReason(account?.requirements?.disabled_reason) &&
+      NeedsIdentityDocumentRemediation(account)
+    );
+  });
 
   readonly identityRepresentativeName = computed(() => {
     const personName = this.personService.GetFullName(

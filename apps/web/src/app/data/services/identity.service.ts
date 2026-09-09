@@ -33,6 +33,7 @@ export class IdentityService {
     params: {
       relatedAccount?: string;
       limit?: number;
+      startingAfter?: string;
     } = {}
   ): Promise<ListResponse<IdentityVerificationSession>> {
     const query: Record<string, string> = {};
@@ -41,6 +42,9 @@ export class IdentityService {
     }
     if (params.limit !== undefined) {
       query['limit'] = String(params.limit);
+    }
+    if (params.startingAfter) {
+      query['starting_after'] = params.startingAfter;
     }
     return this.api.Call<ListResponse<IdentityVerificationSession>>(
       'GET',

@@ -108,7 +108,7 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
   availableBalance: WritableSignal<number> = signal(0);
   pendingBalance: WritableSignal<number> = signal(0);
   externalWallets: WritableSignal<ExternalWallet[]> = signal([]);
-  diditSessionId: WritableSignal<string | null> = signal(null);
+  diditSessionIds: WritableSignal<string[]> = signal([]);
   idCopied: WritableSignal<boolean> = signal(false);
   private idCopiedTimer?: ReturnType<typeof setTimeout>;
 
@@ -410,7 +410,7 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
     if (this.account()?.id === id) return;
 
     this.account.set(null);
-    this.diditSessionId.set(null);
+    this.diditSessionIds.set([]);
     this.activeTab.set('overview');
     this.detailPanel.set('main');
     this.moneyMovementTab.set('payouts');
@@ -431,7 +431,7 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
       await Promise.all([
         this.RefreshBalance(id),
         this.LoadWallets(id, account),
-        this.LoadLatestVerificationSession(id),
+        this.LoadVerificationSessions(id),
       ]);
     } finally {
       this.loading.set(false);
@@ -470,19 +470,26 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
     }
   }
 
-  private async LoadLatestVerificationSession(
-    accountId: string
-  ): Promise<void> {
+  private async LoadVerificationSessions(accountId: string): Promise<void> {
     try {
-      const result = await this.identityService.ListVerificationSessions({
-        relatedAccount: accountId,
-        limit: 1,
-      });
-      this.diditSessionId.set(
-        result.data[0]?.provider_session_id?.trim() || null
-      );
+      const ids: string[] = [];
+      let startingAfter: string | undefined;
+      for (;;) {
+        const result = await this.identityService.ListVerificationSessions({
+          relatedAccount: accountId,
+          limit: 100,
+          startingAfter,
+        });
+        for (const session of result.data) {
+          const id = session.provider_session_id?.trim();
+          if (id) ids.push(id);
+        }
+        if (!result.has_more || result.data.length === 0) break;
+        startingAfter = result.data[result.data.length - 1].id;
+      }
+      this.diditSessionIds.set(ids);
     } catch {
-      this.diditSessionId.set(null);
+      this.diditSessionIds.set([]);
     }
   }
 
