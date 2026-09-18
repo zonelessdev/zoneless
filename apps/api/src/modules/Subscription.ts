@@ -42,10 +42,10 @@ import {
   MigrateSubscriptionSchema,
   ResumeSubscriptionInput,
   ResumeSubscriptionSchema,
-  SubscriptionCreateItemSchema,
-  SubscriptionUpdateItemSchema,
-  UpdateSubscriptionInput,
   UpdateSubscriptionSchema,
+  UpdateSubscriptionInput,
+  CreateSubscriptionItemSchema,
+  UpdateSubscriptionItemSchema,
 } from '@zoneless/shared-schemas';
 import { z } from 'zod';
 import {
@@ -53,8 +53,12 @@ import {
   SECONDS_PER_DAY,
 } from '../utils/RecurringInterval';
 
-type CreateItemInput = z.infer<typeof SubscriptionCreateItemSchema>;
-type UpdateItemInput = z.infer<typeof SubscriptionUpdateItemSchema>;
+type CreateItemInput = z.infer<
+  typeof import('@zoneless/shared-schemas').SubscriptionCreateItemSchema
+>;
+type UpdateItemInput = z.infer<
+  typeof import('@zoneless/shared-schemas').SubscriptionUpdateItemSchema
+>;
 
 const THREE_DAYS_SECONDS = 3 * SECONDS_PER_DAY;
 
@@ -65,6 +69,7 @@ export class SubscriptionModule {
   private readonly priceModule: PriceModule | null;
   private readonly invoiceModule: InvoiceModule | null;
   private readonly listHelper: ListHelper<SubscriptionType>;
+  private readonly itemsListHelper: ListHelper<SubscriptionItemType>;
 
   constructor(
     db: Database,
@@ -83,6 +88,13 @@ export class SubscriptionModule {
       orderByField: 'created',
       orderDirection: 'desc',
       urlPath: '/v1/subscriptions',
+      accountField: 'platform_account',
+    });
+    this.itemsListHelper = new ListHelper<SubscriptionItemType>(db, {
+      collection: 'SubscriptionItems',
+      orderByField: 'created',
+      orderDirection: 'asc',
+      urlPath: '/v1/subscription_items',
       accountField: 'platform_account',
     });
   }
@@ -759,6 +771,145 @@ export class SubscriptionModule {
     }
 
     return subscription;
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Public Subscription Item Methods
+  // ───────────────────────────────────────────────────────────────────────────
+
+  async CreateItem(
+    platformAccountId: string,
+    input: z.infer<typeof CreateSubscriptionItemSchema>
+  ): Promise<SubscriptionItemType> {
+    const validatedInput = ValidateUpdate(CreateSubscriptionItemSchema, input);
+    const subscription = await this.RequireSubscription(
+      validatedInput.subscription,
+      platformAccountId
+    );
+
+    const item = await this.CreateSubscriptionItem(
+      platformAccountId,
+      subscription.id,
+      validatedInput,
+      subscription.billing_cycle_anchor
+    );
+
+    if (this.eventService) {
+      const updatedSubscription = await this.GetSubscription(subscription.id);
+      await this.eventService.Emit(
+        'customer.subscription.updated',
+        platformAccountId,
+        updatedSubscription!
+      );
+    }
+
+    return item;
+  }
+
+  async GetItem(
+    id: string,
+    platformAccountId: string
+  ): Promise<SubscriptionItemType | null> {
+    const item = await this.db.Get<SubscriptionItemType>(
+      'SubscriptionItems',
+      id
+    );
+    if (!item || item.platform_account !== platformAccountId) {
+      return null;
+    }
+    return item;
+  }
+
+  async UpdateItem(
+    id: string,
+    input: z.infer<typeof UpdateSubscriptionItemSchema>,
+    platformAccountId: string
+  ): Promise<SubscriptionItemType> {
+    const validatedInput = ValidateUpdate(UpdateSubscriptionItemSchema, input);
+    const existing = await this.GetItem(id, platformAccountId);
+
+    if (!existing) {
+      throw new AppError(
+        'Subscription item not found',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    const subscription = await this.RequireSubscription(
+      existing.subscription,
+      platformAccountId
+    );
+
+    await this.ApplyItemUpdates(
+      platformAccountId,
+      subscription.id,
+      [{ id, ...validatedInput }],
+      subscription.billing_cycle_anchor
+    );
+
+    const updated = await this.GetItem(id, platformAccountId);
+
+    if (this.eventService) {
+      const updatedSubscription = await this.GetSubscription(subscription.id);
+      await this.eventService.Emit(
+        'customer.subscription.updated',
+        platformAccountId,
+        updatedSubscription!
+      );
+    }
+
+    return updated!;
+  }
+
+  async DeleteItem(
+    id: string,
+    input: z.infer<
+      typeof import('@zoneless/shared-schemas').DeleteSubscriptionItemSchema
+    > = {},
+    platformAccountId: string
+  ) {
+    const existing = await this.GetItem(id, platformAccountId);
+    if (!existing) {
+      throw new AppError(
+        'Subscription item not found',
+        ERRORS.INVALID_REQUEST.status,
+        ERRORS.INVALID_REQUEST.type
+      );
+    }
+
+    const subscription = await this.RequireSubscription(
+      existing.subscription,
+      platformAccountId
+    );
+    void input.clear_usage;
+
+    await this.db.Delete('SubscriptionItems', id);
+
+    if (this.eventService) {
+      const updatedSubscription = await this.GetSubscription(subscription.id);
+      await this.eventService.Emit(
+        'customer.subscription.updated',
+        platformAccountId,
+        updatedSubscription!
+      );
+    }
+
+    return { id, object: 'subscription_item' as const, deleted: true };
+  }
+
+  async ListItems(
+    options: ListOptions & { subscription: string }
+  ): Promise<ListResult<SubscriptionItemType>> {
+    const { subscription, ...listOptions } = options;
+
+    return this.itemsListHelper.List({
+      ...listOptions,
+      filters: {
+        ...listOptions.filters,
+        subscription,
+      },
+    });
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -1740,9 +1891,15 @@ export class SubscriptionModule {
     return Math.min(...ends);
   }
 
-  private async RequireSubscription(id: string): Promise<SubscriptionType> {
+  private async RequireSubscription(
+    id: string,
+    platformAccountId?: string
+  ): Promise<SubscriptionType> {
     const subscription = await this.GetSubscription(id);
-    if (!subscription) {
+    if (
+      !subscription ||
+      (platformAccountId && subscription.platform_account !== platformAccountId)
+    ) {
       throw new AppError(
         ERRORS.SUBSCRIPTION_NOT_FOUND.message,
         ERRORS.SUBSCRIPTION_NOT_FOUND.status,
