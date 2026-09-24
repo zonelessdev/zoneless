@@ -17,6 +17,7 @@ import { PAYMENT_LINKS_SUBSECTION } from './payment-links';
 import { PRICES_SUBSECTION } from './prices';
 import { PRODUCTS_SUBSECTION } from './products';
 import { SUBSCRIPTIONS_SUBSECTION } from './subscriptions';
+import { SUBSCRIPTION_ITEMS_SUBSECTION } from './subscription-items';
 import { INVOICE_ITEMS_SUBSECTION } from './invoice-items';
 import { INVOICES_SUBSECTION } from './invoices';
 import { BILLING_SUBSECTION } from './billing';
@@ -64,6 +65,7 @@ export const BILLING_SECTION: DocSection = {
     INVOICES_SUBSECTION,
     INVOICE_ITEMS_SUBSECTION,
     SUBSCRIPTIONS_SUBSECTION,
+    SUBSCRIPTION_ITEMS_SUBSECTION,
   ],
 };
 

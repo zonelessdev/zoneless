@@ -45,6 +45,7 @@ export * from './connect';
 export * from './products';
 export * from './prices';
 export * from './subscriptions';
+export * from './subscription-items';
 export * from './invoice-items';
 export * from './invoices';
 export * from './billing';
