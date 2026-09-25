@@ -13,12 +13,19 @@
  * @module EventService
  */
 
-import { Event, EventDataObject, EventType } from '@zoneless/shared-types';
+import {
+  Event,
+  EventDataObject,
+  EventType,
+  WebhookDelivery,
+  WebhookEndpointRecord,
+} from '@zoneless/shared-types';
 import { Database } from './Database';
 import { EventModule } from './Event';
 import { AccountModule } from './Account';
 import { WebhookEndpointModule } from './WebhookEndpoint';
-import { WebhookDispatcher } from './WebhookDispatcher';
+import { WebhookDeliveryModule } from './WebhookDelivery';
+import { WebhookDeliveryWorker } from './WebhookDeliveryWorker';
 import { GetPlatformAccountId } from './PlatformAccess';
 import { GetRequestContext } from '../middleware/RequestContext';
 import { Logger } from '../utils/Logger';
@@ -31,18 +38,18 @@ interface EventOptions {
 }
 
 export class EventService {
-  private readonly db: Database;
   private readonly eventModule: EventModule;
   private readonly accountModule: AccountModule;
   private readonly webhookEndpointModule: WebhookEndpointModule;
-  private readonly webhookDispatcher: WebhookDispatcher;
+  private readonly webhookDeliveryModule: WebhookDeliveryModule;
+  private readonly webhookDeliveryWorker: WebhookDeliveryWorker;
 
   constructor(db: Database) {
-    this.db = db;
     this.eventModule = new EventModule(db);
     this.accountModule = new AccountModule(db);
     this.webhookEndpointModule = new WebhookEndpointModule(db);
-    this.webhookDispatcher = new WebhookDispatcher();
+    this.webhookDeliveryModule = new WebhookDeliveryModule(db);
+    this.webhookDeliveryWorker = new WebhookDeliveryWorker(db);
   }
 
   /**
@@ -111,8 +118,10 @@ export class EventService {
       pendingWebhooks: pendingWebhooksCount,
     });
 
+    const deliveries = await this.PersistDeliveries(event, endpoints);
+
     // Dispatch webhooks asynchronously (don't await - fire and forget)
-    this.DispatchWebhooks(event, platformAccountId).catch((error) => {
+    this.DeliverFirstAttempts(event, deliveries).catch((error) => {
       Logger.error('Failed to dispatch webhooks', error, {
         eventId: event.id,
         eventType: type,
@@ -152,85 +161,74 @@ export class EventService {
   }
 
   /**
-   * Dispatches webhook for an event to all subscribed webhook endpoints.
+   * Persists a webhook delivery for the event to each subscribed endpoint.
    *
    * @param event - The event to dispatch
-   * @param platformAccountId - The platform to send webhooks to
+   * @param endpoints - The endpoints subscribed to the event type
+   * @returns The created deliveries, empty when there is nothing to deliver
    */
-  private async DispatchWebhooks(
+  private async PersistDeliveries(
     event: Event,
-    platformAccountId: string
-  ): Promise<void> {
-    // Get all webhook endpoints that subscribe to this event type
-    const endpoints =
-      await this.webhookEndpointModule.GetWebhookEndpointsForEvent(
-        platformAccountId,
-        event.type
-      );
-
+    endpoints: WebhookEndpointRecord[]
+  ): Promise<WebhookDelivery[]> {
     if (endpoints.length === 0) {
       Logger.debug('No webhook endpoints configured for event type', {
         eventId: event.id,
         eventType: event.type,
-        platformAccountId,
+        platformAccountId: event.platform_account,
       });
-      return;
+      return [];
     }
 
     Logger.debug('Dispatching webhooks', {
       eventId: event.id,
       eventType: event.type,
-      platformAccountId,
+      platformAccountId: event.platform_account,
       endpointCount: endpoints.length,
     });
 
+    try {
+      return await this.webhookDeliveryModule.CreateDeliveriesForEvent(
+        event,
+        endpoints
+      );
+    } catch (error) {
+      Logger.error('Failed to persist webhook deliveries', error, {
+        eventId: event.id,
+        eventType: event.type,
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Sends the first delivery attempt for each persisted delivery.
+   *
+   * @param event - The event being dispatched
+   * @param deliveries - The deliveries to attempt
+   */
+  private async DeliverFirstAttempts(
+    event: Event,
+    deliveries: WebhookDelivery[]
+  ): Promise<void> {
     // Dispatch to all endpoints in parallel
     const results = await Promise.allSettled(
-      endpoints.map(async (endpoint) => {
-        try {
-          const result = await this.webhookDispatcher.Send(
-            event,
-            endpoint.url,
-            endpoint.secret
-          );
-
-          if (!result.success) {
-            Logger.warn('Webhook delivery failed', {
-              eventId: event.id,
-              eventType: event.type,
-              webhookEndpointId: endpoint.id,
-              url: endpoint.url,
-              error: result.error,
-              statusCode: result.statusCode,
-            });
-          }
-
-          return result;
-        } catch (error) {
-          Logger.error('Webhook dispatch error', error, {
-            eventId: event.id,
-            eventType: event.type,
-            webhookEndpointId: endpoint.id,
-            url: endpoint.url,
-          });
-          throw error;
-        }
-      })
+      deliveries.map((delivery) =>
+        this.webhookDeliveryWorker.ProcessDelivery(delivery.id)
+      )
     );
 
     // Log summary
     const successful = results.filter(
-      (r) =>
-        r.status === 'fulfilled' && (r.value as { success: boolean }).success
+      (result) => result.status === 'fulfilled' && result.value === 'succeeded'
     ).length;
-    const failed = results.length - successful;
 
     Logger.info('Webhook dispatch completed', {
       eventId: event.id,
       eventType: event.type,
-      platformAccountId,
+      platformAccountId: event.platform_account,
       successful,
-      failed,
+      failed: results.length - successful,
       total: results.length,
     });
   }

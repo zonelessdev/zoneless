@@ -34,6 +34,7 @@ import invoiceItemsRouter from './invoiceItems.routes';
 import invoicesRouter from './invoices.routes';
 import reportingRouter from './reporting.routes';
 import billingRouter from './billing.routes';
+import webhookDeliveriesRouter from './webhookDeliveries.routes';
 import telemetryRouter from './telemetry.routes';
 import identityVerificationSessionsRouter from './identityVerificationSessions.routes';
 import identityWebhooksRouter from './identityWebhooks.routes';
@@ -56,6 +57,9 @@ router.use('/operator', operatorRouter);
 
 // Billing run: operator key (Cloud Scheduler) or platform API key endpoints.
 router.use('/billing', billingRouter);
+
+// Webhook delivery retries: operator key (Cloud Scheduler) or platform API key endpoints.
+router.use('/webhook_deliveries', webhookDeliveriesRouter);
 
 // --- Authenticated Routes ---
 // All routes below this line require an API Key

@@ -457,6 +457,7 @@ export class Database {
       'UsageCounters',
       'TelemetryConfigs',
       'VerificationSessions',
+      'WebhookDeliveries',
       'WebhookEndpoints',
     ];
 
@@ -487,6 +488,10 @@ export class Database {
     );
 
     flexibleSchema.index({ id: 1 }, { unique: true, sparse: true });
+
+    if (collectionName === 'WebhookDeliveries') {
+      flexibleSchema.index({ status: 1, next_attempt_at: 1 });
+    }
 
     return mongoose.model(collectionName, flexibleSchema);
   }
