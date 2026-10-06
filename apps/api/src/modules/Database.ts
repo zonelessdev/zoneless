@@ -257,15 +257,19 @@ export class Database {
     const model = this.GetModel(options.collection);
 
     // Build MongoDB filter from parameters
-    let filter: Record<string, unknown> = {};
+    const filter: Record<string, unknown> = {};
     if (options.parameters) {
       for (const param of options.parameters) {
-        const paramFilter = this.BuildFilter(
+        const condition = this.BuildFilter(
           param.key,
           param.operator,
           param.value
-        );
-        filter = { ...filter, ...paramFilter };
+        )[param.key];
+        const existing = filter[param.key];
+        filter[param.key] =
+          this.IsOperatorObject(existing) && this.IsOperatorObject(condition)
+            ? { ...existing, ...condition }
+            : condition;
       }
     }
 
@@ -433,6 +437,15 @@ export class Database {
       default:
         return { [field]: value };
     }
+  }
+
+  private IsOperatorObject(value: unknown): value is Record<string, unknown> {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      !Array.isArray(value) &&
+      Object.keys(value).every((key) => key.startsWith('$'))
+    );
   }
 
   /**
