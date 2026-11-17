@@ -145,6 +145,10 @@ Open [localhost/setup](http://localhost/setup) to create your platform account a
 
 See the [self-hosting guide](https://docs.zoneless.com/self-hosting) for configuration, credentials, and deployment options.
 
+## One-Click Deploy
+
+[![Deploy on RepoCloud](https://d16t0pc4846x52.cloudfront.net/deploylobe.svg)](https://repocloud.io/details/Zoneless/)
+
 ## Guides and documentation
 
 The full API reference is at **[docs.zoneless.com](https://docs.zoneless.com)**. These guides are good places to start:
