@@ -386,7 +386,7 @@ export class Database {
    * Run a MongoDB aggregation pipeline on a collection.
    *
    * Does not strip `_id` — `$group` / `$dateTrunc` pipelines (Reporting,
-   * OperatorStats, etc.) return the group key on `_id`.
+   * Telemetry, etc.) return the group key on `_id`.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async Aggregate<T>(collection: string, pipeline: any[]): Promise<T[]> {

@@ -9,24 +9,6 @@
  */
 
 /**
- * Per-platform activity stats for a trailing window (amounts in cents).
- */
-export interface OperatorPlatformStats {
-  /** Connected accounts under this platform */
-  connected_accounts: number;
-  /** Settled payment/charge volume in the window (cents) */
-  payment_volume: number;
-  /** Absolute payout outflow in the window (cents) */
-  payout_volume: number;
-  /** Count of payment/charge balance transactions */
-  payment_count: number;
-  /** Metered API-key requests in the window */
-  api_requests: number;
-  /** Max Event or BalanceTransaction created timestamp, or null if none */
-  last_activity: number | null;
-}
-
-/**
  * Summary of a platform account returned by the operator API.
  */
 export interface OperatorPlatform {
@@ -39,8 +21,6 @@ export interface OperatorPlatform {
   created: number;
   /** True if the operator has disabled this platform */
   disabled: boolean;
-  /** Present when GET /platforms is called with include=stats */
-  stats?: OperatorPlatformStats;
 }
 
 /**
@@ -86,64 +66,4 @@ export interface OperatorUsage {
   data: UsageCounter[];
   /** Total requests across the returned window */
   total: number;
-}
-
-/**
- * One day in an operator summary time series (UTC).
- */
-export interface OperatorDailyPoint {
-  /** Day in YYYY-MM-DD format (UTC) */
-  date: string;
-  /** Aggregated value for the day (cents for volume series, count for count series) */
-  value: number;
-}
-
-/**
- * Instance-wide summary from GET /v1/operator/summary.
- * Amounts are exact cents (not telemetry buckets).
- */
-export interface OperatorSummary {
-  object: 'operator_summary';
-  /** Trailing window length in days */
-  days: number;
-  /** Platform (root) account count */
-  platforms: number;
-  /** Connected account count across all platforms */
-  connected_accounts: number;
-  /** Settled payment/charge volume in the window (cents) */
-  payment_volume: number;
-  /** Absolute payout outflow in the window (cents) */
-  payout_volume: number;
-  /** Count of payment/charge balance transactions */
-  payment_count: number;
-  /** Metered API-key requests in the window */
-  api_requests: number;
-  /** Daily payment volume (oldest → newest, zero-filled) */
-  volume_by_day: OperatorDailyPoint[];
-  /** Daily absolute payout volume (oldest → newest, zero-filled) */
-  payout_by_day: OperatorDailyPoint[];
-}
-
-/**
- * Slim event row for operator activity feeds.
- */
-export interface OperatorEvent {
-  object: 'operator_event';
-  id: string;
-  type: string;
-  created: number;
-  platform_account: string;
-  /** Best-effort amount in cents from the event payload, if present */
-  amount: number | null;
-  /** Short human-readable detail derived from the event payload */
-  summary: string | null;
-}
-
-/**
- * Response from GET /v1/operator/events
- */
-export interface OperatorEventList {
-  object: 'list';
-  data: OperatorEvent[];
-  has_more: boolean;
 }
