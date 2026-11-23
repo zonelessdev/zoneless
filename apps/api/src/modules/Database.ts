@@ -441,21 +441,33 @@ export class Database {
    */
   async EnsureCollections(): Promise<void> {
     const collections = [
-      'Accounts',
       'AccountLinks',
+      'Accounts',
       'ApiKeys',
       'AppSecrets',
-      'Balances',
       'BalanceTransactions',
+      'Balances',
+      'Charges',
+      'CheckoutSessions',
+      'Customers',
       'Events',
       'ExternalWallets',
+      'IdempotencyKeys',
+      'InvoiceItems',
+      'Invoices',
       'LoginLinks',
+      'PaymentIntents',
+      'PaymentLinks',
       'Payouts',
       'Persons',
+      'Prices',
+      'Products',
+      'SubscriptionItems',
+      'Subscriptions',
+      'TelemetryConfigs',
       'TopUps',
       'Transfers',
       'UsageCounters',
-      'TelemetryConfigs',
       'VerificationSessions',
       'WebhookDeliveries',
       'WebhookEndpoints',
@@ -491,6 +503,14 @@ export class Database {
 
     if (collectionName === 'WebhookDeliveries') {
       flexibleSchema.index({ status: 1, next_attempt_at: 1 });
+    }
+
+    // Per-platform lists filter by platform and sort newest first.
+    if (
+      collectionName === 'Events' ||
+      collectionName === 'BalanceTransactions'
+    ) {
+      flexibleSchema.index({ platform_account: 1, created: -1 });
     }
 
     return mongoose.model(collectionName, flexibleSchema);
