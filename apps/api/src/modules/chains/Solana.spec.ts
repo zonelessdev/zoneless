@@ -1,10 +1,17 @@
 import {
+  AccountInfo,
   Keypair,
   PublicKey,
   SystemProgram,
   Transaction,
 } from '@solana/web3.js';
-import { ValidateSponsoredCheckoutTransaction } from './Solana';
+import {
+  ACCOUNT_SIZE,
+  AccountLayout,
+  AccountState,
+  TOKEN_PROGRAM_ID,
+} from '@solana/spl-token';
+import { Solana, ValidateSponsoredCheckoutTransaction } from './Solana';
 
 jest.mock('@solana/kit', () => ({}));
 jest.mock('@solana/kit-plugin-rpc', () => ({}));
@@ -124,5 +131,130 @@ describe('Solana sponsored checkout transactions', () => {
         sponsor.publicKey
       )
     ).toThrow('Sponsored checkout transaction signatures are invalid');
+  });
+});
+
+describe('Solana batch payout wallet checks', () => {
+  const sender = Keypair.generate().publicKey;
+  const recipient = Keypair.generate().publicKey.toBase58();
+  const LAMPORTS = 10_000_000;
+
+  function WalletInfo(lamports: number): AccountInfo<Buffer> {
+    return {
+      data: Buffer.alloc(0),
+      executable: false,
+      lamports,
+      owner: SystemProgram.programId,
+    };
+  }
+
+  function UsdcInfo(solana: Solana, cents: number): AccountInfo<Buffer> {
+    const data = Buffer.alloc(ACCOUNT_SIZE);
+    AccountLayout.encode(
+      {
+        mint: new PublicKey(solana.GetUSDCMintAddress()),
+        owner: sender,
+        amount: BigInt(cents) * BigInt(10000),
+        delegateOption: 0,
+        delegate: PublicKey.default,
+        state: AccountState.Initialized,
+        isNativeOption: 0,
+        isNative: BigInt(0),
+        delegatedAmount: BigInt(0),
+        closeAuthorityOption: 0,
+        closeAuthority: PublicKey.default,
+      },
+      data
+    );
+    return {
+      data,
+      executable: false,
+      lamports: 2_039_280,
+      owner: TOKEN_PROGRAM_ID,
+    };
+  }
+
+  /** A Solana whose RPC returns the given sender wallet, sender USDC account and recipient account. */
+  function StubSolana(
+    walletLamports: number | null,
+    usdcCents: number | null,
+    recipientExists = true
+  ) {
+    const solana = new Solana();
+    const getMultipleAccountsInfo = jest
+      .fn()
+      .mockResolvedValue([
+        walletLamports === null ? null : WalletInfo(walletLamports),
+        usdcCents === null ? null : UsdcInfo(solana, usdcCents),
+        recipientExists ? UsdcInfo(solana, 0) : null,
+      ]);
+    Object.assign(solana.connection, {
+      getMultipleAccountsInfo,
+      getLatestBlockhash: jest.fn().mockResolvedValue({
+        blockhash: Keypair.generate().publicKey.toBase58(),
+        lastValidBlockHeight: 100,
+      }),
+      getFeeForMessage: jest.fn().mockResolvedValue({ value: 5000 }),
+    });
+    return { solana, getMultipleAccountsInfo };
+  }
+
+  const Build = (solana: Solana, destinationAddress = recipient) =>
+    solana.BuildBatchPayoutTransaction(sender.toBase58(), [
+      { destinationAddress, amountInCents: 5800 },
+    ]);
+
+  it('builds with a single account read when the wallet can pay', async () => {
+    const { solana, getMultipleAccountsInfo } = StubSolana(LAMPORTS, 5821);
+
+    const result = await Build(solana);
+
+    expect(result.recipients_count).toBe(1);
+    expect(getMultipleAccountsInfo).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a destination that is the platform wallet itself', async () => {
+    const { solana, getMultipleAccountsInfo } = StubSolana(LAMPORTS, 5821);
+
+    await expect(Build(solana, sender.toBase58())).rejects.toMatchObject({
+      statusCode: 400,
+      message: expect.stringContaining('is the platform wallet'),
+    });
+    expect(getMultipleAccountsInfo).not.toHaveBeenCalled();
+  });
+
+  it('rejects when the platform wallet holds too little USDC', async () => {
+    const { solana } = StubSolana(LAMPORTS, 1000);
+
+    await expect(Build(solana)).rejects.toMatchObject({
+      statusCode: 402,
+      type: 'insufficient_funds',
+      message: expect.stringContaining(
+        'holds 10.00 USDC, but this payout needs 58.00 USDC'
+      ),
+    });
+  });
+
+  it('rejects when the platform wallet has no USDC account', async () => {
+    const { solana } = StubSolana(LAMPORTS, null);
+
+    await expect(Build(solana)).rejects.toMatchObject({ statusCode: 402 });
+  });
+
+  it('rejects when the platform wallet has no SOL for fees', async () => {
+    const { solana } = StubSolana(null, 5821);
+
+    await expect(Build(solana)).rejects.toMatchObject({
+      statusCode: 400,
+      message: expect.stringContaining('needs at least 0.000005 SOL'),
+    });
+  });
+
+  it('counts the rent for recipient token accounts it must create', async () => {
+    const { solana } = StubSolana(1_000_000, 5821, false);
+
+    await expect(Build(solana)).rejects.toMatchObject({
+      message: expect.stringContaining('needs at least 0.00204428 SOL'),
+    });
   });
 });

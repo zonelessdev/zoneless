@@ -973,7 +973,7 @@ export const PAYOUTS_BUILD_PAGE: DocPage = {
         { type: 'heading', level: 2, text: 'Returns' },
         {
           type: 'paragraph',
-          text: 'Returns a <code>payout_batch_build</code> object containing the unsigned transaction (base64-encoded), the blockhash, estimated fees, and the payout objects included in the batch.',
+          text: 'Returns a <code>payout_batch_build</code> object containing the unsigned transaction (base64-encoded), the blockhash, estimated fees, and the payout objects included in the batch. In live mode, this call raises an error and leaves the payouts <code>pending</code> if the platform wallet lacks the USDC for the batch or the SOL for network fees, or if a destination is the platform wallet itself.',
           html: true,
         },
       ],
