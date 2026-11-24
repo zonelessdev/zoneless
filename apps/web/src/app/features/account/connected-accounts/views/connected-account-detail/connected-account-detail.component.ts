@@ -26,7 +26,7 @@ import {
   IdentityService,
   PersonService,
 } from '../../../../../data';
-import { MetaService } from '../../../../../core';
+import { IsPlatformAccount, MetaService } from '../../../../../core';
 import {
   CopyTextComponent,
   PaginatedListColumn,
@@ -127,6 +127,10 @@ export class ConnectedAccountDetailViewComponent implements OnInit, OnDestroy {
     const account = this.account();
     return account?.email ?? account?.individual?.email ?? null;
   });
+
+  readonly isPlatformAccount = computed(() =>
+    IsPlatformAccount(this.account())
+  );
 
   readonly showIdentityAction = computed(() =>
     NeedsIdentityDocumentAction(this.account())

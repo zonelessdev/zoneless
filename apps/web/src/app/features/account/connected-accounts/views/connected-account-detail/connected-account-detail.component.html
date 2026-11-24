@@ -184,6 +184,7 @@
           >
             <span>Pull funds</span>
           </button>
+          @if (!isPlatformAccount()) {
           <button
             type="button"
             class="action-button action-button-dainty outline"
@@ -191,6 +192,7 @@
           >
             <span>Pay out account balance</span>
           </button>
+          }
         </div>
       </div>
 
