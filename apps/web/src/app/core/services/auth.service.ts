@@ -24,12 +24,16 @@ export interface ApiKeyLoginResponse {
   account_id: string;
 }
 
+export function IsPlatformAccount(account: Account | null): boolean {
+  return !!account && account.platform_account === account.id;
+}
+
 export function ResolveDashboardType(account: Account | null): DashboardType {
   const explicit = account?.controller?.zoneless_dashboard?.type;
   if (explicit) {
     return explicit;
   }
-  if (account && account.platform_account === account.id) {
+  if (IsPlatformAccount(account)) {
     return 'full';
   }
   return 'express';
@@ -71,7 +75,7 @@ export class AuthService {
 
   SyncFromAccount(account: Account | null): void {
     const type = ResolveDashboardType(account);
-    const isPlatform = !!(account && account.platform_account === account.id);
+    const isPlatform = IsPlatformAccount(account);
 
     this.dashboardType.set(type);
     this.isPlatform.set(isPlatform);
