@@ -22,6 +22,7 @@ import {
   createTransferInstruction,
   createTransferCheckedInstruction,
   createAssociatedTokenAccountIdempotentInstruction,
+  unpackAccount,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 import { createHash } from 'crypto';
@@ -55,6 +56,7 @@ import {
   GetCheckoutFeePayerSecretKey,
   RequireSubscriptionOperatorSecretKey,
 } from '../AppConfig';
+import { AppError } from '../../utils/AppError';
 
 /**
  * Derive a deterministic on-chain planId (u64) from an off-chain price id string.
@@ -172,6 +174,13 @@ const INITIAL_RETRY_DELAY_MS = 2000;
 // Each transfer is ~35 bytes, creating a token account adds ~165 bytes.
 // Conservative limit to ensure transactions don't exceed size limit.
 export const MAX_BATCH_RECIPIENTS = 10;
+
+/** Rent-exempt deposit for a new token account (165 bytes), paid by the sender. */
+const TOKEN_ACCOUNT_RENT_LAMPORTS = 2_039_280;
+
+/** USDC atomic units (6 decimals) as a 2-decimal string. */
+const FormatUsdc = (atomic: bigint): string =>
+  (Number(atomic) / 1_000_000).toFixed(2);
 
 /** Sleep helper */
 const Sleep = (ms: number): Promise<void> =>
@@ -319,11 +328,37 @@ export class Solana {
       })
     );
 
-    // Batch fetch all token account info in a single RPC call
+    if (recipients.some((r) => r.destinationAddress === senderPublicKey)) {
+      throw new AppError(
+        `The payout destination is the platform wallet ${senderPublicKey} itself. Choose a different destination wallet.`,
+        400,
+        'invalid_request_error'
+      );
+    }
+
+    // One RPC call for the sender's wallet and USDC account plus every recipient token account
     const tokenAccountKeys = recipientData.map((r) => r.tokenAccount);
-    const accountInfos = await this.WithRetry(() =>
-      this.connection.getMultipleAccountsInfo(tokenAccountKeys)
+    const [senderInfo, senderTokenInfo, ...accountInfos] = await this.WithRetry(
+      () =>
+        this.connection.getMultipleAccountsInfo([
+          sender,
+          senderTokenAccount,
+          ...tokenAccountKeys,
+        ])
     );
+
+    const senderUsdc = senderTokenInfo
+      ? unpackAccount(senderTokenAccount, senderTokenInfo).amount
+      : BigInt(0);
+    if (senderUsdc < BigInt(totalAmount) * BigInt(10000)) {
+      throw new AppError(
+        `Platform wallet ${senderPublicKey} holds ${FormatUsdc(
+          senderUsdc
+        )} USDC, but this payout needs ${(totalAmount / 100).toFixed(2)} USDC.`,
+        402,
+        'insufficient_funds'
+      );
+    }
 
     // Create Transaction
     const transaction = new Transaction();
@@ -382,6 +417,19 @@ export class Solana {
         (fee.value || 0) / 1_000_000_000
       } SOL)`
     );
+
+    const accountsToCreate = accountInfos.filter((info) => !info).length;
+    const requiredLamports =
+      (fee.value || 0) + accountsToCreate * TOKEN_ACCOUNT_RENT_LAMPORTS;
+    if ((senderInfo?.lamports ?? 0) < requiredLamports) {
+      throw new AppError(
+        `Platform wallet ${senderPublicKey} needs at least ${
+          requiredLamports / 1_000_000_000
+        } SOL to pay network fees. Send SOL to it and try again.`,
+        400,
+        'invalid_request_error'
+      );
+    }
 
     // Serialize the unsigned transaction
     const serializedTransaction = transaction
