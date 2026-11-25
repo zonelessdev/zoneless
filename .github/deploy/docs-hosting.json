@@ -1,0 +1,25 @@
+{
+  "hosting": {
+    "public": "dist/apps/docs/browser",
+    "trailingSlash": false,
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "redirects": [
+      {
+        "source": "/docs",
+        "destination": "/",
+        "type": 301
+      },
+      {
+        "source": "/docs/:path*",
+        "destination": "/:path",
+        "type": 301
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

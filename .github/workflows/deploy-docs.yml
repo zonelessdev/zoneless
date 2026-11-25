@@ -1,0 +1,58 @@
+name: Deploy Docs
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-docs
+
+jobs:
+  deploy:
+    name: Deploy docs
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: docs
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+      HOSTING_SITE: ${{ vars.HOSTING_SITE }}
+    steps:
+      - name: Mask the project number
+        run: echo "::add-mask::$(echo "$WIF_PROVIDER" | cut -d/ -f2)"
+        env:
+          WIF_PROVIDER: ${{ secrets.WIF_PROVIDER }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Build docs
+        run: npm run build:docs
+
+      - name: Deploy docs to Firebase Hosting
+        run: |
+          jq --arg site "$HOSTING_SITE" '.hosting.site = $site' \
+            .github/deploy/docs-hosting.json > firebase.json
+          npx firebase-tools@15 deploy --only hosting --project "$GCP_PROJECT" --non-interactive
+
+      # A missing file falls through to index.html, so check the content.
+      - name: Check docs are live
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-delay 5 --retry-all-errors \
+            "https://${HOSTING_SITE}.web.app/llms.txt" | grep --count '^# '
