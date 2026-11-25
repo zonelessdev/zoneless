@@ -24,6 +24,13 @@ jobs:
       GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
       API_URL: ${{ secrets.API_URL }}
     steps:
+      # The Cloud Run address is built from the project number, so keep both
+      # out of the public run log.
+      - name: Mask the project number
+        run: echo "::add-mask::$(echo "$WIF_PROVIDER" | cut -d/ -f2)"
+        env:
+          WIF_PROVIDER: ${{ secrets.WIF_PROVIDER }}
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -53,12 +60,14 @@ jobs:
 
       # No --set-env-vars: the service keeps the configuration it already has.
       - name: Deploy API to Cloud Run
-        run: >
-          gcloud run deploy "${{ vars.CLOUD_RUN_SERVICE }}"
-          --project "$GCP_PROJECT"
-          --region "${{ vars.GCP_REGION }}"
-          --source dist/apps/api
-          --quiet
+        run: |
+          set -o pipefail
+          gcloud run deploy "${{ vars.CLOUD_RUN_SERVICE }}" \
+            --project "$GCP_PROJECT" \
+            --region "${{ vars.GCP_REGION }}" \
+            --source dist/apps/api \
+            --quiet 2>&1 |
+            sed -uE 's#https://[A-Za-z0-9.-]+\.run\.app#[service URL hidden]#g'
 
       - name: Build dashboard
         run: |
