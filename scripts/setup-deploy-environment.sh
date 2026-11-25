@@ -8,7 +8,8 @@
 #     API environment, the Cloud Run service
 #   - a trust rule that only accepts this repository's main branch
 # Creates, in the GitHub repository:
-#   - an environment holding the project ID and identity names
+#   - an environment holding the project ID and identity names, all stored as
+#     secrets so they are masked in the public run logs
 #
 # Usage:
 #   ./scripts/setup-deploy-environment.sh <environment> <gcp-project> <api-url> [service] [region]
@@ -122,12 +123,12 @@ gh secret set GCP_PROJECT --env "$ENVIRONMENT" --body "$GCP_PROJECT"
 gh secret set WIF_PROVIDER --env "$ENVIRONMENT" --body "${POOL_NAME}/providers/${PROVIDER}"
 gh secret set DEPLOY_SERVICE_ACCOUNT --env "$ENVIRONMENT" --body "$DEPLOY_SERVICE_ACCOUNT"
 if [[ "$ENVIRONMENT" == "docs" ]]; then
-  gh variable set HOSTING_SITE --env "$ENVIRONMENT" --body "$HOSTING_SITE"
+  gh secret set HOSTING_SITE --env "$ENVIRONMENT" --body "$HOSTING_SITE"
   echo "Done. Run the Deploy Docs workflow."
   exit
 fi
 gh secret set API_URL --env "$ENVIRONMENT" --body "$API_URL"
-gh variable set CLOUD_RUN_SERVICE --env "$ENVIRONMENT" --body "$CLOUD_RUN_SERVICE"
-gh variable set GCP_REGION --env "$ENVIRONMENT" --body "$GCP_REGION"
+gh secret set CLOUD_RUN_SERVICE --env "$ENVIRONMENT" --body "$CLOUD_RUN_SERVICE"
+gh secret set GCP_REGION --env "$ENVIRONMENT" --body "$GCP_REGION"
 
 echo "Done. Run the Deploy workflow and choose \"$ENVIRONMENT\"."

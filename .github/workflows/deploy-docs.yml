@@ -17,7 +17,7 @@ jobs:
       id-token: write
     env:
       GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
-      HOSTING_SITE: ${{ vars.HOSTING_SITE }}
+      HOSTING_SITE: ${{ secrets.HOSTING_SITE }}
     steps:
       - name: Mask the project number
         run: echo "::add-mask::$(echo "$WIF_PROVIDER" | cut -d/ -f2)"
