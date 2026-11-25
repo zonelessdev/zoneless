@@ -21,12 +21,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Trusted publishing needs npm 11.5.1 or later, which ships with Node 24.
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
-          registry-url: 'https://registry.npmjs.org'
+          node-version-file: '.nvmrc'
 
       - name: Install dependencies
         run: npm ci
@@ -36,6 +34,14 @@ jobs:
 
       - name: Pack
         run: npm run pack:node
+
+      # Build with the same Node as CI, then switch: trusted publishing needs
+      # npm 11.5.1 or later, which ships with Node 24.
+      - name: Setup Node.js for publishing
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Publish
         run: ./scripts/publish-if-new.sh dist/sdks/node/*.tgz
@@ -55,8 +61,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
-          registry-url: 'https://registry.npmjs.org'
+          node-version-file: '.nvmrc'
 
       - name: Install dependencies
         run: npm ci
@@ -73,6 +78,12 @@ jobs:
 
       - name: Check the packed CLI runs
         run: npm exec --yes --package="$(ls dist/apps/cli/*.tgz)" -- zoneless --help
+
+      - name: Setup Node.js for publishing
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Publish
         run: ./scripts/publish-if-new.sh dist/apps/cli/*.tgz
