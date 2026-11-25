@@ -5,7 +5,9 @@ on:
     inputs:
       environment:
         description: Environment to deploy to
-        type: environment
+        type: choice
+        options:
+          - test
         required: true
 
 concurrency:
@@ -14,7 +16,7 @@ concurrency:
 jobs:
   deploy:
     name: Deploy to ${{ inputs.environment }}
-    if: github.ref == 'refs/heads/main' && inputs.environment != 'docs'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     permissions:
