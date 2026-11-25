@@ -1,0 +1,78 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy to
+        type: environment
+        required: true
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+      API_URL: ${{ secrets.API_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+
+      # Same as the manual deploy: Cloud Run installs from package.json alone.
+      - name: Build API
+        run: |
+          npx nx build api
+          rm -f dist/apps/api/package-lock.json
+
+      # No --set-env-vars: the service keeps the configuration it already has.
+      - name: Deploy API to Cloud Run
+        run: >
+          gcloud run deploy "${{ vars.CLOUD_RUN_SERVICE }}"
+          --project "$GCP_PROJECT"
+          --region "${{ vars.GCP_REGION }}"
+          --source dist/apps/api
+          --quiet
+
+      - name: Build dashboard
+        run: |
+          sed "s|apiUrl: ''|apiUrl: '$API_URL'|" \
+            apps/web/src/environments/environment.prod.example.ts \
+            > apps/web/src/environments/environment.prod.ts
+          npx nx build web --configuration=production
+
+      - name: Deploy dashboard to Firebase Hosting
+        run: |
+          cp .github/deploy/hosting.json firebase.json
+          npx firebase-tools@15 deploy --only hosting --project "$GCP_PROJECT" --non-interactive
+
+      - name: Check API health
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-delay 5 --retry-all-errors \
+            "${API_URL%/v1}/api/health" | grep '"mongodb":"connected"'
