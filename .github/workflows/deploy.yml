@@ -9,6 +9,7 @@ on:
         options:
           - test
           - cloud
+          - selfhosted
         required: true
 
 concurrency:
@@ -30,11 +31,15 @@ jobs:
       GCP_REGION: ${{ secrets.GCP_REGION }}
     steps:
       # The Cloud Run address is built from the project number, so keep both
-      # out of the public run log.
-      - name: Mask the project number
-        run: echo "::add-mask::$(echo "$WIF_PROVIDER" | cut -d/ -f2)"
+      # out of the public run log. LOG_MASKS is an optional list of extra words
+      # to hide.
+      - name: Mask identifying values
+        run: |
+          echo "::add-mask::$(echo "$WIF_PROVIDER" | cut -d/ -f2)"
+          for word in $LOG_MASKS; do echo "::add-mask::$word"; done
         env:
           WIF_PROVIDER: ${{ secrets.WIF_PROVIDER }}
+          LOG_MASKS: ${{ secrets.LOG_MASKS }}
 
       - name: Checkout
         uses: actions/checkout@v4
