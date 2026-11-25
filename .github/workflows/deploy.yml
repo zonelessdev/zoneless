@@ -14,7 +14,7 @@ concurrency:
 jobs:
   deploy:
     name: Deploy to ${{ inputs.environment }}
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && inputs.environment != 'docs'
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     permissions:
