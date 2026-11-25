@@ -1,0 +1,78 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: publish
+
+# Each job publishes its package only when the version in its package.json is
+# not on npm yet. Publishing uses npm trusted publishing, so there is no token.
+jobs:
+  node-sdk:
+    name: Publish Node SDK
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Trusted publishing needs npm 11.5.1 or later, which ships with Node 24.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: npx nx test node-sdk
+
+      - name: Pack
+        run: npm run pack:node
+
+      - name: Publish
+        run: ./scripts/publish-if-new.sh dist/sdks/node/*.tgz
+
+  cli:
+    name: Publish CLI
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: npx nx test cli --runInBand
+        env:
+          NX_DAEMON: 'false'
+
+      - name: Pack
+        run: npm run pack:cli
+        env:
+          NX_DAEMON: 'false'
+
+      - name: Check the packed CLI runs
+        run: npm exec --yes --package="$(ls dist/apps/cli/*.tgz)" -- zoneless --help
+
+      - name: Publish
+        run: ./scripts/publish-if-new.sh dist/apps/cli/*.tgz
