@@ -1,0 +1,93 @@
+#!/bin/bash
+# One-time setup that lets the Deploy workflow deploy to one Google Cloud
+# project. GitHub proves which repository a run belongs to and Google issues a
+# short-lived token for it, so no key is stored anywhere.
+#
+# Creates, in the Google Cloud project:
+#   - a deploy service account that can deploy the Cloud Run service and
+#     Firebase Hosting
+#   - a trust rule that only accepts this repository's main branch
+# Creates, in the GitHub repository:
+#   - an environment holding the project ID, API URL, and identity names
+#
+# Usage:
+#   ./scripts/setup-deploy-environment.sh <environment> <gcp-project> <api-url> [service] [region]
+#
+# Example:
+#   ./scripts/setup-deploy-environment.sh test my-project https://api.example.com/v1
+
+set -euo pipefail
+
+ENVIRONMENT="${1:?environment name is required, e.g. test}"
+GCP_PROJECT="${2:?Google Cloud project ID is required}"
+API_URL="${3:?API URL is required, e.g. https://api.example.com/v1}"
+CLOUD_RUN_SERVICE="${4:-zoneless-api}"
+GCP_REGION="${5:-us-central1}"
+
+POOL="github"
+PROVIDER="github"
+DEPLOY_SERVICE_ACCOUNT="github-deploy@${GCP_PROJECT}.iam.gserviceaccount.com"
+
+REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
+# The numeric ID cannot be claimed by another repository after a rename.
+REPO_ID="$(gh api "repos/${REPO}" --jq .id)"
+PROJECT_NUMBER="$(gcloud projects describe "$GCP_PROJECT" --format='value(projectNumber)')"
+POOL_NAME="projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL}"
+RUNTIME_SERVICE_ACCOUNT="$(gcloud run services describe "$CLOUD_RUN_SERVICE" \
+  --project "$GCP_PROJECT" --region "$GCP_REGION" \
+  --format='value(spec.template.spec.serviceAccountName)')"
+
+echo "Repository:      $REPO ($REPO_ID)"
+echo "Environment:     $ENVIRONMENT"
+echo "Project:         $GCP_PROJECT"
+echo "Cloud Run:       $CLOUD_RUN_SERVICE ($GCP_REGION), runs as $RUNTIME_SERVICE_ACCOUNT"
+echo "API URL:         $API_URL"
+read -r -p "Create the deploy identity and GitHub environment? [y/N] " answer
+[[ "$answer" == "y" ]] || exit 1
+
+gcloud services enable iamcredentials.googleapis.com sts.googleapis.com \
+  --project "$GCP_PROJECT"
+
+gcloud iam workload-identity-pools create "$POOL" \
+  --project "$GCP_PROJECT" --location global \
+  --display-name "GitHub Actions"
+
+gcloud iam workload-identity-pools providers create-oidc "$PROVIDER" \
+  --project "$GCP_PROJECT" --location global \
+  --workload-identity-pool "$POOL" \
+  --issuer-uri "https://token.actions.githubusercontent.com" \
+  --attribute-mapping "google.subject=assertion.sub,attribute.repository_id=assertion.repository_id,attribute.ref=assertion.ref" \
+  --attribute-condition "assertion.repository_id == '${REPO_ID}' && assertion.ref == 'refs/heads/main'"
+
+gcloud iam service-accounts create "${DEPLOY_SERVICE_ACCOUNT%%@*}" \
+  --project "$GCP_PROJECT" --display-name "GitHub deploy"
+
+gcloud iam service-accounts add-iam-policy-binding "$DEPLOY_SERVICE_ACCOUNT" \
+  --project "$GCP_PROJECT" \
+  --role roles/iam.workloadIdentityUser \
+  --member "principalSet://iam.googleapis.com/${POOL_NAME}/attribute.repository_id/${REPO_ID}"
+
+for role in \
+  roles/run.sourceDeveloper \
+  roles/serviceusage.serviceUsageConsumer \
+  roles/firebasehosting.admin; do
+  gcloud projects add-iam-policy-binding "$GCP_PROJECT" \
+    --member "serviceAccount:${DEPLOY_SERVICE_ACCOUNT}" \
+    --role "$role" --condition None
+done
+
+# Deploying a revision requires acting as the account the service runs as.
+gcloud iam service-accounts add-iam-policy-binding "$RUNTIME_SERVICE_ACCOUNT" \
+  --project "$GCP_PROJECT" \
+  --role roles/iam.serviceAccountUser \
+  --member "serviceAccount:${DEPLOY_SERVICE_ACCOUNT}"
+
+gh api --method PUT "repos/${REPO}/environments/${ENVIRONMENT}" --silent
+gh secret set GCP_PROJECT --env "$ENVIRONMENT" --body "$GCP_PROJECT"
+gh secret set API_URL --env "$ENVIRONMENT" --body "$API_URL"
+gh secret set WIF_PROVIDER --env "$ENVIRONMENT" --body "${POOL_NAME}/providers/${PROVIDER}"
+gh secret set DEPLOY_SERVICE_ACCOUNT --env "$ENVIRONMENT" --body "$DEPLOY_SERVICE_ACCOUNT"
+gh variable set CLOUD_RUN_SERVICE --env "$ENVIRONMENT" --body "$CLOUD_RUN_SERVICE"
+gh variable set GCP_REGION --env "$ENVIRONMENT" --body "$GCP_REGION"
+
+echo "Done. Run the Deploy workflow and choose \"$ENVIRONMENT\"."
