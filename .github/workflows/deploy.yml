@@ -29,6 +29,7 @@ jobs:
       API_URL: ${{ secrets.API_URL }}
       CLOUD_RUN_SERVICE: ${{ secrets.CLOUD_RUN_SERVICE }}
       GCP_REGION: ${{ secrets.GCP_REGION }}
+      HAS_CANARY: ${{ secrets.CANARY_API_KEY != '' }}
     steps:
       # The Cloud Run address is built from the project number, so keep both
       # out of the public run log. LOG_MASKS is an optional list of extra words
@@ -69,15 +70,24 @@ jobs:
           rm -f dist/apps/api/package-lock.json
 
       # No --set-env-vars: the service keeps the configuration it already has.
+      # After a manual rollback, traffic stays pinned to the old revision
+      # until it is pointed back at the latest one.
       - name: Deploy API to Cloud Run
         run: |
           set -o pipefail
+          HideServiceUrl() {
+            sed -uE 's#https://[A-Za-z0-9.-]+\.run\.app#[service URL hidden]#g'
+          }
           gcloud run deploy "$CLOUD_RUN_SERVICE" \
             --project "$GCP_PROJECT" \
             --region "$GCP_REGION" \
             --source dist/apps/api \
-            --quiet 2>&1 |
-            sed -uE 's#https://[A-Za-z0-9.-]+\.run\.app#[service URL hidden]#g'
+            --quiet 2>&1 | HideServiceUrl
+          gcloud run services update-traffic "$CLOUD_RUN_SERVICE" \
+            --project "$GCP_PROJECT" \
+            --region "$GCP_REGION" \
+            --to-latest \
+            --quiet 2>&1 | HideServiceUrl
 
       - name: Build dashboard
         run: |
@@ -95,3 +105,13 @@ jobs:
         run: |
           curl --fail --silent --show-error --retry 5 --retry-delay 5 --retry-all-errors \
             "${API_URL%/v1}/api/health" | grep '"mongodb":"connected"'
+
+      # One real one-cent payment, for environments set up with
+      # scripts/setup-canary.sh.
+      - name: Check a live payment
+        if: env.HAS_CANARY == 'true'
+        run: npx nx run api-e2e:canary
+        env:
+          CANARY_API_URL: ${{ secrets.API_URL }}
+          CANARY_API_KEY: ${{ secrets.CANARY_API_KEY }}
+          CANARY_WALLET_SECRET_KEY: ${{ secrets.CANARY_WALLET_SECRET_KEY }}

@@ -13,6 +13,13 @@
         "passWithNoTests": true
       },
       "dependsOn": ["api:build"]
+    },
+    "canary": {
+      "executor": "@nx/jest:jest",
+      "cache": false,
+      "options": {
+        "jestConfig": "apps/api-e2e/jest.canary.config.ts"
+      }
     }
   }
 }
