@@ -18,6 +18,10 @@
 # Examples:
 #   ./scripts/setup-deploy-environment.sh test my-project https://api.example.com/v1
 #   ./scripts/setup-deploy-environment.sh docs my-project my-docs-site
+#
+# Set LOG_MASKS to a space-separated list of extra words to hide in the run
+# logs of an API environment:
+#   LOG_MASKS="acme Acme" ./scripts/setup-deploy-environment.sh ...
 
 set -euo pipefail
 
@@ -130,5 +134,8 @@ fi
 gh secret set API_URL --env "$ENVIRONMENT" --body "$API_URL"
 gh secret set CLOUD_RUN_SERVICE --env "$ENVIRONMENT" --body "$CLOUD_RUN_SERVICE"
 gh secret set GCP_REGION --env "$ENVIRONMENT" --body "$GCP_REGION"
+if [[ -n "${LOG_MASKS:-}" ]]; then
+  gh secret set LOG_MASKS --env "$ENVIRONMENT" --body "$LOG_MASKS"
+fi
 
 echo "Done. Run the Deploy workflow and choose \"$ENVIRONMENT\"."
