@@ -26,22 +26,26 @@ function DescribeApiError(error: AxiosError): never {
   throw error;
 }
 
-function CreateClient(headers: Record<string, string> = {}): AxiosInstance {
-  const client = axios.create({ baseURL: `${API_URL}/v1`, headers });
+export function CreateClient(
+  baseURL: string,
+  headers: Record<string, string> = {}
+): AxiosInstance {
+  const client = axios.create({ baseURL, headers });
   client.interceptors.response.use(undefined, DescribeApiError);
   return client;
 }
 
 /** Creates a fresh platform so each spec file owns its own ledger. */
 export async function CreatePlatform(name: string): Promise<Platform> {
-  const { data } = await CreateClient().post<SetupResponse>('/setup', {
+  const baseURL = `${API_URL}/v1`;
+  const { data } = await CreateClient(baseURL).post<SetupResponse>('/setup', {
     platform_name: name,
     solana_public_key: NewWalletAddress(),
   });
 
   return {
     id: data.platform_account_id,
-    api: CreateClient({ 'x-api-key': data.api_key }),
+    api: CreateClient(baseURL, { 'x-api-key': data.api_key }),
   };
 }
 
