@@ -24,6 +24,10 @@ API_URL="${3:?API URL is required, e.g. https://api.example.com/v1}"
 CLOUD_RUN_SERVICE="${4:-zoneless-api}"
 GCP_REGION="${5:-us-central1}"
 
+# Count API calls against this project's quota. By default some gcloud
+# commands use a quota shared by all gcloud users, which can be exhausted.
+export CLOUDSDK_BILLING_QUOTA_PROJECT="$GCP_PROJECT"
+
 POOL="github"
 PROVIDER="github"
 DEPLOY_SERVICE_ACCOUNT="github-deploy@${GCP_PROJECT}.iam.gserviceaccount.com"
@@ -45,24 +49,43 @@ echo "API URL:         $API_URL"
 read -r -p "Create the deploy identity and GitHub environment? [y/N] " answer
 [[ "$answer" == "y" ]] || exit 1
 
+# A new service account takes a few seconds to become visible to IAM.
+Retry() {
+  local attempt
+  for attempt in 1 2 3 4 5 6; do
+    "$@" >/dev/null && return
+    echo "Retrying in 10 seconds (attempt ${attempt} of 6)..."
+    sleep 10
+  done
+  return 1
+}
+
 gcloud services enable iamcredentials.googleapis.com sts.googleapis.com \
   --project "$GCP_PROJECT"
 
-gcloud iam workload-identity-pools create "$POOL" \
+# Anything that already exists is left alone, so the script can be rerun.
+gcloud iam workload-identity-pools describe "$POOL" \
+  --project "$GCP_PROJECT" --location global >/dev/null 2>&1 ||
+  gcloud iam workload-identity-pools create "$POOL" \
+    --project "$GCP_PROJECT" --location global \
+    --display-name "GitHub Actions"
+
+gcloud iam workload-identity-pools providers describe "$PROVIDER" \
   --project "$GCP_PROJECT" --location global \
-  --display-name "GitHub Actions"
+  --workload-identity-pool "$POOL" >/dev/null 2>&1 ||
+  gcloud iam workload-identity-pools providers create-oidc "$PROVIDER" \
+    --project "$GCP_PROJECT" --location global \
+    --workload-identity-pool "$POOL" \
+    --issuer-uri "https://token.actions.githubusercontent.com" \
+    --attribute-mapping "google.subject=assertion.sub,attribute.repository_id=assertion.repository_id,attribute.ref=assertion.ref" \
+    --attribute-condition "assertion.repository_id == '${REPO_ID}' && assertion.ref == 'refs/heads/main'"
 
-gcloud iam workload-identity-pools providers create-oidc "$PROVIDER" \
-  --project "$GCP_PROJECT" --location global \
-  --workload-identity-pool "$POOL" \
-  --issuer-uri "https://token.actions.githubusercontent.com" \
-  --attribute-mapping "google.subject=assertion.sub,attribute.repository_id=assertion.repository_id,attribute.ref=assertion.ref" \
-  --attribute-condition "assertion.repository_id == '${REPO_ID}' && assertion.ref == 'refs/heads/main'"
+gcloud iam service-accounts describe "$DEPLOY_SERVICE_ACCOUNT" \
+  --project "$GCP_PROJECT" >/dev/null 2>&1 ||
+  gcloud iam service-accounts create "${DEPLOY_SERVICE_ACCOUNT%%@*}" \
+    --project "$GCP_PROJECT" --display-name "GitHub deploy"
 
-gcloud iam service-accounts create "${DEPLOY_SERVICE_ACCOUNT%%@*}" \
-  --project "$GCP_PROJECT" --display-name "GitHub deploy"
-
-gcloud iam service-accounts add-iam-policy-binding "$DEPLOY_SERVICE_ACCOUNT" \
+Retry gcloud iam service-accounts add-iam-policy-binding "$DEPLOY_SERVICE_ACCOUNT" \
   --project "$GCP_PROJECT" \
   --role roles/iam.workloadIdentityUser \
   --member "principalSet://iam.googleapis.com/${POOL_NAME}/attribute.repository_id/${REPO_ID}"
@@ -71,13 +94,13 @@ for role in \
   roles/run.sourceDeveloper \
   roles/serviceusage.serviceUsageConsumer \
   roles/firebasehosting.admin; do
-  gcloud projects add-iam-policy-binding "$GCP_PROJECT" \
+  Retry gcloud projects add-iam-policy-binding "$GCP_PROJECT" \
     --member "serviceAccount:${DEPLOY_SERVICE_ACCOUNT}" \
     --role "$role" --condition None
 done
 
 # Deploying a revision requires acting as the account the service runs as.
-gcloud iam service-accounts add-iam-policy-binding "$RUNTIME_SERVICE_ACCOUNT" \
+Retry gcloud iam service-accounts add-iam-policy-binding "$RUNTIME_SERVICE_ACCOUNT" \
   --project "$GCP_PROJECT" \
   --role roles/iam.serviceAccountUser \
   --member "serviceAccount:${DEPLOY_SERVICE_ACCOUNT}"
