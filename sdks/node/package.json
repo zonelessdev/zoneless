@@ -1,6 +1,6 @@
 {
   "name": "@zoneless/node",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Zoneless SDK for Node.js",
   "license": "Apache-2.0",
   "repository": {
