@@ -81,6 +81,8 @@ npm run format
 
 CI also runs `npm run format:check` and `npx nx run-many --target=test --all`. Run those locally before you open a PR.
 
+`npx nx e2e api-e2e` runs the end-to-end payment tests. It starts the built API in simulated test mode against a separate `zoneless_e2e` database, then drives checkout, transfers, and payouts over HTTP. MongoDB must be running (`npm run start:db`). CI runs it on every pull request.
+
 ## Pull requests
 
 1. Branch from `main`. Name the branch whatever describes the change (`fix-payout-status`, `account-link-return-url`, and so on). A `feature/` prefix is not required.

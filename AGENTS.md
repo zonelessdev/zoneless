@@ -55,6 +55,8 @@ Do not wrap internal routes (`/operator`, `/setup`, `/auth`, `/telemetry`, `/pay
 
 Keep diffs small and focused. Add tests for behaviour you change. Do not produce one large untested patch.
 
+When you change how money moves (checkout, balances, transfers, payouts), run `npx nx e2e api-e2e` and extend [`apps/api-e2e`](apps/api-e2e) to cover the new behaviour.
+
 When you change a public API, update docs and the Node SDK in the same PR.
 
 Human process, PR size, and how to pick work are in [CONTRIBUTING.md](./CONTRIBUTING.md).
