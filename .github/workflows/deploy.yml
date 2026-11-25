@@ -23,6 +23,8 @@ jobs:
     env:
       GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
       API_URL: ${{ secrets.API_URL }}
+      CLOUD_RUN_SERVICE: ${{ secrets.CLOUD_RUN_SERVICE }}
+      GCP_REGION: ${{ secrets.GCP_REGION }}
     steps:
       # The Cloud Run address is built from the project number, so keep both
       # out of the public run log.
@@ -62,9 +64,9 @@ jobs:
       - name: Deploy API to Cloud Run
         run: |
           set -o pipefail
-          gcloud run deploy "${{ vars.CLOUD_RUN_SERVICE }}" \
+          gcloud run deploy "$CLOUD_RUN_SERVICE" \
             --project "$GCP_PROJECT" \
-            --region "${{ vars.GCP_REGION }}" \
+            --region "$GCP_REGION" \
             --source dist/apps/api \
             --quiet 2>&1 |
             sed -uE 's#https://[A-Za-z0-9.-]+\.run\.app#[service URL hidden]#g'
