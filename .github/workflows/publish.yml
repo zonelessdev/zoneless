@@ -1,6 +1,12 @@
 name: Publish
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'sdks/node/package.json'
+      - 'apps/cli/package.json'
+      - '.github/workflows/publish.yml'
   workflow_dispatch:
 
 concurrency:

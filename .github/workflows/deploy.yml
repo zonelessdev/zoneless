@@ -1,6 +1,9 @@
 name: Deploy
 
+# A merge to main deploys to test. Every other environment is deployed by hand.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
@@ -13,14 +16,14 @@ on:
         required: true
 
 concurrency:
-  group: deploy-${{ inputs.environment }}
+  group: deploy-${{ inputs.environment || 'test' }}
 
 jobs:
   deploy:
-    name: Deploy to ${{ inputs.environment }}
+    name: Deploy to ${{ inputs.environment || 'test' }}
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
+    environment: ${{ inputs.environment || 'test' }}
     permissions:
       contents: read
       id-token: write
