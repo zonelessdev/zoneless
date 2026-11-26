@@ -1,6 +1,12 @@
 name: Deploy Docs
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/docs/**'
+      - '.github/deploy/docs-hosting.json'
+      - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
 
 concurrency:
