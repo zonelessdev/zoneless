@@ -29,6 +29,9 @@ permissions:
   deployments: read
   id-token: write
 
+# `secrets: inherit` is what lets each job read its environment's secrets
+# inside the called workflow. Without it they arrive empty.
+
 jobs:
   test:
     name: Test
@@ -37,6 +40,7 @@ jobs:
     with:
       environment: test
       everything: ${{ inputs.everything == true }}
+    secrets: inherit
 
   cloud:
     name: Cloud
@@ -48,6 +52,7 @@ jobs:
     with:
       environment: cloud
       everything: ${{ inputs.everything == true }}
+    secrets: inherit
 
   selfhosted:
     name: Selfhosted
@@ -59,3 +64,4 @@ jobs:
     with:
       environment: selfhosted
       everything: ${{ inputs.everything == true }}
+    secrets: inherit
