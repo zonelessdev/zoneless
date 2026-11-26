@@ -117,3 +117,88 @@ describe('One-time checkout payment', () => {
     expect(IsValidSignature(webhook, webhookSecret)).toBe(true);
   });
 });
+
+describe('Completing a session with the test helper', () => {
+  let platform: Platform;
+  let priceId: string;
+
+  async function CreateSession(
+    options: Record<string, unknown> = {}
+  ): Promise<CheckoutSession> {
+    const { data } = await platform.api.post('/checkout/sessions', {
+      mode: 'payment',
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: 'https://example.com/thanks',
+      ...options,
+    });
+    return data;
+  }
+
+  async function Complete(
+    session: CheckoutSession,
+    body?: Record<string, unknown>
+  ): Promise<CheckoutSession> {
+    const { data } = await platform.api.post(
+      `/test_helpers/checkout/sessions/${session.id}/complete`,
+      body
+    );
+    return data;
+  }
+
+  beforeAll(async () => {
+    platform = await CreatePlatform('Test Helper E2E');
+    const { data: product } = await platform.api.post('/products', {
+      name: 'Trail Map',
+    });
+    const { data: price } = await platform.api.post('/prices', {
+      product: product.id,
+      unit_amount: UNIT_AMOUNT,
+      currency: 'usdc',
+    });
+    priceId = price.id;
+  });
+
+  it('uses the email the session was created with', async () => {
+    const session = await CreateSession({
+      customer_email: 'noor.haddad@example.com',
+    });
+
+    const completed = await Complete(session);
+
+    expect(completed.payment_status).toBe('paid');
+    expect(completed.customer_details?.email).toBe('noor.haddad@example.com');
+  });
+
+  it('takes the email from the request', async () => {
+    const session = await CreateSession();
+
+    const completed = await Complete(session, {
+      email: 'ilse.brandt@example.com',
+    });
+
+    expect(completed.payment_status).toBe('paid');
+    expect(completed.customer_details?.email).toBe('ilse.brandt@example.com');
+  });
+
+  it('requires an email when neither has one', async () => {
+    const session = await CreateSession();
+
+    await expect(Complete(session)).rejects.toMatchObject({
+      response: { data: { error: { message: 'Email is required' } } },
+    });
+  });
+
+  it('passes on the other details a session requires', async () => {
+    const session = await CreateSession({
+      customer_email: 'noor.haddad@example.com',
+      phone_number_collection: { enabled: true },
+    });
+
+    await expect(Complete(session)).rejects.toMatchObject({
+      response: { data: { error: { message: 'Phone number is required' } } },
+    });
+    const completed = await Complete(session, { phone: '+14155552671' });
+
+    expect(completed.payment_status).toBe('paid');
+  });
+});

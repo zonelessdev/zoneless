@@ -782,3 +782,15 @@ export const PrepareCheckoutPaymentSchema = z.object({
 export type PrepareCheckoutPaymentInput = z.infer<
   typeof PrepareCheckoutPaymentSchema
 >;
+
+/**
+ * Body of the test helper that completes a session: the details hosted
+ * Checkout would collect. The payer defaults to the simulated test wallet.
+ */
+export const CompleteSimulatedCheckoutSchema =
+  PrepareCheckoutPaymentSchema.extend({
+    payer_wallet: z.string().min(1).optional(),
+  });
+export type CompleteSimulatedCheckoutInput = z.infer<
+  typeof CompleteSimulatedCheckoutSchema
+>;
