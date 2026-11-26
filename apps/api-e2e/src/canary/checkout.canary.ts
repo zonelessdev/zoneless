@@ -1,16 +1,29 @@
+import { isAxiosError } from 'axios';
 import { CheckoutSession } from '@zoneless/shared-types';
 import { CreateClient } from '../support/Api';
+import { RetryWhile } from '../support/Retry';
 import { LoadWallet, SignCheckoutPayment } from '../support/Wallet';
 
 const AMOUNT = 1;
-// An on-chain payment can take a while to confirm.
-const PAYMENT_TIMEOUT_MS = 120_000;
+// The network sometimes drops a transaction, and the API then gives up
+// waiting for it. That says nothing about the deployed code, so the payment
+// is tried again with a fresh session before the check fails.
+const PAYMENT_ATTEMPTS = 3;
+const PAYMENT_TIMEOUT_MS = 240_000;
 const READ_TIMEOUT_MS = 30_000;
 
 function RequireEnv(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`${name} is not set`);
   return value;
+}
+
+function IsConfirmationTimeout(error: unknown): boolean {
+  return (
+    isAxiosError(error) &&
+    error.response?.data?.error?.message ===
+      'Transaction confirmation timed out'
+  );
 }
 
 /**
@@ -36,28 +49,39 @@ describe('Live checkout payment', () => {
       unit_amount: AMOUNT,
       currency: 'usdc',
     });
-    const { data: created } = await platform.post('/checkout/sessions', {
-      mode: 'payment',
-      line_items: [{ price: price.id, quantity: 1 }],
-      success_url: 'https://example.com/canary',
-    });
-    const paymentPage = `/payment_pages/${new URL(created.url).pathname
-      .split('/')
-      .pop()}`;
 
-    const { data: prepared } = await customer.post(`${paymentPage}/prepare`, {
-      payer_wallet: wallet.publicKey.toBase58(),
-      email: 'canary@example.com',
-    });
-    expect(prepared.amount_total).toBe(AMOUNT);
+    session = await RetryWhile(
+      PAYMENT_ATTEMPTS,
+      IsConfirmationTimeout,
+      async () => {
+        const { data: created } = await platform.post('/checkout/sessions', {
+          mode: 'payment',
+          line_items: [{ price: price.id, quantity: 1 }],
+          success_url: 'https://example.com/canary',
+        });
+        const paymentPage = `/payment_pages/${new URL(created.url).pathname
+          .split('/')
+          .pop()}`;
 
-    ({ data: session } = await customer.post(`${paymentPage}/confirm`, {
-      signed_transaction: SignCheckoutPayment(
-        prepared.unsigned_transaction,
-        wallet,
-        AMOUNT
-      ),
-    }));
+        const { data: prepared } = await customer.post(
+          `${paymentPage}/prepare`,
+          {
+            payer_wallet: wallet.publicKey.toBase58(),
+            email: 'canary@example.com',
+          }
+        );
+        expect(prepared.amount_total).toBe(AMOUNT);
+
+        const { data: paid } = await customer.post(`${paymentPage}/confirm`, {
+          signed_transaction: SignCheckoutPayment(
+            prepared.unsigned_transaction,
+            wallet,
+            AMOUNT
+          ),
+        });
+        return paid;
+      }
+    );
   }, PAYMENT_TIMEOUT_MS);
 
   it('completes the session as paid', () => {
