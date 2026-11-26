@@ -1,6 +1,8 @@
 name: Deploy
 
 # A merge to main deploys to test. Every other environment is deployed by hand.
+# Either way, only the apps affected since the environment's last successful
+# deployment are deployed.
 on:
   push:
     branches: [main]
@@ -14,6 +16,10 @@ on:
           - cloud
           - selfhosted
         required: true
+      everything:
+        description: Deploy the API and dashboard even if unchanged
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-${{ inputs.environment || 'test' }}
@@ -26,6 +32,7 @@ jobs:
     environment: ${{ inputs.environment || 'test' }}
     permissions:
       contents: read
+      deployments: read
       id-token: write
     env:
       GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
@@ -45,8 +52,11 @@ jobs:
           WIF_PROVIDER: ${{ secrets.WIF_PROVIDER }}
           LOG_MASKS: ${{ secrets.LOG_MASKS }}
 
+      # Full history, to compare with the last deployed commit.
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -57,17 +67,33 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Work out what to deploy
+        id: changes
+        run: |
+          set -o pipefail
+          if [[ "${{ inputs.everything }}" == "true" ]]; then
+            printf 'api=true\nweb=true\n' | tee -a "$GITHUB_OUTPUT"
+          else
+            ./scripts/deploy-changes.sh "${{ inputs.environment || 'test' }}" |
+              tee -a "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Authenticate to Google Cloud
+        if: steps.changes.outputs.api == 'true' || steps.changes.outputs.web == 'true'
         uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
           service_account: ${{ secrets.DEPLOY_SERVICE_ACCOUNT }}
 
       - name: Set up gcloud
+        if: steps.changes.outputs.api == 'true'
         uses: google-github-actions/setup-gcloud@v3
 
       # Same as the manual deploy: Cloud Run installs from package.json alone.
       - name: Build API
+        if: steps.changes.outputs.api == 'true'
         run: |
           npx nx build api
           rm -f dist/apps/api/package-lock.json
@@ -76,6 +102,7 @@ jobs:
       # After a manual rollback, traffic stays pinned to the old revision
       # until it is pointed back at the latest one.
       - name: Deploy API to Cloud Run
+        if: steps.changes.outputs.api == 'true'
         run: |
           set -o pipefail
           HideServiceUrl() {
@@ -93,6 +120,7 @@ jobs:
             --quiet 2>&1 | HideServiceUrl
 
       - name: Build dashboard
+        if: steps.changes.outputs.web == 'true'
         run: |
           sed "s|apiUrl: ''|apiUrl: '$API_URL'|" \
             apps/web/src/environments/environment.prod.example.ts \
@@ -100,11 +128,13 @@ jobs:
           npx nx build web --configuration=production
 
       - name: Deploy dashboard to Firebase Hosting
+        if: steps.changes.outputs.web == 'true'
         run: |
           cp .github/deploy/hosting.json firebase.json
           npx firebase-tools@15 deploy --only hosting --project "$GCP_PROJECT" --non-interactive
 
       - name: Check API health
+        if: steps.changes.outputs.api == 'true'
         run: |
           curl --fail --silent --show-error --retry 5 --retry-delay 5 --retry-all-errors \
             "${API_URL%/v1}/api/health" | grep '"mongodb":"connected"'
@@ -112,9 +142,14 @@ jobs:
       # One real one-cent payment, for environments set up with
       # scripts/setup-canary.sh.
       - name: Check a live payment
-        if: env.HAS_CANARY == 'true'
+        if: steps.changes.outputs.api == 'true' && env.HAS_CANARY == 'true'
         run: npx nx run api-e2e:canary
         env:
           CANARY_API_URL: ${{ secrets.API_URL }}
           CANARY_API_KEY: ${{ secrets.CANARY_API_KEY }}
           CANARY_WALLET_SECRET_KEY: ${{ secrets.CANARY_WALLET_SECRET_KEY }}
+
+      - name: Summarise
+        run: |
+          echo "- API: ${{ steps.changes.outputs.api == 'true' && 'deployed' || 'unchanged, not deployed' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Dashboard: ${{ steps.changes.outputs.web == 'true' && 'deployed' || 'unchanged, not deployed' }}" >> "$GITHUB_STEP_SUMMARY"
