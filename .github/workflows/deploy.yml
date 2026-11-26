@@ -91,12 +91,19 @@ jobs:
         if: steps.changes.outputs.api == 'true'
         uses: google-github-actions/setup-gcloud@v3
 
-      # Same as the manual deploy: Cloud Run installs from package.json alone.
+      # Cloud Run installs the API's dependencies when it builds the image.
+      # Without a lockfile it picks the newest version of every indirect
+      # dependency at that moment. This gives it a lockfile made from the
+      # repository's own, so it installs the versions CI tested. It is written
+      # with the npm that Cloud Run installs with: older releases leave out
+      # entries that npm then refuses to install without.
       - name: Build API
         if: steps.changes.outputs.api == 'true'
         run: |
           npx nx build api
-          rm -f dist/apps/api/package-lock.json
+          cp package-lock.json dist/apps/api/package-lock.json
+          cd dist/apps/api
+          npx --yes npm@11.19.1 install --package-lock-only --ignore-scripts --no-audit --no-fund
 
       # No --set-env-vars: the service keeps the configuration it already has.
       # After a manual rollback, traffic stays pinned to the old revision
