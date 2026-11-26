@@ -12,16 +12,19 @@ export function NewWalletAddress(): string {
   return Keypair.generate().publicKey.toBase58();
 }
 
+const WALLET_ADDRESS = /[1-9A-HJ-NP-Za-km-z]{32,}/g;
+
 /**
  * Axios hides the response body in its error message. Put the API's own
- * error in the message so a failing run says what the API rejected.
+ * error in the message so a failing run says what the API rejected. Wallet
+ * addresses are left out, because the live checks log publicly.
  */
 function DescribeApiError(error: AxiosError): never {
   const { config, response } = error;
   if (response) {
     error.message = `${config?.method?.toUpperCase()} ${config?.url} → ${
       response.status
-    } ${JSON.stringify(response.data)}`;
+    } ${JSON.stringify(response.data)}`.replace(WALLET_ADDRESS, '[address]');
   }
   throw error;
 }
