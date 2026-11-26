@@ -42,7 +42,7 @@ You do not need to write code to help. Useful contributions include bug reports,
 
 ## Development setup
 
-You need Node.js 20 (see `.nvmrc`), npm, and Docker (for MongoDB).
+You need Node.js 24 (see `.nvmrc`), npm, and Docker (for MongoDB).
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/zoneless.git
