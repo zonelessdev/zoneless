@@ -366,7 +366,7 @@ export const AGENT_PAYMENTS_QUICKSTART_PAGE: DocPage = {
         },
         {
           type: 'paragraph',
-          text: 'To test a subscription end to end, the human opens hosted checkout in test mode and approves the simulated wallet. They can also complete a session with <code>POST /v1/test_helpers/checkout/sessions/:id/complete</code>. No Phantom, faucet, or Devnet switch is required.',
+          text: 'To test a subscription end to end, the human opens hosted checkout in test mode and approves the simulated wallet. They can also complete a session with <code>POST /v1/test_helpers/checkout/sessions/:id/complete</code>, sending <code>email</code> in the body unless the session has a customer or a <code>customer_email</code>. No Phantom, faucet, or Devnet switch is required.',
           html: true,
         },
         {

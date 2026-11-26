@@ -384,7 +384,8 @@ Report:
 - that to test a subscription end to end, the human opens hosted checkout in
   test mode and approves the simulated wallet (no Phantom, faucet, or Devnet
   switch). They can also complete a session with
-  `POST /v1/test_helpers/checkout/sessions/:id/complete`;
+  `POST /v1/test_helpers/checkout/sessions/:id/complete`, sending `email` in
+  the body unless the session has a customer or a `customer_email`;
 - that the customer approves the plan once at checkout and every later cycle is
   collected automatically, so no further signing is required;
 - where the human must configure the live API key, live API URL, and live

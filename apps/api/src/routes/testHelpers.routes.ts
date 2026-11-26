@@ -7,6 +7,8 @@ import { AsyncHandler } from '../utils/AsyncHandler';
 import { AppError } from '../utils/AppError';
 import { ERRORS } from '../utils/Errors';
 import { RequirePlatform } from '../middleware/Authorization';
+import { ValidateRequest } from '../middleware/ValidateRequest';
+import { CompleteSimulatedCheckoutSchema } from '@zoneless/shared-schemas';
 import { db } from '../modules/Database';
 import { EventService } from '../modules/EventService';
 import { CheckoutSessionModule } from '../modules/CheckoutSession';
@@ -103,11 +105,13 @@ function AssertSimulatedSettlement(): void {
 
 /**
  * POST /v1/test_helpers/checkout/sessions/:id/complete
- * Completes a checkout session as if the simulated wallet approved.
+ * Completes a checkout session as if the simulated wallet approved. The body
+ * carries the customer details hosted Checkout would collect.
  */
 router.post(
   '/checkout/sessions/:id/complete',
   RequirePlatform(),
+  ValidateRequest(CompleteSimulatedCheckoutSchema),
   AsyncHandler(async (req: express.Request, res: express.Response) => {
     AssertSimulatedSettlement();
 
@@ -129,13 +133,17 @@ router.post(
       );
     }
 
-    const payerWallet =
-      (typeof req.body?.payer_wallet === 'string' && req.body.payer_wallet) ||
-      SIMULATED_TEST_WALLET;
+    const { payer_wallet: payerWallet, ...details } =
+      CompleteSimulatedCheckoutSchema.parse(req.body);
 
+    // Hosted Checkout opens with the session's email already filled in.
     const completed = await checkoutPaymentModule.CompleteSimulatedCheckout(
       session.url_slug,
-      payerWallet
+      payerWallet ?? SIMULATED_TEST_WALLET,
+      {
+        ...details,
+        email: details.email ?? session.customer_email ?? undefined,
+      }
     );
     res.json(completed);
   })
