@@ -1,7 +1,7 @@
 name: Deploy
 
-# A merge to main deploys to test. Cloud and selfhosted are deployed by hand
-# for now: a manual run deploys one environment.
+# A merge to main deploys to test, then cloud, then selfhosted. Each stage runs
+# only if the one before it passed. A manual run deploys one environment.
 on:
   push:
     branches: [main]
@@ -47,7 +47,8 @@ jobs:
     needs: test
     if: >-
       !cancelled() && github.ref == 'refs/heads/main' &&
-      inputs.environment == 'cloud'
+      ((github.event_name == 'push' && needs.test.result == 'success') ||
+      inputs.environment == 'cloud')
     uses: ./.github/workflows/deploy-environment.yml
     with:
       environment: cloud
@@ -59,7 +60,8 @@ jobs:
     needs: cloud
     if: >-
       !cancelled() && github.ref == 'refs/heads/main' &&
-      inputs.environment == 'selfhosted'
+      ((github.event_name == 'push' && needs.cloud.result == 'success') ||
+      inputs.environment == 'selfhosted')
     uses: ./.github/workflows/deploy-environment.yml
     with:
       environment: selfhosted
