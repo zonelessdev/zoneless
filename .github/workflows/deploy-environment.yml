@@ -136,7 +136,8 @@ jobs:
             "${API_URL%/v1}/api/health" | grep '"mongodb":"connected"'
 
       # One real one-cent payment, for environments set up with
-      # scripts/setup-canary.sh.
+      # scripts/setup-canary.sh. With the platform wallet's key as well, the
+      # cent is then paid back out through a transfer and a payout.
       - name: Check a live payment
         id: canary
         if: steps.changes.outputs.api == 'true' && env.HAS_CANARY == 'true'
@@ -145,6 +146,7 @@ jobs:
           CANARY_API_URL: ${{ secrets.API_URL }}
           CANARY_API_KEY: ${{ secrets.CANARY_API_KEY }}
           CANARY_WALLET_SECRET_KEY: ${{ secrets.CANARY_WALLET_SECRET_KEY }}
+          CANARY_PLATFORM_WALLET_SECRET_KEY: ${{ secrets.CANARY_PLATFORM_WALLET_SECRET_KEY }}
 
       # The new revision failed its checks: send traffic back to the one that
       # was serving before. The job still fails.
