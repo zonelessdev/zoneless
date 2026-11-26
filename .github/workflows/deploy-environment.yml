@@ -36,11 +36,13 @@ jobs:
       HIDE_SERVICE_URL: 's#https://[A-Za-z0-9.-]+\.run\.app#[service URL hidden]#g'
     steps:
       # The Cloud Run address is built from the project number, so keep both
-      # out of the public run log. LOG_MASKS is an optional list of extra words
-      # to hide.
+      # out of the public run log. The API's host name is masked too: curl
+      # prints it when a health check cannot connect. LOG_MASKS is an optional
+      # list of extra words to hide.
       - name: Mask identifying values
         run: |
           echo "::add-mask::$(echo "$WIF_PROVIDER" | cut -d/ -f2)"
+          echo "::add-mask::$(echo "$API_URL" | sed -E 's#^https?://([^/]+).*#\1#')"
           for word in $LOG_MASKS; do echo "::add-mask::$word"; done
         env:
           WIF_PROVIDER: ${{ secrets.WIF_PROVIDER }}
