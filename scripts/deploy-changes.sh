@@ -14,7 +14,11 @@
 set -euo pipefail
 
 ENVIRONMENT="${1:?environment name is required, e.g. test}"
-DEPLOY_FILES=(.github/workflows/deploy.yml .github/deploy/hosting.json)
+DEPLOY_FILES=(
+  .github/workflows/deploy.yml
+  .github/workflows/deploy-environment.yml
+  .github/deploy/hosting.json
+)
 
 Print() {
   echo "api=$1"

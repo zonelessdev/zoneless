@@ -1,8 +1,7 @@
 name: Deploy
 
-# A merge to main deploys to test. Every other environment is deployed by hand.
-# Either way, only the apps affected since the environment's last successful
-# deployment are deployed.
+# A merge to main deploys to test. Cloud and selfhosted are deployed by hand
+# for now: a manual run deploys one environment.
 on:
   push:
     branches: [main]
@@ -21,142 +20,42 @@ on:
         type: boolean
         default: false
 
+# One deploy run at a time. If several are waiting, only the newest runs.
 concurrency:
-  group: deploy-${{ inputs.environment || 'test' }}
+  group: deploy
+
+permissions:
+  contents: read
+  deployments: read
+  id-token: write
 
 jobs:
-  deploy:
-    name: Deploy to ${{ inputs.environment || 'test' }}
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: ${{ inputs.environment || 'test' }}
-    permissions:
-      contents: read
-      deployments: read
-      id-token: write
-    env:
-      GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
-      API_URL: ${{ secrets.API_URL }}
-      CLOUD_RUN_SERVICE: ${{ secrets.CLOUD_RUN_SERVICE }}
-      GCP_REGION: ${{ secrets.GCP_REGION }}
-      HAS_CANARY: ${{ secrets.CANARY_API_KEY != '' }}
-    steps:
-      # The Cloud Run address is built from the project number, so keep both
-      # out of the public run log. LOG_MASKS is an optional list of extra words
-      # to hide.
-      - name: Mask identifying values
-        run: |
-          echo "::add-mask::$(echo "$WIF_PROVIDER" | cut -d/ -f2)"
-          for word in $LOG_MASKS; do echo "::add-mask::$word"; done
-        env:
-          WIF_PROVIDER: ${{ secrets.WIF_PROVIDER }}
-          LOG_MASKS: ${{ secrets.LOG_MASKS }}
+  test:
+    name: Test
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.environment == 'test')
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: test
+      everything: ${{ inputs.everything == true }}
 
-      # Full history, to compare with the last deployed commit.
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
+  cloud:
+    name: Cloud
+    needs: test
+    if: >-
+      !cancelled() && github.ref == 'refs/heads/main' &&
+      inputs.environment == 'cloud'
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: cloud
+      everything: ${{ inputs.everything == true }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Work out what to deploy
-        id: changes
-        run: |
-          set -o pipefail
-          if [[ "${{ inputs.everything }}" == "true" ]]; then
-            printf 'api=true\nweb=true\n' | tee -a "$GITHUB_OUTPUT"
-          else
-            ./scripts/deploy-changes.sh "${{ inputs.environment || 'test' }}" |
-              tee -a "$GITHUB_OUTPUT"
-          fi
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-      - name: Authenticate to Google Cloud
-        if: steps.changes.outputs.api == 'true' || steps.changes.outputs.web == 'true'
-        uses: google-github-actions/auth@v3
-        with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.DEPLOY_SERVICE_ACCOUNT }}
-
-      - name: Set up gcloud
-        if: steps.changes.outputs.api == 'true'
-        uses: google-github-actions/setup-gcloud@v3
-
-      # Cloud Run installs the API's dependencies when it builds the image.
-      # Without a lockfile it picks the newest version of every indirect
-      # dependency at that moment. This gives it a lockfile made from the
-      # repository's own, so it installs the versions CI tested. It also names
-      # the Node version: left unset, Cloud Run uses the newest it has.
-      - name: Build API
-        if: steps.changes.outputs.api == 'true'
-        run: |
-          npx nx build api
-          cp package-lock.json dist/apps/api/package-lock.json
-          cd dist/apps/api
-          npm pkg set engines.node="$(cat ../../../.nvmrc).x"
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-
-      # No --set-env-vars: the service keeps the configuration it already has.
-      # After a manual rollback, traffic stays pinned to the old revision
-      # until it is pointed back at the latest one.
-      - name: Deploy API to Cloud Run
-        if: steps.changes.outputs.api == 'true'
-        run: |
-          set -o pipefail
-          HideServiceUrl() {
-            sed -uE 's#https://[A-Za-z0-9.-]+\.run\.app#[service URL hidden]#g'
-          }
-          gcloud run deploy "$CLOUD_RUN_SERVICE" \
-            --project "$GCP_PROJECT" \
-            --region "$GCP_REGION" \
-            --source dist/apps/api \
-            --quiet 2>&1 | HideServiceUrl
-          gcloud run services update-traffic "$CLOUD_RUN_SERVICE" \
-            --project "$GCP_PROJECT" \
-            --region "$GCP_REGION" \
-            --to-latest \
-            --quiet 2>&1 | HideServiceUrl
-
-      - name: Build dashboard
-        if: steps.changes.outputs.web == 'true'
-        run: |
-          sed "s|apiUrl: ''|apiUrl: '$API_URL'|" \
-            apps/web/src/environments/environment.prod.example.ts \
-            > apps/web/src/environments/environment.prod.ts
-          npx nx build web --configuration=production
-
-      - name: Deploy dashboard to Firebase Hosting
-        if: steps.changes.outputs.web == 'true'
-        run: |
-          cp .github/deploy/hosting.json firebase.json
-          npx firebase-tools@15 deploy --only hosting --project "$GCP_PROJECT" --non-interactive
-
-      - name: Check API health
-        if: steps.changes.outputs.api == 'true'
-        run: |
-          curl --fail --silent --show-error --retry 5 --retry-delay 5 --retry-all-errors \
-            "${API_URL%/v1}/api/health" | grep '"mongodb":"connected"'
-
-      # One real one-cent payment, for environments set up with
-      # scripts/setup-canary.sh.
-      - name: Check a live payment
-        if: steps.changes.outputs.api == 'true' && env.HAS_CANARY == 'true'
-        run: npx nx run api-e2e:canary
-        env:
-          CANARY_API_URL: ${{ secrets.API_URL }}
-          CANARY_API_KEY: ${{ secrets.CANARY_API_KEY }}
-          CANARY_WALLET_SECRET_KEY: ${{ secrets.CANARY_WALLET_SECRET_KEY }}
-
-      - name: Summarise
-        run: |
-          echo "- API: ${{ steps.changes.outputs.api == 'true' && 'deployed' || 'unchanged, not deployed' }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Dashboard: ${{ steps.changes.outputs.web == 'true' && 'deployed' || 'unchanged, not deployed' }}" >> "$GITHUB_STEP_SUMMARY"
+  selfhosted:
+    name: Selfhosted
+    needs: cloud
+    if: >-
+      !cancelled() && github.ref == 'refs/heads/main' &&
+      inputs.environment == 'selfhosted'
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: selfhosted
+      everything: ${{ inputs.everything == true }}
