@@ -14,6 +14,7 @@ concurrency:
 
 # Each job publishes its package only when the version in its package.json is
 # not on npm yet. Publishing uses npm trusted publishing, so there is no token.
+# That needs npm 11.5.1 or later, which the Node version in .nvmrc ships with.
 jobs:
   node-sdk:
     name: Publish Node SDK
@@ -31,6 +32,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: npm ci
@@ -40,14 +42,6 @@ jobs:
 
       - name: Pack
         run: npm run pack:node
-
-      # Build with the same Node as CI, then switch: trusted publishing needs
-      # npm 11.5.1 or later, which ships with Node 24.
-      - name: Setup Node.js for publishing
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Publish
         run: ./scripts/publish-if-new.sh dist/sdks/node/*.tgz
@@ -68,6 +62,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: npm ci
@@ -84,12 +79,6 @@ jobs:
 
       - name: Check the packed CLI runs
         run: npm exec --yes --package="$(ls dist/apps/cli/*.tgz)" -- zoneless --help
-
-      - name: Setup Node.js for publishing
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Publish
         run: ./scripts/publish-if-new.sh dist/apps/cli/*.tgz
